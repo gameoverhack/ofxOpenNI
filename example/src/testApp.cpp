@@ -2,20 +2,25 @@
 
 //--------------------------------------------------------------
 void testApp::setup(){
-	ofSetLogLevel(OF_LOG_VERBOSE);
-	
-	context.setup();
+	context.initFromXMLFile();
 	depth.setup(&context);
+	user.setup(&context, &depth);
 }
 
 //--------------------------------------------------------------
 void testApp::update(){
 	context.update();
+	user.update();
 }
 
 //--------------------------------------------------------------
 void testApp::draw(){
-	depth.draw(0, 0, 640, 480);
+	//depth.draw(0,0,640,480);
+	//user.draw();
+	ofxTrackedUser* tracked = user.getTrackedUser(0);
+	if(tracked != NULL) {
+		tracked->debugDraw();
+	}
 }
 
 //--------------------------------------------------------------
