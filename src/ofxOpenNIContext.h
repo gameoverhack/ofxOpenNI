@@ -1,11 +1,5 @@
-/*
- *  ofxOpenNI.h
- *  opennisample
- *
- *  Created by Jonas Jongejan on 06/01/11.
- *
- */
-#pragma once
+#ifndef OFXOPENNICONTEXTH
+#define OFXOPENNICONTEXTH
 
 #include "ofMain.h"
 
@@ -21,11 +15,14 @@ public:
 
 	bool setup();
 	void update();
-	
-	xn::Context * xnContext();
+	bool initFromXMLFile(std::string sFile = "");
+	xn::Context* getXnContext();
+
 	
 private:
-	xn::Context g_Context;
+	xn::Context context;
 //	xn::UserGenerator g_UserGenerator;
 	
 };
+
+#endif

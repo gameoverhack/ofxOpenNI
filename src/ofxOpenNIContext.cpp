@@ -1,21 +1,10 @@
-/*
- *  ofxOpenNIContext.cpp
- *  opennisample
- *
- *  Created by Jonas Jongejan on 06/01/11.
- *
- */
-
 #include "ofxOpenNIContext.h"
-
-
-
 ofxOpenNIContext::ofxOpenNIContext(){
 }
 
 bool ofxOpenNIContext::setup(){
 	//Init OpenNI context
-	XnStatus nRetVal = g_Context.Init();
+	XnStatus nRetVal = context.Init();
 	
 	if (nRetVal != XN_STATUS_OK){
 		printf("Setup OpenNI context failed: %s\n", xnGetStatusString(nRetVal));
@@ -26,14 +15,36 @@ bool ofxOpenNIContext::setup(){
 	}
 }
 
+bool ofxOpenNIContext::initFromXMLFile(std::string sFile) {
+	if(sFile == "") {
+		sFile = ofToDataPath("openni/config/ofxopenni_config.xml");
+		std::cout << sFile << std::endl;
+	}
+	
+	XnStatus result = XN_STATUS_OK;
+	xn::EnumerationErrors errors;
+	result = context.InitFromXmlFile(sFile.c_str(),&errors);
+
+	if (result == XN_STATUS_NO_NODE_PRESENT) {
+		XnChar strError[1024];
+		errors.ToString(strError, 1024);
+		printf("%s\n", strError);
+	}
+	else if(result != XN_STATUS_OK) {
+		printf("+++++ Open failed: %s\n", xnGetStatusString(result));
+
+	}
+}
+
+
 void ofxOpenNIContext::update(){
-	XnStatus nRetVal = g_Context.WaitAnyUpdateAll();	
+	XnStatus nRetVal = context.WaitAnyUpdateAll();	
 	
 }
 
-xn::Context * ofxOpenNIContext::xnContext(){
-	return &g_Context;
+xn::Context * ofxOpenNIContext::getXnContext(){
+	return &context;
 }
 ofxOpenNIContext::~ofxOpenNIContext(){
-	g_Context.Shutdown();
+	context.Shutdown();
 }

@@ -1,11 +1,3 @@
-/*
- *  ofxKinectGenerator.cpp
- *  opennisample
- *
- *  Created by Jonas Jongejan on 07/01/11.
- *
- */
-
 #include "ofxDepthGenerator.h"
 
 
@@ -66,7 +58,7 @@ bool ofxDepthGenerator::setup(ofxOpenNIContext * context){
 	_context = context;
 	
 	//Create depth generator
-	XnStatus nRetVal = g_DepthGenerator.Create(*_context->xnContext());
+	XnStatus nRetVal = g_DepthGenerator.Create(*_context->getXnContext());
 	if (nRetVal != XN_STATUS_OK){
 		printf("Setup Depth Camera failed: %s\n", xnGetStatusString(nRetVal));
 		return false;

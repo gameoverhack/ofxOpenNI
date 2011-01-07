@@ -1,11 +1,5 @@
-/*
- *  ofxKinectGenerator.h
- *  opennisample
- *
- *  Created by Jonas Jongejan on 07/01/11.
- *
- */
-#pragma once
+#ifndef OFXDEPTHGENERATORH
+#define OFXDEPTHGENERATORH
 
 #include "ofxOpenNIContext.h"
 
@@ -27,3 +21,5 @@ private:
 
 	ofxOpenNIContext * _context;
 };
+
+#endif
