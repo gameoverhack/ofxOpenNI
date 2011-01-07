@@ -58,7 +58,7 @@ bool ofxDepthGenerator::setup(ofxOpenNIContext * context){
 	_context = context;
 	
 	//Create depth generator
-	XnStatus nRetVal = g_DepthGenerator.Create(*_context->getXnContext());
+	XnStatus nRetVal = depth_generator.Create(*_context->getXnContext());
 	if (nRetVal != XN_STATUS_OK){
 		printf("Setup Depth Camera failed: %s\n", xnGetStatusString(nRetVal));
 		return false;
@@ -67,28 +67,33 @@ bool ofxDepthGenerator::setup(ofxOpenNIContext * context){
 		
 		//Set the input to VGA (standard is QVGA wich is not supported on the Kinect)
 		XnMapOutputMode mapMode; mapMode.nXRes = XN_VGA_X_RES; mapMode.nYRes = XN_VGA_Y_RES; mapMode.nFPS = 30;
-		nRetVal = g_DepthGenerator.SetMapOutputMode(mapMode);
-		g_fMaxDepth = g_DepthGenerator.GetDeviceMaxDepth();		
+		nRetVal = depth_generator.SetMapOutputMode(mapMode);
+		g_fMaxDepth = depth_generator.GetDeviceMaxDepth();		
 		
 		_depthTexture.allocate(mapMode.nXRes, mapMode.nYRes, GL_RGBA);		
 		depthPixels = new unsigned char[mapMode.nXRes * mapMode.nYRes * 4];
 		memset(depthPixels, 0, mapMode.nXRes * mapMode.nYRes * 4 * sizeof(unsigned char));
 		
 		
-		g_DepthGenerator.StartGenerating();		
+		depth_generator.StartGenerating();		
 		return true;
 	}
 }
 
 void ofxDepthGenerator::draw(float x, float y, float w, float h){
 	generateTexture();
-	
+	glColor3f(1,1,1);
 	_depthTexture.draw(x, y, w, h);	
 }
 
+xn::DepthGenerator* ofxDepthGenerator::getXnDepthGenerator() {
+	return &depth_generator;
+}
+
+
 void ofxDepthGenerator::generateTexture(){
 	xn::DepthMetaData pDepthMD;
-	g_DepthGenerator.GetMetaData(pDepthMD);	
+	depth_generator.GetMetaData(pDepthMD);	
 	const XnDepthPixel* pDepth = pDepthMD.Data();
 	XN_ASSERT(pDepth);
 	

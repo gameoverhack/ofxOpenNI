@@ -21,8 +21,6 @@ public:
 	
 private:
 	xn::Context context;
-//	xn::UserGenerator g_UserGenerator;
-	
 };
 
 #endif
