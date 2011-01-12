@@ -1,48 +1,39 @@
 #include "ofxDepthGenerator.h"
-
+#include "ofxOpenNIMacros.h"
 
 XnUInt8 PalletIntsR [256] = {0};
 XnUInt8 PalletIntsG [256] = {0};
 XnUInt8 PalletIntsB [256] = {0};
 
 
-
-void CreateRainbowPallet()
-{
+void CreateRainbowPallet() {
 	unsigned char r, g, b;
-	for (int i=1; i<255; i++)
-	{
-		if (i<=29)
-		{
+	for (int i=1; i<255; i++) {
+		if (i<=29) {
 			r = (unsigned char)(129.36-i*4.36);
 			g = 0;
 			b = (unsigned char)255;
 		}
-		else if (i<=86)
-		{
+		else if (i<=86) {
 			r = 0;
 			g = (unsigned char)(-133.54+i*4.52);
 			b = (unsigned char)255;
 		}
-		else if (i<=141)
-		{
+		else if (i<=141) {
 			r = 0;
 			g = (unsigned char)255;
 			b = (unsigned char)(665.83-i*4.72);
 		}
-		else if (i<=199)
-		{
+		else if (i<=199) {
 			r = (unsigned char)(-635.26+i*4.47);
 			g = (unsigned char)255;
 			b = 0;
 		}
-		else
-		{
+		else {
 			r = (unsigned char)255;
 			g = (unsigned char)(1166.81-i*4.57);
 			b = 0;
 		}
-		
 		PalletIntsR[i] = r;
 		PalletIntsG[i] = g;
 		PalletIntsB[i] = b;
@@ -51,138 +42,148 @@ void CreateRainbowPallet()
 
 ofxDepthGenerator::ofxDepthGenerator(){
 	CreateRainbowPallet();	
-	_depthColoring = 3;
+	depth_coloring = 3;
 }
 
-bool ofxDepthGenerator::setup(ofxOpenNIContext * context){
-	_context = context;
+bool ofxDepthGenerator::setup(ofxOpenNIContext* pContext) {
+	//context = rContext;
 	
-	//Create depth generator
-	XnStatus nRetVal = depth_generator.Create(*_context->getXnContext());
-	if (nRetVal != XN_STATUS_OK){
-		printf("Setup Depth Camera failed: %s\n", xnGetStatusString(nRetVal));
-		return false;
-	} else {
-		ofLog(OF_LOG_VERBOSE, "Depth camera inited");
-		
-		//Set the input to VGA (standard is QVGA wich is not supported on the Kinect)
-		XnMapOutputMode mapMode; mapMode.nXRes = XN_VGA_X_RES; mapMode.nYRes = XN_VGA_Y_RES; mapMode.nFPS = 30;
-		nRetVal = depth_generator.SetMapOutputMode(mapMode);
-		g_fMaxDepth = depth_generator.GetDeviceMaxDepth();		
-		
-		_depthTexture.allocate(mapMode.nXRes, mapMode.nYRes, GL_RGBA);		
-		depthPixels = new unsigned char[mapMode.nXRes * mapMode.nYRes * 4];
-		memset(depthPixels, 0, mapMode.nXRes * mapMode.nYRes * 4 * sizeof(unsigned char));
-		
-		
-		depth_generator.StartGenerating();		
-		return true;
+	// When the context is using a recording we need to fetch the depth generator.
+	// --------------------------------------------------------------------------
+	if(!pContext->isUsingRecording()) {
+		XnStatus result = depth_generator.Create(pContext->getXnContext());
+		CHECK_RC(result, "Creating depth generator using recording");
 	}
+	else {
+		pContext->getDepthGenerator(this);
+	}	
+	ofLog(OF_LOG_VERBOSE, "Depth camera inited");
+	
+	
+	//Set the input to VGA (standard is QVGA wich is not supported on the Kinect)
+	XnStatus result = XN_STATUS_OK;
+	XnMapOutputMode map_mode; 
+	map_mode.nXRes = XN_VGA_X_RES; 
+	map_mode.nYRes = XN_VGA_Y_RES;
+	map_mode.nFPS = 30;
+	
+	result = depth_generator.SetMapOutputMode(map_mode);
+	max_depth = depth_generator.GetDeviceMaxDepth();		
+	
+	depth_texture.allocate(map_mode.nXRes, map_mode.nYRes, GL_RGBA);		
+	depth_pixels = new unsigned char[map_mode.nXRes * map_mode.nYRes * 4];
+	memset(depth_pixels, 0, map_mode.nXRes * map_mode.nYRes * 4 * sizeof(unsigned char));
+		
+	depth_generator.StartGenerating();	
+	return true;
+	
 }
-
 void ofxDepthGenerator::draw(float x, float y, float w, float h){
 	generateTexture();
 	glColor3f(1,1,1);
-	_depthTexture.draw(x, y, w, h);	
+	depth_texture.draw(x, y, w, h);	
 }
 
-xn::DepthGenerator* ofxDepthGenerator::getXnDepthGenerator() {
-	return &depth_generator;
+xn::DepthGenerator& ofxDepthGenerator::getXnDepthGenerator() {
+	return depth_generator;
 }
 
 
 void ofxDepthGenerator::generateTexture(){
-	xn::DepthMetaData pDepthMD;
-	depth_generator.GetMetaData(pDepthMD);	
-	const XnDepthPixel* pDepth = pDepthMD.Data();
-	XN_ASSERT(pDepth);
+	// get meta-data
+	xn::DepthMetaData dmd;
+	depth_generator.GetMetaData(dmd);	
 	
-	if (pDepthMD.FrameID() == 0){
+	// get the pixels
+	const XnDepthPixel* depth = dmd.Data();
+	XN_ASSERT(depth);
+	
+	if (dmd.FrameID() == 0){
 		return;
 	}
 	
 	
 	// copy depth into texture-map
-	for (XnUInt16 nY = pDepthMD.YOffset(); nY < pDepthMD.YRes() + pDepthMD.YOffset(); nY++){
-		unsigned char * pTexture = (unsigned char*)depthPixels + nY * pDepthMD.XRes() * 4 + pDepthMD.XOffset()*4;
-		for (XnUInt16 nX = 0; nX < pDepthMD.XRes(); nX++, pDepth++, pTexture+=4){
-			XnUInt8 nRed = 0;
-			XnUInt8 nGreen = 0;
-			XnUInt8 nBlue = 0;
-			XnUInt8 nAlpha = 255;
+	for (XnUInt16 y = dmd.YOffset(); y < dmd.YRes() + dmd.YOffset(); y++) {
+		unsigned char * texture = (unsigned char*)depth_pixels + y * dmd.XRes() * 4 + dmd.XOffset()*4;
+		for (XnUInt16 x = 0; x < dmd.XRes(); x++, depth++, texture+=4){
+			XnUInt8 red = 0;
+			XnUInt8 green = 0;
+			XnUInt8 blue = 0;
+			XnUInt8 alpha = 255;
 			
-			XnUInt16 nColIndex;
+			XnUInt16 col_index;
 			
 			
-			switch (_depthColoring){
+			switch (depth_coloring){
 				case 0: //PSYCHEDELIC_SHADES
-					nAlpha *= (((XnFloat)(*pDepth % 10) / 20) + 0.5);
+					alpha *= (((XnFloat)(*depth % 10) / 20) + 0.5);
 				case 1: //PSYCHEDELIC					
-					switch ((*pDepth/10) % 10){
+					switch ((*depth/10) % 10){
 						case 0:
-							nRed = 255;
+							red = 255;
 							break;
 						case 1:
-							nGreen = 255;
+							green = 255;
 							break;
 						case 2:
-							nBlue = 255;
+							blue = 255;
 							break;
 						case 3:
-							nRed = 255;
-							nGreen = 255;
+							red = 255;
+							green = 255;
 							break;
 						case 4:
-							nGreen = 255;
-							nBlue = 255;
+							green = 255;
+							blue = 255;
 							break;
 						case 5:
-							nRed = 255;
-							nBlue = 255;
+							red = 255;
+							blue = 255;
 							break;
 						case 6:
-							nRed = 255;
-							nGreen = 255;
-							nBlue = 255;
+							red = 255;
+							green = 255;
+							blue = 255;
 							break;
 						case 7:
-							nRed = 127;
-							nBlue = 255;
+							red = 127;
+							blue = 255;
 							break;
 						case 8:
-							nRed = 255;
-							nBlue = 127;
+							red = 255;
+							blue = 127;
 							break;
 						case 9:
-							nRed = 127;
-							nGreen = 255;
+							red = 127;
+							green = 255;
 							break;
 					}
 					break;
 				case 2: //RAINBOW
-					nColIndex = (XnUInt16)(((*pDepth) / (g_fMaxDepth / 256)));
-					nRed = PalletIntsR[nColIndex];
-					nGreen = PalletIntsG[nColIndex];
-					nBlue = PalletIntsB[nColIndex];
+					col_index = (XnUInt16)(((*depth) / (max_depth / 256)));
+					red = PalletIntsR[col_index];
+					green = PalletIntsG[col_index];
+					blue = PalletIntsB[col_index];
 					break;
 				case 3: //CYCLIC_RAINBOW
-					nColIndex = (*pDepth % 256);
-					nRed = PalletIntsR[nColIndex];
-					nGreen = PalletIntsG[nColIndex];
-					nBlue = PalletIntsB[nColIndex];
+					col_index = (*depth % 256);
+					red = PalletIntsR[col_index];
+					green = PalletIntsG[col_index];
+					blue = PalletIntsB[col_index];
 					break;
 			}
 			
-			pTexture[0] = nRed;
-			pTexture[1] = nGreen;
-			pTexture[2] = nBlue;
+			texture[0] = red;
+			texture[1] = green;
+			texture[2] = blue;
 			
-			if (*pDepth == 0)
-				pTexture[3] = 0;
+			if (*depth == 0)
+				texture[3] = 0;
 			else
-				pTexture[3] = nAlpha;
+				texture[3] = alpha;
 		}	
 	}
 	
-	_depthTexture.loadData((unsigned char *)depthPixels,pDepthMD.XRes(), pDepthMD.YRes(), GL_RGBA);	
+	depth_texture.loadData((unsigned char *)depth_pixels,dmd.XRes(), dmd.YRes(), GL_RGBA);	
 }

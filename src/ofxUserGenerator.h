@@ -1,6 +1,4 @@
-#ifndef USERGENERATORH
-#define USERGENERATORH
-
+#pragma once
 #include "ofxOpenNIContext.h"
 #include "ofxDepthGenerator.h"
 #include <vector>
@@ -35,5 +33,5 @@ private:
 	XnUInt16 found_users;
 
 };
-#endif
+
 

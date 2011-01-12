@@ -1,5 +1,4 @@
-#ifndef OFXTRACKEDUSERH
-#define OFXTRACKEDUSERH
+#pragma once
 
 #include <XnOpenNI.h>
 #include <XnCppWrapper.h>
@@ -85,5 +84,3 @@ private:
 
 	friend class ofxUserGenerator;
 };
-
-#endif

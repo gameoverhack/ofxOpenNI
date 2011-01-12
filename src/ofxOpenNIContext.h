@@ -1,26 +1,27 @@
-#ifndef OFXOPENNICONTEXTH
-#define OFXOPENNICONTEXTH
-
+#pragme once
 #include "ofMain.h"
 
 #include <XnOpenNI.h>
 #include <XnCodecIDs.h>
 #include <XnCppWrapper.h>
 
-
+class ofxDepthGenerator;
 class ofxOpenNIContext {
 public:
 	ofxOpenNIContext();
 	~ofxOpenNIContext();	
 
-	bool setup();
-	void update();
-	bool initFromXMLFile(std::string sFile = "");
-	xn::Context* getXnContext();
 
+	void update();
+	bool setup();
+	bool setupUsingXMLFile(std::string sFile = "");
+	bool setupUsingRecording(std::string sRecordedFile);
+	xn::Context& getXnContext();
+	bool getDepthGenerator(ofxDepthGenerator* pDepthGenerator);
+
+	bool isUsingRecording();
 	
 private:
+	bool is_using_recording;
 	xn::Context context;
 };
-
-#endif

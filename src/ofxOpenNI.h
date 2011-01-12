@@ -2,3 +2,7 @@
 #include "ofxDepthGenerator.h"
 #include "ofxUserGenerator.h"
 #include "ofxTrackedUser.h"
+#include "ofxImageGenerator.h"
+#include "ofxOpenNIRecorder.h"
+#include "ofxRecorderBuffer.h"
+#include "ofxOpenNIPlayback.h"

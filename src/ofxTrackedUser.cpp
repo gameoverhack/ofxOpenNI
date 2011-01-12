@@ -85,7 +85,7 @@ void ofxTrackedUser::updateLimb(ofxLimb& rLimb) {
 	rLimb.found = true;
 	rLimb.position[0] = a.position;
 	rLimb.position[1] = b.position;
-	depth_generator->getXnDepthGenerator()->ConvertRealWorldToProjective(2, rLimb.position, rLimb.position);
+	depth_generator->getXnDepthGenerator().ConvertRealWorldToProjective(2, rLimb.position, rLimb.position);
 }
 
 void ofxTrackedUser::debugDraw() {
