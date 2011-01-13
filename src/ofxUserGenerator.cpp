@@ -66,6 +66,7 @@ void XN_CALLBACK_TYPE UserCalibration_CalibrationEnd(
 {
 	ofxUserGenerator* user = static_cast<ofxUserGenerator*>(pCookie);
 	if(bSuccess) {
+		printf("+++++++++++++++++++++++ Succesfully tracked user: %d\n", nID);
 		user->startTracking(nID);
 	}
 	else {
@@ -83,22 +84,33 @@ void XN_CALLBACK_TYPE UserCalibration_CalibrationEnd(
 ofxUserGenerator::ofxUserGenerator() 
 :needs_pose(false)
 ,num_users(15)
+,is_initialized(false)
 {
-
+	found_user = false;
 }
 
+
+//----------------------------------------
 void ofxUserGenerator::startPoseDetection(XnUserID nID) {
+	printf("Start pose detection: %d +++++++++++++++++++++++++++++\n", nID);
 	user_generator.GetPoseDetectionCap().StartPoseDetection(calibration_pose, nID);
 }
 
+
+//----------------------------------------
 void ofxUserGenerator::stopPoseDetection(XnUserID nID) {
 	user_generator.GetPoseDetectionCap().StopPoseDetection(nID);
 }
 
+
+//----------------------------------------
 void ofxUserGenerator::requestCalibration(XnUserID nID) {
 	user_generator.GetSkeletonCap().RequestCalibration(nID, TRUE);
 }
 
+
+// Setup the user generator.
+//----------------------------------------
 bool ofxUserGenerator::setup(ofxOpenNIContext* pContext, ofxDepthGenerator* pDepthGenerator) {
 	depth_generator = pDepthGenerator;
 	context			= pContext;
@@ -108,17 +120,15 @@ bool ofxUserGenerator::setup(ofxOpenNIContext* pContext, ofxDepthGenerator* pDep
 	result = context
 				->getXnContext()
 				.FindExistingNode(XN_NODE_TYPE_USER, user_generator);
-	CHECK_RC(result, "Find user generator");
+	SHOW_RC(result, "Find user generator");
 	if(result != XN_STATUS_OK) {
-		return false;
-	}
-	
-	// create user generator.
-	result = user_generator.Create(context->getXnContext());
-	CHECK_RC(result, "Create user generator");
-	if(result != XN_STATUS_OK) {
-		return false;
-	}
+		// create user generator.
+		result = user_generator.Create(context->getXnContext());
+		SHOW_RC(result, "Create user generator");
+		if(result != XN_STATUS_OK) {
+			return false;
+		}
+	}	
 	
 	// register user callbacks/
 	XnCallbackHandle user_cb_handle;
@@ -162,15 +172,22 @@ bool ofxUserGenerator::setup(ofxOpenNIContext* pContext, ofxDepthGenerator* pDep
 		ofxTrackedUser* tracked_user = new ofxTrackedUser(this, pDepthGenerator);
 		tracked_users.push_back(tracked_user);
 	}
+	is_initialized = true;
 	return true;
 }
 
+
+// Draw all the found users.
+//----------------------------------------
 void ofxUserGenerator::drawUsers() {
 	for(int i = 0;  i < found_users; ++i) {
 		drawUser(i);
 	}
 }
 
+
+// Draw a specific user (start counting at 0)
+//----------------------------------------
 void ofxUserGenerator::drawUser(int nUserNum) {
 	if(nUserNum > tracked_users.size()-1)
 		return;
@@ -178,21 +195,41 @@ void ofxUserGenerator::drawUser(int nUserNum) {
 	tracked_users.at(nUserNum)->debugDraw();
 }
 
-xn::UserGenerator* ofxUserGenerator::getXnUserGenerator() {
-	return &user_generator;
+
+// Get a ref to the xn::UserGenerator object.
+//----------------------------------------
+xn::UserGenerator& ofxUserGenerator::getXnUserGenerator() {
+	return user_generator;
 }
 
+
+// Get a tracked user.
+//----------------------------------------
 ofxTrackedUser* ofxUserGenerator::getTrackedUser(int nUserNum) {
-	if(nUserNum > found_users-1)
+	
+	ofxTrackedUser* found_user = NULL;
+	try {
+		found_user = tracked_users.at(nUserNum);
+	}
+	catch( std::out_of_range& rEx) {
 		return NULL;
-	return tracked_users.at(nUserNum);
+	}
+	return found_user;
 }
 
+
+// Update the tracked users, should be called each frame
+//----------------------------------------
 void ofxUserGenerator::update() {
+	if(!is_initialized) {
+		return;
+	}
+	found_user = false;
 	XnUserID* users = new XnUserID[num_users];
 	user_generator.GetUsers(users, found_users);
 	for(int i = 0; i < found_users; ++i) {
 		if(user_generator.GetSkeletonCap().IsTracking(users[i])) {	
+			found_user = true;
 			tracked_users.at(i)->id = users[i];
 			tracked_users.at(i)->updateBonePositions();
 		}
@@ -201,14 +238,30 @@ void ofxUserGenerator::update() {
 	delete[] users;
 }
 
+// Draw all users.
+//----------------------------------------
 void ofxUserGenerator::draw() {
+	if(!is_initialized) {
+		return;
+	}
+
 	drawUsers();
+	if(!found_user) {
+		glColor3f(1.0, 0, 0);
+	}
+	else {
+		glColor3f(0.0, 1, 0);
+	}
+	ofCircle(10,10,10);
 }
 
+
+//----------------------------------------
 void ofxUserGenerator::startTracking(XnUserID nID) {
 	user_generator.GetSkeletonCap().StartTracking(nID);
 }
 
+//----------------------------------------
 bool ofxUserGenerator::needsPoseForCalibration() {
 	return needs_pose;
 }

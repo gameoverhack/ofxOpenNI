@@ -14,10 +14,8 @@ if (rc != XN_STATUS_OK)												\
 return true;
 
 #define SHOW_RC(rc, what)											\
-if (rc != XN_STATUS_OK)												\
-{																	\
-	printf("%s failed: %s\n", what, xnGetStatusString(rc));			\
-}																	\
+	printf("%s status: %s\n", what, xnGetStatusString(rc));			\
+																	\
 
 
 #define CHECK_RC_ERR(rc, what, error)								\

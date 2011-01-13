@@ -42,7 +42,7 @@ void CreateRainbowPallet() {
 
 ofxDepthGenerator::ofxDepthGenerator(){
 	CreateRainbowPallet();	
-	depth_coloring = 3;
+	depth_coloring = 2;
 }
 
 bool ofxDepthGenerator::setup(ofxOpenNIContext* pContext) {
@@ -101,7 +101,9 @@ void ofxDepthGenerator::generateTexture(){
 	if (dmd.FrameID() == 0){
 		return;
 	}
-	
+	if (dmd.PixelFormat() == XN_PIXEL_FORMAT_RGB24) {
+		printf("its in yuv\n");
+	}
 	
 	// copy depth into texture-map
 	for (XnUInt16 y = dmd.YOffset(); y < dmd.YRes() + dmd.YOffset(); y++) {
@@ -113,7 +115,7 @@ void ofxDepthGenerator::generateTexture(){
 			XnUInt8 alpha = 255;
 			
 			XnUInt16 col_index;
-			
+			//printf("%d\n", depth);
 			
 			switch (depth_coloring){
 				case 0: //PSYCHEDELIC_SHADES

@@ -76,10 +76,13 @@ private:
 	ofxTrackedUser(ofxUserGenerator* pGenerator, ofxDepthGenerator* pDepthGenerator);
 	
 	void updateBonePositions();
+	
 	void updateLimb(ofxLimb& rLimb);
 	
 	ofxUserGenerator* user_generator;
+	
 	xn::UserGenerator* xn_user_generator;
+	
 	ofxDepthGenerator* depth_generator;
 
 	friend class ofxUserGenerator;
