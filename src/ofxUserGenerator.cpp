@@ -112,6 +112,10 @@ void ofxUserGenerator::requestCalibration(XnUserID nID) {
 // Setup the user generator.
 //----------------------------------------
 bool ofxUserGenerator::setup(ofxOpenNIContext* pContext, ofxDepthGenerator* pDepthGenerator) {
+	if(!pContext->isInitialized()) {
+		return false;
+	}
+	
 	depth_generator = pDepthGenerator;
 	context			= pContext;
 	XnStatus result = XN_STATUS_OK;

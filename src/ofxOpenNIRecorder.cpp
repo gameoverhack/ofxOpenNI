@@ -20,7 +20,8 @@ ofxOpenNIRecorder::~ofxOpenNIRecorder() {
 void ofxOpenNIRecorder::setup(
 	 ofxOpenNIContext* pContext
 	,ofxDepthGenerator* pDepth
-	,ofxImageGenerator* pImage)
+	,ofxImageGenerator* pImage
+)
 {
 	depth = pDepth;
 	image = pImage;
@@ -52,7 +53,17 @@ bool ofxOpenNIRecorder::startRecord(string sName) {
 	
 	result = recorder.AddNodeToRecording(image->getXnImageGenerator(), XN_CODEC_JPEG);
 	CHECK_RC(result, "Recorder add image node");
+		
+	// Frame Sync
+	xn::DepthGenerator& xn_depth = depth->getXnDepthGenerator();
+	xn::ImageGenerator& xn_image = image->getXnImageGenerator();
 	
+	if(xn_depth.IsCapabilitySupported(XN_CAPABILITY_FRAME_SYNC)) {
+		if(xn_depth.GetFrameSyncCap().CanFrameSyncWith(xn_image)) {
+			result = xn_depth.GetFrameSyncCap().FrameSyncWith(xn_image);
+			CHECK_RC(result, "Enable frame sync");
+		}
+	}
 	is_recording = true;
 	return true;
 }

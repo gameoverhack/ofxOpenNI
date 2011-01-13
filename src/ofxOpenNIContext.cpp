@@ -22,14 +22,46 @@ bool ofxOpenNIContext::setup(){
 // Initialize using an .ONI recording.
 //----------------------------------------
 bool ofxOpenNIContext::setupUsingRecording(std::string sFileRecording) {
-	setup();
-	addLicense("PrimeSense","0KOIk2JeIBYClPWVnMoRKn5cdY4=");
-
+	//setup();
+	//addLicense("PrimeSense","0KOIk2JeIBYClPWVnMoRKn5cdY4=");
+	setupUsingXMLFile(ofToDataPath("openni/config/ofxopenni_licenses.xml",true));
+	// load license
+	std::string license_file = ofToDataPath("openni/config/ofxopenni_licenses.xml",true);
+	context.RunXmlScriptFromFile(license_file.c_str());
 	is_using_recording = true;
 	XnStatus result = XN_STATUS_OK;
 	std::string file_path = ofToDataPath(sFileRecording.c_str(), true);
 	result = context.OpenFileRecording(file_path.c_str());
 	BOOL_RC(result, "Error loading file");
+}
+
+bool ofxOpenNIContext::setupUsingXMLObject(ofxOpenNIXML oXML) {
+	std::string xml = oXML.getXML();
+	string tmp_name = ofToDataPath("tmp.xml",true);
+	ofstream ofs(tmp_name.c_str());
+	ofs << xml.c_str();
+	ofs.close();
+	setupUsingXMLFile(tmp_name);
+	//return runXMLScript(xml);
+}
+
+bool ofxOpenNIContext::runXMLScript(std::string sXML) {
+	XnStatus result = XN_STATUS_OK;
+	xn::EnumerationErrors errors;
+	result = context.RunXmlScript(sXML.c_str(),&errors);
+	if(result != XN_STATUS_OK) {
+		logErrors(errors);		
+		return false;
+	}
+	return true;
+}
+
+void ofxOpenNIContext::logErrors(xn::EnumerationErrors& rErrors) {
+	for(xn::EnumerationErrors::Iterator it = rErrors.Begin(); it != rErrors.End(); ++it) {
+		XnChar desc[512];
+		xnProductionNodeDescriptionToString(&it.Description(), desc,512);
+		printf("%s failed: %s\n", desc, xnGetStatusString(it.Error()));
+	}	
 }
 
 
@@ -41,17 +73,31 @@ bool ofxOpenNIContext::isUsingRecording() {
 }
 
 
+bool ofxOpenNIContext::isInitialized() {
+	return is_initialized;
+}
+
 // Initialize using an XML file.
 //----------------------------------------
 bool ofxOpenNIContext::setupUsingXMLFile(std::string sFile) {
 	if(sFile == "") {
-		sFile = ofToDataPath("openni/config/ofxopenni_config.xml");
-		std::cout << sFile << std::endl;
+		sFile = ofToDataPath("openni/config/ofxopenni_config.xml",true);
 	}
+	std::cout << "Using file:" << sFile << std::endl;
 	XnStatus result = XN_STATUS_OK;
 	xn::EnumerationErrors errors;
 	result = context.InitFromXmlFile(sFile.c_str(),&errors);
-	SHOW_RC(result, "init from xml");
+	if(result != XN_STATUS_OK) {
+		for(xn::EnumerationErrors::Iterator it = errors.Begin(); it != errors.End(); ++it) {
+			XnChar desc[512];
+			xnProductionNodeDescriptionToString(&it.Description(), desc,512);
+			printf("%s failed to to enumerate: %s\n", desc, xnGetStatusString(it.Error()));
+		}
+		is_initialized = false;
+	}
+	else {
+		is_initialized = true;
+	}
 	BOOL_RC(result, "ofxOpenNIContext.setupUsingXMLFile()");
 }
 
@@ -149,5 +195,6 @@ xn::Context& ofxOpenNIContext::getXnContext(){
 // Shutdown.
 //----------------------------------------
 ofxOpenNIContext::~ofxOpenNIContext(){
+	printf("Shutdown\n");
 	context.Shutdown();
 }

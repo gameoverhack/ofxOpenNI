@@ -4,7 +4,8 @@
 #include <XnOpenNI.h>
 #include <XnCodecIDs.h>
 #include <XnCppWrapper.h>
-
+#include "ofxOpenNIXML.h"
+#include <fstream>
 class ofxDepthGenerator;
 
 class ofxOpenNIContext {
@@ -20,7 +21,11 @@ public:
 	
 	bool setupUsingXMLFile(std::string sFile = "");
 	
-	bool setupUsingRecording(std::string sRecordedFile);
+	bool setupUsingRecording(std::string sRecordedFile); 
+	
+	bool setupUsingXMLObject(ofxOpenNIXML oXML);
+	
+	bool runXMLScript(std::string sXML);
 	
 	xn::Context& getXnContext();
 	
@@ -31,7 +36,13 @@ public:
 	void addLicense(std::string sVendor, std::string sKey);
 	
 	void enableLogging();
+	
+	bool isInitialized();
+	
 private:
+	void logErrors(xn::EnumerationErrors& rErrors);
+	
+	bool is_initialized;
 	bool is_using_recording;
 	xn::Context context;
 };

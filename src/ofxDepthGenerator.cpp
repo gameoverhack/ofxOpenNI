@@ -46,22 +46,43 @@ ofxDepthGenerator::ofxDepthGenerator(){
 }
 
 bool ofxDepthGenerator::setup(ofxOpenNIContext* pContext) {
+	if(!pContext->isInitialized()) {
+		return false;
+	}
+	
 	//context = rContext;
 	
 	// When the context is using a recording we need to fetch the depth generator.
 	// --------------------------------------------------------------------------
+	/*
 	if(!pContext->isUsingRecording()) {
 		XnStatus result = depth_generator.Create(pContext->getXnContext());
 		CHECK_RC(result, "Creating depth generator using recording");
 	}
 	else {
 		pContext->getDepthGenerator(this);
+	}
+	 */
+	XnStatus result = XN_STATUS_OK;	
+	
+	// check if the USER generator exists.
+	result = pContext->getXnContext()
+					.FindExistingNode(XN_NODE_TYPE_DEPTH, depth_generator);
+	SHOW_RC(result, "Find depth generator");
+	if(result != XN_STATUS_OK) {
+		result = depth_generator.Create(pContext->getXnContext());
+		SHOW_RC(result, "Create depth generator");
+		if(result != XN_STATUS_OK) {			
+			return false;
+		}
 	}	
+	
+	
 	ofLog(OF_LOG_VERBOSE, "Depth camera inited");
 	
 	
 	//Set the input to VGA (standard is QVGA wich is not supported on the Kinect)
-	XnStatus result = XN_STATUS_OK;
+
 	XnMapOutputMode map_mode; 
 	map_mode.nXRes = XN_VGA_X_RES; 
 	map_mode.nYRes = XN_VGA_Y_RES;
