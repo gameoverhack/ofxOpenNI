@@ -3,15 +3,20 @@
 void ofxImageGenerator::generateTexture(){
 	xn::ImageMetaData imd;
 	image_generator.GetMetaData(imd);	
+	const XnUInt8* pImage = imd.Data();
+	memcpy(image_pixels, pImage, sizeof(unsigned char) * imd.XRes() * imd.YRes() * 3);
+	image_texture.loadData(image_pixels,imd.XRes(), imd.YRes(), GL_RGB);		
 }
 
 void ofxImageGenerator::draw(float x, float y, float w, float h){
-
+	generateTexture();
+	glColor3f(1,1,1);
+	image_texture.draw(x, y, w, h);		
 }
 
 bool ofxImageGenerator::setup(ofxOpenNIContext* pContext) {
 	
-	//Create depth generator
+	//Create image generator
 	XnStatus result = image_generator.Create(pContext->getXnContext());
 	
 	if (result != XN_STATUS_OK){
