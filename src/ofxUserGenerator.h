@@ -30,6 +30,7 @@ public:
 	
 	ofxTrackedUser* getTrackedUser(int nUserNum);
 	
+	std::vector<ofxTrackedUser*> getTrackedUsers();
 
 private:	
 	void drawUsers();

@@ -221,6 +221,18 @@ ofxTrackedUser* ofxUserGenerator::getTrackedUser(int nUserNum) {
 	return found_user;
 }
 
+std::vector<ofxTrackedUser*> ofxUserGenerator::getTrackedUsers() {
+	std::vector<ofxTrackedUser*> found;
+	std::vector<ofxTrackedUser*>::iterator it = tracked_users.begin();
+	while(it != tracked_users.end()) {
+		if( (*it)->is_tracked) {
+			found.push_back(*it);
+		}			
+		++it;
+	}
+	return found;
+}
+
 
 // Update the tracked users, should be called each frame
 //----------------------------------------
@@ -228,12 +240,21 @@ void ofxUserGenerator::update() {
 	if(!is_initialized) {
 		return;
 	}
+	
+	// unset
+	std::vector<ofxTrackedUser*>::iterator it = tracked_users.begin();
+	while(it != tracked_users.end()) {
+		(*it)->is_tracked = false;
+		++it;
+	}
+	
 	found_user = false;
 	XnUserID* users = new XnUserID[num_users];
 	user_generator.GetUsers(users, found_users);
 	for(int i = 0; i < found_users; ++i) {
 		if(user_generator.GetSkeletonCap().IsTracking(users[i])) {	
 			found_user = true;
+			tracked_users.at(i)->is_tracked = true;
 			tracked_users.at(i)->id = users[i];
 			tracked_users.at(i)->updateBonePositions();
 		}

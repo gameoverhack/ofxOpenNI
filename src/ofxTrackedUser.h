@@ -10,13 +10,17 @@ struct ofxLimb {
 		,end_joint(nEndJoint)
 		,found(false)
 	{
+		/*
 		position[0].X = position[1].X = 0;
 		position[0].Y = position[1].Y = 0;
 		position[0].Z = position[1].Z = 0;
+		 */
 	}
 	XnSkeletonJoint start_joint;
 	XnSkeletonJoint end_joint;
-	XnPoint3D position[2];
+	//XnPoint3D position[2];
+	ofVec2f begin;
+	ofVec2f end;
 	bool found;
 	
 	void debugDraw() {
@@ -27,8 +31,10 @@ struct ofxLimb {
 		glColor3f(1,0,0);
 		glBegin(GL_LINES);
 			//std::cout << position[0].X << ", " << position[0].Y << std::endl;
-			glVertex2i(position[0].X, position[0].Y);
-			glVertex2i(position[1].X, position[1].Y);
+			glVertex2f(begin.x, begin.y);
+			glVertex2f(end.x, end.y);
+			//glVertex2i(position[0].X, position[0].Y);
+			//glVertex2i(position[1].X, position[1].Y);
 		glEnd();
 		glPopMatrix();
 	}
@@ -86,4 +92,6 @@ private:
 	ofxDepthGenerator* depth_generator;
 
 	friend class ofxUserGenerator;
+	
+	bool is_tracked;
 };
