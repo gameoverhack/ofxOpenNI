@@ -5,7 +5,6 @@ XnUInt8 PalletIntsR [256] = {0};
 XnUInt8 PalletIntsG [256] = {0};
 XnUInt8 PalletIntsB [256] = {0};
 
-
 void CreateRainbowPallet() {
 	unsigned char r, g, b;
 	for (int i=1; i<255; i++) {
@@ -46,22 +45,43 @@ ofxDepthGenerator::ofxDepthGenerator(){
 }
 
 bool ofxDepthGenerator::setup(ofxOpenNIContext* pContext) {
+	if(!pContext->isInitialized()) {
+		return false;
+	}
+	
 	//context = rContext;
 	
 	// When the context is using a recording we need to fetch the depth generator.
 	// --------------------------------------------------------------------------
+	
 	if(!pContext->isUsingRecording()) {
 		XnStatus result = depth_generator.Create(pContext->getXnContext());
 		CHECK_RC(result, "Creating depth generator using recording");
 	}
 	else {
 		pContext->getDepthGenerator(this);
+	}
+	 
+	XnStatus result = XN_STATUS_OK;	
+	
+	// check if the USER generator exists.
+	result = pContext->getXnContext()
+					.FindExistingNode(XN_NODE_TYPE_DEPTH, depth_generator);
+	SHOW_RC(result, "Find depth generator");
+	if(result != XN_STATUS_OK) {
+		result = depth_generator.Create(pContext->getXnContext());
+		SHOW_RC(result, "Create depth generator");
+		if(result != XN_STATUS_OK) {			
+			return false;
+		}
 	}	
+	
+	
 	ofLog(OF_LOG_VERBOSE, "Depth camera inited");
 	
 	
 	//Set the input to VGA (standard is QVGA wich is not supported on the Kinect)
-	XnStatus result = XN_STATUS_OK;
+
 	XnMapOutputMode map_mode; 
 	map_mode.nXRes = XN_VGA_X_RES; 
 	map_mode.nYRes = XN_VGA_Y_RES;
@@ -73,7 +93,7 @@ bool ofxDepthGenerator::setup(ofxOpenNIContext* pContext) {
 	depth_texture.allocate(map_mode.nXRes, map_mode.nYRes, GL_RGBA);		
 	depth_pixels = new unsigned char[map_mode.nXRes * map_mode.nYRes * 4];
 	memset(depth_pixels, 0, map_mode.nXRes * map_mode.nYRes * 4 * sizeof(unsigned char));
-		
+	
 	depth_generator.StartGenerating();	
 	return true;
 	
@@ -88,6 +108,17 @@ xn::DepthGenerator& ofxDepthGenerator::getXnDepthGenerator() {
 	return depth_generator;
 }
 
+bool ofxDepthGenerator::registerViewport(ofxImageGenerator* image_generator) {
+	// Register view point to image map
+	
+	XnStatus result;	
+	
+	if (depth_generator.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT))
+	{
+		result = depth_generator.GetAlternativeViewPointCap().SetViewPoint(image_generator->getXnImageGenerator());
+		CHECK_RC(result, "Registration");
+	} else return false;
+}
 
 void ofxDepthGenerator::generateTexture(){
 	// get meta-data

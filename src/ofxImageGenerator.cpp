@@ -15,6 +15,9 @@ void ofxImageGenerator::draw(float x, float y, float w, float h){
 }
 
 bool ofxImageGenerator::setup(ofxOpenNIContext* pContext) {
+	if(!pContext->isInitialized()) {
+		return false;
+	}
 	
 	//Create image generator
 	XnStatus result = image_generator.Create(pContext->getXnContext());
@@ -37,7 +40,8 @@ bool ofxImageGenerator::setup(ofxOpenNIContext* pContext) {
 		
 		image_generator.StartGenerating();		
 		return true;
-	}		
+	}
+	
 }
 
 xn::ImageGenerator& ofxImageGenerator::getXnImageGenerator(){

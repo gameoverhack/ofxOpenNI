@@ -5,6 +5,8 @@
 #include "ofMain.h"
 #include "ofxOpenNI.h"
 
+
+
 class testApp : public ofBaseApp{
 
 	public:
@@ -19,9 +21,21 @@ class testApp : public ofBaseApp{
 		void mousePressed(int x, int y, int button);
 		void mouseReleased(int x, int y, int button);
 		void windowResized(int w, int h);
-		ofxOpenNIContext context;
-		ofxDepthGenerator depth;
-		ofxUserGenerator user;
+
+		void	setupRecording(string _filename = "");
+		void	setupPlayback(string _filename);
+		string	generateFileName();
+	
+		bool				isLive, isTracking, isRecording, isCloud, isCPBkgnd;
+		
+		string				currentFileName;
+	
+		ofxOpenNIContext	recordContext, playContext;
+		ofxDepthGenerator	recordDepth, playDepth;
+		ofxImageGenerator	recordImage, playImage;
+		ofxUserGenerator	recordUser, playUser;
+		ofxOpenNIRecorder	oniRecorder;
+
 		
 };
 

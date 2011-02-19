@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ofxOpenNIContext.h"
+#include "ofxImageGenerator.h"
 
 
 class ofxDepthGenerator {
@@ -8,6 +9,8 @@ public:
 	ofxDepthGenerator();
 	
 	bool setup(ofxOpenNIContext* pContext);
+	
+	bool registerViewport(ofxImageGenerator* image_generator);
 	
 	void generateTexture();
 	

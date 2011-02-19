@@ -4,7 +4,7 @@
 	</Licenses>
 	<Log writeToConsole="true" writeToFile="true">
 		<!-- 0 - Verbose, 1 - Info, 2 - Warning, 3 - Error (default) -->
-		<LogLevel value="0"/>
+		<LogLevel value="1"/>
 		<Masks>
 			<Mask name="ALL" on="true"/>
 		</Masks>
@@ -19,7 +19,7 @@
 				<Mirror on="true"/>
 			</Configuration>
 		</Node>
-		
+
 		<!-- ofxUserGenerator -->
 		<Node type="User" />
 	</ProductionNodes>

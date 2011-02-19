@@ -111,7 +111,12 @@ void ofxUserGenerator::requestCalibration(XnUserID nID) {
 
 // Setup the user generator.
 //----------------------------------------
-bool ofxUserGenerator::setup(ofxOpenNIContext* pContext, ofxDepthGenerator* pDepthGenerator) {
+bool ofxUserGenerator::setup(ofxOpenNIContext* pContext, ofxDepthGenerator* pDepthGenerator, ofxImageGenerator* pImageGenerator) {
+	if(!pContext->isInitialized()) {
+		return false;
+	}
+	
+	image_generator = pImageGenerator;
 	depth_generator = pDepthGenerator;
 	context			= pContext;
 	XnStatus result = XN_STATUS_OK;
@@ -141,7 +146,7 @@ bool ofxUserGenerator::setup(ofxOpenNIContext* pContext, ofxDepthGenerator* pDep
 	
 	XnCallbackHandle calibration_cb_handle;
 	user_generator.GetSkeletonCap().RegisterCalibrationCallbacks(
-		UserCalibration_CalibrationStart
+		 UserCalibration_CalibrationStart
 		,UserCalibration_CalibrationEnd
 		,this
 		,calibration_cb_handle
@@ -156,15 +161,23 @@ bool ofxUserGenerator::setup(ofxOpenNIContext* pContext, ofxDepthGenerator* pDep
 		}
 		XnCallbackHandle user_pose_cb_handle;
 		user_generator.GetPoseDetectionCap().RegisterToPoseCallbacks(
-			UserPose_PoseDetected
+			 UserPose_PoseDetected
 			,NULL
 			,this
 			,user_pose_cb_handle
 		);
 		user_generator.GetSkeletonCap().GetCalibrationPose(calibration_pose);
+		
 	}
 	
 	user_generator.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_ALL);
+	
+	// added by gameover (m gingold) -> needs this to allow skeleton tracking when using pre-recorded .oni
+	if (context->isUsingRecording()) {
+		result = context->getXnContext().StartGeneratingAll();
+		CHECK_RC(result, "StartGenerating");
+	}
+
 	
 	// pre-generate the tracked users.
 	tracked_users.reserve(num_users);
@@ -217,6 +230,18 @@ ofxTrackedUser* ofxUserGenerator::getTrackedUser(int nUserNum) {
 	return found_user;
 }
 
+std::vector<ofxTrackedUser*> ofxUserGenerator::getTrackedUsers() {
+	std::vector<ofxTrackedUser*> found;
+	std::vector<ofxTrackedUser*>::iterator it = tracked_users.begin();
+	while(it != tracked_users.end()) {
+		if( (*it)->is_tracked) {
+			found.push_back(*it);
+		}			
+		++it;
+	}
+	return found;
+}
+
 
 // Update the tracked users, should be called each frame
 //----------------------------------------
@@ -224,12 +249,21 @@ void ofxUserGenerator::update() {
 	if(!is_initialized) {
 		return;
 	}
+	
+	// unset
+	std::vector<ofxTrackedUser*>::iterator it = tracked_users.begin();
+	while(it != tracked_users.end()) {
+		(*it)->is_tracked = false;
+		++it;
+	}
+	
 	found_user = false;
 	XnUserID* users = new XnUserID[num_users];
 	user_generator.GetUsers(users, found_users);
 	for(int i = 0; i < found_users; ++i) {
 		if(user_generator.GetSkeletonCap().IsTracking(users[i])) {	
 			found_user = true;
+			tracked_users.at(i)->is_tracked = true;
 			tracked_users.at(i)->id = users[i];
 			tracked_users.at(i)->updateBonePositions();
 		}
@@ -255,6 +289,86 @@ void ofxUserGenerator::draw() {
 	ofCircle(10,10,10);
 }
 
+void ofxUserGenerator::setPointCloudRotation(int _x) {
+	cloudPointRotationY = _x;
+}
+
+//----------------------------------------
+void ofxUserGenerator::drawPointCloud(bool showBackground, int cloudPointSize) {
+
+	float fValueH = 0;
+	
+	XnUInt16 nXRes;
+	XnUInt16 nYRes;
+	XnDepthPixel nMaxDepth;
+	
+	xn::DepthMetaData dm;
+	xn::ImageMetaData im;
+	
+	depth_generator->getXnDepthGenerator().GetMetaData(dm);
+	image_generator->getXnImageGenerator().GetMetaData(im);
+	
+	
+	nXRes = dm.XRes();
+	nYRes = dm.YRes();
+	nMaxDepth = dm.ZRes();
+	
+	const XnDepthPixel* pDepth = dm.Data();
+	const XnRGB24Pixel* pColor = im.RGB24Data();
+
+	glPushMatrix();
+
+	ofRotateY(cloudPointRotationY);
+	
+	glPointSize (cloudPointSize);
+	glBegin(GL_POINTS);
+
+	XnBool bLabelsExists = false;
+	const XnLabel* pLabels = NULL;
+	xn::SceneMetaData smd;
+	
+	if (user_generator.GetUserPixels(0, smd) == XN_STATUS_OK)
+	{
+		bLabelsExists = TRUE;
+		pLabels = smd.Data();
+	}
+	
+	XnUInt32 nIndex = 0;
+	for (XnUInt16 nY = 0; nY < nYRes; nY++)
+	{
+		for (XnUInt16 nX = 0; nX < nXRes; nX++, nIndex++, pLabels++)
+		{
+			fValueH = pDepth[nIndex];
+			if (pDepth[nIndex] == 0)
+				continue;
+			
+			if (bLabelsExists)
+			{
+				if (*pLabels == 0)
+				{
+					if (!showBackground)
+					{
+						continue;
+					}
+				}
+			}
+			else if (!showBackground)
+			{
+				continue;
+			}
+			
+			glColor3f(float(pColor[nIndex].nRed/127.0), float(pColor[nIndex].nBlue/127.0), float(pColor[nIndex].nGreen/127.0));
+			XnPoint3D point = xnCreatePoint3D(nX, nY, fValueH);
+			//glScalef(2.0, 2.0, 2.0);
+			//glTranslated(-1, 1, 0);
+			glVertex3f(point.X, point.Y, point.Z);
+			
+		}
+	}
+	glEnd();
+
+	glPopMatrix();
+}
 
 //----------------------------------------
 void ofxUserGenerator::startTracking(XnUserID nID) {

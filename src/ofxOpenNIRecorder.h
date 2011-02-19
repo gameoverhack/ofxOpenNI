@@ -4,6 +4,7 @@
 #include "ofxDepthGenerator.h"
 #include "ofxImageGenerator.h"
 #include "ofxOpenNIMacros.h"
+#include "ofxUserGenerator.h"
 
 class ofxOpenNIRecorder {
 public:
@@ -16,11 +17,13 @@ public:
 	
 	bool stopRecord();
 
+	bool isRecording();
 
 private:
 	ofxOpenNIContext* context;	
 	ofxDepthGenerator* depth;
 	ofxImageGenerator* image;
+	ofxUserGenerator* user;
 	bool is_recording;	
 	xn::Recorder recorder;
 };
