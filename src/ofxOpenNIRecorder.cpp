@@ -69,6 +69,12 @@ bool ofxOpenNIRecorder::startRecord(string sName) {
 	}
 #endif
 	
+	if(xn_depth.IsCapabilitySupported(XN_CAPABILITY_FRAME_SYNC)) {
+		if(xn_depth.GetFrameSyncCap().CanFrameSyncWith(xn_image)) {
+			result = xn_depth.GetFrameSyncCap().FrameSyncWith(xn_image);
+			CHECK_RC(result, "Enable frame sync");
+		}
+	}
 	is_recording = true;
 	return true;
 }

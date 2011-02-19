@@ -49,19 +49,6 @@ bool ofxDepthGenerator::setup(ofxOpenNIContext* pContext) {
 		return false;
 	}
 	
-	//context = rContext;
-	
-	// When the context is using a recording we need to fetch the depth generator.
-	// --------------------------------------------------------------------------
-	
-	if(!pContext->isUsingRecording()) {
-		XnStatus result = depth_generator.Create(pContext->getXnContext());
-		CHECK_RC(result, "Creating depth generator using recording");
-	}
-	else {
-		pContext->getDepthGenerator(this);
-	}
-	 
 	XnStatus result = XN_STATUS_OK;	
 	
 	// check if the USER generator exists.

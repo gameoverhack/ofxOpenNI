@@ -115,7 +115,7 @@ bool ofxOpenNIContext::setupUsingXMLFile(std::string sFile) {
 	else {
 		is_initialized = true;
 	}
-	
+
 	BOOL_RC(result, "ofxOpenNIContext.setupUsingXMLFile()");
 }
 
@@ -196,5 +196,7 @@ void ofxOpenNIContext::clear() {
 // Shutdown.
 //----------------------------------------
 ofxOpenNIContext::~ofxOpenNIContext(){
+
 	clear();
+
 }
