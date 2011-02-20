@@ -1,7 +1,12 @@
-OFXOPENNI FOR MAC
-==================
+OFXOPENNI FOR MAC & WIN
+=======================
 The ofxOpenNI module is a wrapper for the openNI + NITE + SensorKinect 
-libraries/middleware. Master and Develop branches tested and working in OF 0062 on Mac and Windows (VS 2010 only - currently openNI only works with Micro$oft). Experimental only tested on Mac, but should work on Win as well (issue is more with getting 007 compiled in VS 2010 for me).
+libraries/middleware. Master and Develop branches tested and working in OF 0062 on Mac and Windows (VS 2010 only - currently openNI only works with Micro$oft).
+
+
+NB: For VS 2010 openNI libs appear to be Release only and therefore no debugging is possible...so Build the solution and then go to your example/bin/ directory and execute the openNiSample.exe outside of the IDE...
+
+Experimental only tested on Mac, but should work on Win as well (issue is more with getting 007 compiled in VS 2010 for me).
 
 INSTALLATION
 ============
@@ -40,12 +45,12 @@ HOW TO SETUP YOUR APPLICATION
 
 Mac:
 
-- In XCode, create a new group "ofxOpenNI"
-- Draw these directories from ofxOpenNI into this new group: ofxOpenNI/src
-- Add a search path to: ../../../addons/ofxOpenNI/include/
-- Copy the "ofxOpenNI/mac/copy_to_data_path" to your bin/data directory of your application. 
-- Drag and drop the file: bin/data/openni/lib/libOpenNI.dylib into your project
+- Copy 'example' folder to yourofdir/apps/yourworkingdir
+- Copy the 'ofxOpenNI/mac/copy_to_data_openni_path' to your bin/data/openni dire
+ctory of your example.
 
 PC:
 
-Instructions coming soon...
+- Copy 'example' folder to yourofdir/apps/yourworkingdir
+- Copy the 'ofxOpenNI/win/copy_to_data_openni_path' to your bin/data/openni dire
+ctory of your example.
