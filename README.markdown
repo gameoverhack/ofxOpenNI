@@ -1,5 +1,5 @@
-OFXOPENNI FOR MAC
-==================
+OFXOPENNI FOR MAC & WIN
+=======================
 The ofxOpenNI module is a wrapper for the openNI + NITE + SensorKinect 
 libraries/middleware. Master and Develop branches tested and working in OF 0062 on Mac and Windows (VS 2010 only - currently openNI only works with Micro$oft).
 
