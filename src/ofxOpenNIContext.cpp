@@ -57,6 +57,7 @@ bool ofxOpenNIContext::setupUsingXMLObject(ofxOpenNIXML oXML) {
 	ofs.close();
 	setupUsingXMLFile(tmp_name);
 	//return runXMLScript(xml);
+	return true;
 }
 
 bool ofxOpenNIContext::runXMLScript(std::string sXML) {

@@ -113,6 +113,8 @@ bool ofxDepthGenerator::toggleRegisterViewport(ofxImageGenerator* image_generato
 		
 
 	} else return false;
+
+	return true;
 }
 
 void ofxDepthGenerator::generateTexture(){
