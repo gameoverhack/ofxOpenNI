@@ -10,7 +10,7 @@ public:
 	
 	bool setup(ofxOpenNIContext* pContext);
 	
-	bool registerViewport(ofxImageGenerator* image_generator);
+	bool toggleRegisterViewport(ofxImageGenerator* image_generator);
 	
 	void generateTexture();
 	

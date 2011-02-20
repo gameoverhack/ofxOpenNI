@@ -3,8 +3,11 @@
 #include "ofxOpenNIContext.h"
 #include "ofxDepthGenerator.h"
 #include "ofxImageGenerator.h"
+#include "ofxCvGrayscaleImage.h"
 
 #include <vector>
+
+#define MAX_NUMBER_USERS 15
 
 class ofxTrackedUser;
 
@@ -15,6 +18,10 @@ public:
 	bool setup(ofxOpenNIContext* pContext, ofxDepthGenerator* pDepthGenerator, ofxImageGenerator* image_generator);
 	
 	void draw();
+	
+	void updateUserMask(int userID);
+	
+	void drawUserMasks(int x, int y);
 	
 	void drawPointCloud(bool showBackground, int cloudPointSize = 1);
 	
@@ -54,8 +61,13 @@ private:
 	
 	bool is_initialized;
 	bool found_user;
-	
+
 	int cloudPointRotationY;
+	
+	unsigned char * maskPixels;
+	ofxCvGrayscaleImage maskImage[MAX_NUMBER_USERS];
+	
+	XnUInt16 width, height;
 	
 };
 

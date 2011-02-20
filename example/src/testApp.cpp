@@ -8,6 +8,7 @@ void testApp::setup() {
 	isRecording = false;
 	isCloud		= false;
 	isCPBkgnd	= true;
+	isMasking   = true;
 	
 	setupRecording();
 
@@ -26,7 +27,7 @@ void testApp::setupRecording(string _filename) {
 		
 		recordUser.setup(&recordContext, &recordDepth, &recordImage);
 		
-		recordDepth.registerViewport(&recordImage);
+		recordDepth.toggleRegisterViewport(&recordImage);
 		recordContext.toggleMirror();
 		
 		oniRecorder.setup(&recordContext, &recordDepth, &recordImage);	
@@ -48,7 +49,7 @@ void testApp::setupPlayback(string _filename) {
 	playUser.setup(&playContext, &playDepth, &playImage);
 	
 	
-	playDepth.registerViewport(&playImage);
+	playDepth.toggleRegisterViewport(&playImage);
 	playContext.toggleMirror();
 	
 }
@@ -70,15 +71,22 @@ void testApp::draw(){
 	
 	ofSetColor(255, 255, 255);
 	
+	glPushMatrix();
+	glScalef(0.75, 0.75, 0.75);
+	
 	if (isLive) {
 		
 		recordDepth.draw(0,0,640,480);
 		recordImage.draw(640, 0, 640, 480);
 		if (isTracking) {
+			
 			recordUser.draw();
-			ofxTrackedUser* tracked = recordUser.getTrackedUser(0);
-			if(tracked != NULL) {
-				tracked->debugDraw();
+			
+			if(isMasking) {
+				glEnable(GL_BLEND);
+				glBlendFunc(GL_DST_COLOR, GL_ZERO);
+				recordUser.drawUserMasks(640, 0);
+				glDisable(GL_BLEND);
 			}
 		}
 		
@@ -91,10 +99,14 @@ void testApp::draw(){
 		playDepth.draw(0,0,640,480);
 		playImage.draw(640, 0, 640, 480);
 		if (isTracking) {
+			
 			playUser.draw();
-			ofxTrackedUser* tracked = playUser.getTrackedUser(0);
-			if(tracked != NULL) {
-				tracked->debugDraw();
+			
+			if(isMasking) {
+				glEnable(GL_BLEND);
+				glBlendFunc(GL_DST_COLOR, GL_ZERO);
+				playUser.drawUserMasks(640, 0);
+				glDisable(GL_BLEND);
 			}
 		}
 		
@@ -104,23 +116,30 @@ void testApp::draw(){
 		
 	}
 	
+	glPopMatrix();
+	
 	ofSetColor(255, 255, 0);
 	
-	string msg1, msg2;
+	string msg1, msg2, msg3;	//drawBitmapString is limited to some numebr of characters -> is this a bug in 007 or always the case?
 	
 	msg1 += "Press 's' to start/stop recording\n";
-	msg1 += "Press 'p' to toggle playback of last file and live kinect streams\n";
+	msg1 += "Press 'p' to toggle playback/live streams\n";
 	msg1 += "Press 't' to toggle tracking\n";
-	msg1 += "Press 'c' to Cloud Point drawing and 'b' to toggle using User Data (ie., background removal)\n\n";
-	msg2 += ofToString(isTracking ? "TRACKING USERS\n" : "NOT TRACKING USERS\n");
-	msg2 += ofToString(isLive ? "LIVE STREAM\n" : "PLAY STREAM\n");
-	msg2 += ofToString(!isRecording ? "READY\n" : "RECORDING\n");
-	msg2 += "CLOUD DRAWING: " + ofToString(isCloud ? "ON" : "OFF");
-	msg2 += " CLOUD USING USERDATA/BACKGROUND: " + ofToString(isCPBkgnd ? "SHOW BACKGROUND\n" : ofToString(isTracking ? "SHOW USER\n" : "YOU NEED TO TURN ON TRACKING!!\n"));
-	msg2 += "FPS: " + ofToString(ofGetFrameRate()) + "\n";
+	msg2 += "Press 'm' to toggle drawing Masks\n";
+	msg2 += "Press 'c' to toggle draw Cloud points\n";
+	msg2 += "Press 'b' to toggle Cloud User data (ie., background removal)\n\n";
+	
+	msg3 += (string)(isTracking ? "TRACKING USERS\n" : "NOT TRACKING USERS\n");
+	msg3 += (string)(isLive ? "LIVE STREAM\n" : "PLAY STREAM\n");
+	msg3 += (string)(!isRecording ? "READY\n" : "RECORDING\n");
+	msg3 += "MASK DRAWING: " + (string)(!isMasking ? "HIDE\n" : (string)(isTracking ? "SHOW\n" : "YOU NEED TO TURN ON TRACKING!!\n"));
+	msg3 += "CLOUD DRAWING: " + (string)(isCloud ? "ON\n" : "OFF\n");
+	msg3 += "CLOUD USERDATA/BACKGROUND: " + (string)(isCPBkgnd ? "SHOW BACKGROUND\n" : (string)(isTracking ? "SHOW USER\n" : "YOU NEED TO TURN ON TRACKING!!\n"));
+	msg3 += "FPS: " + ofToString(ofGetFrameRate()) + "\n";
 	
 	ofDrawBitmapString(msg1, ofPoint(20, 500));
-	ofDrawBitmapString(msg2, ofPoint(20, 600));
+	ofDrawBitmapString(msg2, ofPoint(20, 550));
+	ofDrawBitmapString(msg3, ofPoint(20, 600));
 	ofDrawBitmapString(currentFileName, ofPoint(20, 700));
 
 	
@@ -153,11 +172,7 @@ void testApp::keyPressed(int key){
 			isTracking = !isTracking;
 			break;
 		case 'm':
-			if (isLive) {
-				recordContext.toggleMirror();
-			} else {
-				playContext.toggleMirror();
-			}
+			isMasking = !isMasking;
 			break;
 		case 'c':
 			isCloud = !isCloud;
@@ -165,7 +180,6 @@ void testApp::keyPressed(int key){
 		case 'b':
 			isCPBkgnd = !isCPBkgnd;
 			break;
-
 		default:
 			break;
 	}	

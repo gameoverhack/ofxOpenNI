@@ -83,9 +83,9 @@ void XN_CALLBACK_TYPE UserCalibration_CalibrationEnd(
 // =============================================================================
 ofxUserGenerator::ofxUserGenerator() 
 :needs_pose(false)
-,num_users(15)
+,num_users(MAX_NUMBER_USERS)
 ,is_initialized(false)
-{
+{	
 	found_user = false;
 }
 
@@ -120,6 +120,15 @@ bool ofxUserGenerator::setup(ofxOpenNIContext* pContext, ofxDepthGenerator* pDep
 	depth_generator = pDepthGenerator;
 	context			= pContext;
 	XnStatus result = XN_STATUS_OK;
+	
+	xn::DepthMetaData dm;
+	
+	depth_generator->getXnDepthGenerator().GetMetaData(dm);
+	
+	width = dm.XRes();
+	height = dm.YRes();
+	
+	maskPixels = new unsigned char[width * height];
 	
 	// check if the USER generator exists.
 	result = context
@@ -193,8 +202,10 @@ bool ofxUserGenerator::setup(ofxOpenNIContext* pContext, ofxDepthGenerator* pDep
 // Draw all the found users.
 //----------------------------------------
 void ofxUserGenerator::drawUsers() {
-	for(int i = 0;  i < found_users; ++i) {
-		drawUser(i);
+	for(int i = 0;  i < num_users; ++i) {
+		if (tracked_users.at(i)->is_tracked) {
+			drawUser(i);
+		}
 	}
 }
 
@@ -266,7 +277,10 @@ void ofxUserGenerator::update() {
 			tracked_users.at(i)->is_tracked = true;
 			tracked_users.at(i)->id = users[i];
 			tracked_users.at(i)->updateBonePositions();
+		} else {
+			tracked_users.at(i)->is_tracked = false;
 		}
+
 	}
 	found_users = num_users;
 	delete[] users;
@@ -287,6 +301,48 @@ void ofxUserGenerator::draw() {
 		glColor3f(0.0, 1, 0);
 	}
 	ofCircle(10,10,10);
+	
+	// reset to white for simplicity elsewhere
+	glColor3f(1, 1, 1);
+}
+
+void ofxUserGenerator::drawUserMasks(int x, int y) {
+	for(int i = 0;  i < num_users; ++i) {
+		if (tracked_users.at(i)->is_tracked) {
+			updateUserMask(i);	// TODO: put into an update cycle instead of here
+			maskImage[i].draw(x, y);
+		}
+	}
+}
+
+void ofxUserGenerator::updateUserMask(int userID) {
+	
+	const XnLabel* pLabels = NULL;
+	xn::SceneMetaData smd;
+	
+	if (user_generator.GetUserPixels(userID, smd) == XN_STATUS_OK)
+	{
+		pLabels = smd.Data();
+	}
+	
+	for (int i =0 ; i < width * height; i++, pLabels++) {
+		
+		if (*pLabels != 0) {
+			maskPixels[i] = 255;
+		} else {
+            maskPixels[i] = 0;
+		}
+		
+	}
+
+	if(maskImage[userID].width == 0 && maskImage[userID].height == 0) {
+		maskImage[userID].allocate(width, height);
+	}
+	
+	maskImage[userID].setFromPixels(maskPixels, width, height);
+
+	maskImage[userID].erode_3x3();
+	maskImage[userID].erode_3x3();
 }
 
 void ofxUserGenerator::setPointCloudRotation(int _x) {
@@ -298,20 +354,11 @@ void ofxUserGenerator::drawPointCloud(bool showBackground, int cloudPointSize) {
 
 	float fValueH = 0;
 	
-	XnUInt16 nXRes;
-	XnUInt16 nYRes;
-	XnDepthPixel nMaxDepth;
-	
 	xn::DepthMetaData dm;
 	xn::ImageMetaData im;
 	
 	depth_generator->getXnDepthGenerator().GetMetaData(dm);
 	image_generator->getXnImageGenerator().GetMetaData(im);
-	
-	
-	nXRes = dm.XRes();
-	nYRes = dm.YRes();
-	nMaxDepth = dm.ZRes();
 	
 	const XnDepthPixel* pDepth = dm.Data();
 	const XnRGB24Pixel* pColor = im.RGB24Data();
@@ -322,21 +369,21 @@ void ofxUserGenerator::drawPointCloud(bool showBackground, int cloudPointSize) {
 	
 	glPointSize (cloudPointSize);
 	glBegin(GL_POINTS);
-
+	
 	XnBool bLabelsExists = false;
 	const XnLabel* pLabels = NULL;
 	xn::SceneMetaData smd;
 	
-	if (user_generator.GetUserPixels(0, smd) == XN_STATUS_OK)
+	if (user_generator.GetUserPixels(0, smd) == XN_STATUS_OK)	// TODO: track all users, currently only drawing point cloud for first user
 	{
 		bLabelsExists = TRUE;
 		pLabels = smd.Data();
 	}
 	
 	XnUInt32 nIndex = 0;
-	for (XnUInt16 nY = 0; nY < nYRes; nY++)
+	for (XnUInt16 nY = 0; nY < height; nY++)
 	{
-		for (XnUInt16 nX = 0; nX < nXRes; nX++, nIndex++, pLabels++)
+		for (XnUInt16 nX = 0; nX < width; nX++, nIndex++, pLabels++)
 		{
 			fValueH = pDepth[nIndex];
 			if (pDepth[nIndex] == 0)
@@ -358,9 +405,8 @@ void ofxUserGenerator::drawPointCloud(bool showBackground, int cloudPointSize) {
 			}
 			
 			glColor3f(float(pColor[nIndex].nRed/127.0), float(pColor[nIndex].nBlue/127.0), float(pColor[nIndex].nGreen/127.0));
+			
 			XnPoint3D point = xnCreatePoint3D(nX, nY, fValueH);
-			//glScalef(2.0, 2.0, 2.0);
-			//glTranslated(-1, 1, 0);
 			glVertex3f(point.X, point.Y, point.Z);
 			
 		}

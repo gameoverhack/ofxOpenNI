@@ -95,15 +95,23 @@ xn::DepthGenerator& ofxDepthGenerator::getXnDepthGenerator() {
 	return depth_generator;
 }
 
-bool ofxDepthGenerator::registerViewport(ofxImageGenerator* image_generator) {
+bool ofxDepthGenerator::toggleRegisterViewport(ofxImageGenerator* image_generator) {
 	// Register view point to image map
 	
 	XnStatus result;	
 	
 	if (depth_generator.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT))
 	{
-		result = depth_generator.GetAlternativeViewPointCap().SetViewPoint(image_generator->getXnImageGenerator());
-		CHECK_RC(result, "Registration");
+		
+		if(depth_generator.GetAlternativeViewPointCap().IsViewPointAs(image_generator->getXnImageGenerator())) {
+			result = depth_generator.GetAlternativeViewPointCap().ResetViewPoint();
+			CHECK_RC(result, "Reset Registration");
+		} else {
+			result = depth_generator.GetAlternativeViewPointCap().SetViewPoint(image_generator->getXnImageGenerator());
+			CHECK_RC(result, "Registration");
+		}
+		
+
 	} else return false;
 }
 

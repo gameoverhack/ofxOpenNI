@@ -26,7 +26,7 @@ class testApp : public ofBaseApp{
 		void	setupPlayback(string _filename);
 		string	generateFileName();
 	
-		bool				isLive, isTracking, isRecording, isCloud, isCPBkgnd;
+		bool				isLive, isTracking, isRecording, isCloud, isCPBkgnd, isMasking;
 		
 		string				currentFileName;
 	
