@@ -137,10 +137,10 @@ void testApp::draw(){
 	msg3 += "CLOUD USERDATA/BACKGROUND: " + (string)(isCPBkgnd ? "SHOW BACKGROUND\n" : (string)(isTracking ? "SHOW USER\n" : "YOU NEED TO TURN ON TRACKING!!\n"));
 	msg3 += "FPS: " + ofToString(ofGetFrameRate()) + "\n";
 	
-	ofDrawBitmapString(msg1, ofPoint(20, 500));
-	ofDrawBitmapString(msg2, ofPoint(20, 550));
-	ofDrawBitmapString(msg3, ofPoint(20, 600));
-	ofDrawBitmapString(currentFileName, ofPoint(20, 700));
+	ofDrawBitmapString(msg1, 20, 500);
+	ofDrawBitmapString(msg2, 20, 550);
+	ofDrawBitmapString(msg3, 20, 600);
+	ofDrawBitmapString(currentFileName, 20, 700);
 
 	
 }
@@ -189,7 +189,12 @@ string testApp::generateFileName() {
 	
 	string _root = "kinectRecord";
 	
-	string _timestamp = ofGetTimestampString("%Y%m%d%H%M%S");
+	string _timestamp = ofToString(ofGetDay()) + 
+						ofToString(ofGetMonth()) +
+						ofToString(ofGetYear()) +
+						ofToString(ofGetHours()) +
+						ofToString(ofGetMinutes()) +
+						ofToString(ofGetSeconds());
 	
 	string _filename = (_root + _timestamp + ".oni");
 	
