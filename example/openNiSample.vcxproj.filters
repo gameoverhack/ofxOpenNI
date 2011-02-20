@@ -1,0 +1,303 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\testApp.cpp" />
+    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxDepthGenerator.cpp">
+      <Filter>ofxOpenNI\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxImageGenerator.cpp">
+      <Filter>ofxOpenNI\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxOpenNIContext.cpp">
+      <Filter>ofxOpenNI\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxOpenNIRecorder.cpp">
+      <Filter>ofxOpenNI\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxTrackedUser.cpp">
+      <Filter>ofxOpenNI\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxUserGenerator.cpp">
+      <Filter>ofxOpenNI\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\addons\ofxOpenCv\src\ofxCvColorImage.cpp">
+      <Filter>ofxOpenCV\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\addons\ofxOpenCv\src\ofxCvContourFinder.cpp">
+      <Filter>ofxOpenCV\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\addons\ofxOpenCv\src\ofxCvFloatImage.cpp">
+      <Filter>ofxOpenCV\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\addons\ofxOpenCv\src\ofxCvGrayscaleImage.cpp">
+      <Filter>ofxOpenCV\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\addons\ofxOpenCv\src\ofxCvImage.cpp">
+      <Filter>ofxOpenCV\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\addons\ofxOpenCv\src\ofxCvShortImage.cpp">
+      <Filter>ofxOpenCV\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\addons\ofxVectorMath\src\ofxMatrix3x3.cpp">
+      <Filter>ofxVectorMath\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\addons\ofxVectorMath\src\ofxMatrix4x4.cpp">
+      <Filter>ofxVectorMath\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\addons\ofxVectorMath\src\ofxQuaternion.cpp">
+      <Filter>ofxVectorMath\src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\testApp.h" />
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxUserGenerator.h">
+      <Filter>ofxOpenNI\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxDepthGenerator.h">
+      <Filter>ofxOpenNI\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxImageGenerator.h">
+      <Filter>ofxOpenNI\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxOpenNI.h">
+      <Filter>ofxOpenNI\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxOpenNIContext.h">
+      <Filter>ofxOpenNI\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxOpenNIMacros.h">
+      <Filter>ofxOpenNI\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxOpenNIRecorder.h">
+      <Filter>ofxOpenNI\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxOpenNIXML.h">
+      <Filter>ofxOpenNI\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxTrackedUser.h">
+      <Filter>ofxOpenNI\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnModuleCppRegistratration.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnModuleInterface.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnNode.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnNodeAllocator.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnOpenNI.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnOS.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnOSCpp.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnPlatform.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnPrdNode.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnPrdNodeInfo.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnPrdNodeInfoList.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnProfiling.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnPropNames.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnQueries.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnQueue.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnScheduler.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnStack.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnStatus.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnStatusCodes.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnStatusRegister.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnStringsHash.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnThreadSafeQueue.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnTypes.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnUSB.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnUtils.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnVersion.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\IXnNodeAllocator.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnBaseNode.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnCallback.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnCodecIDs.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnContext.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnCppWrapper.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnDataTypes.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnEnumerationErrors.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnEvent.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnFPSCalculator.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnGeneralBuffer.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnHash.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnInternalDefs.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnLicensing.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnList.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnLog.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnMacros.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\XnModuleCppInterface.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\Win32\XnOSWin32.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\include\Win32\XnPlatformWin32.h">
+      <Filter>ofxOpenNI\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenCv\src\ofxCvBlob.h">
+      <Filter>ofxOpenCV\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenCv\src\ofxOpenCv.h">
+      <Filter>ofxOpenCV\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenCv\src\ofxCvColorImage.h">
+      <Filter>ofxOpenCV\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenCv\src\ofxCvConstants.h">
+      <Filter>ofxOpenCV\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenCv\src\ofxCvContourFinder.h">
+      <Filter>ofxOpenCV\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenCv\src\ofxCvFloatImage.h">
+      <Filter>ofxOpenCV\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenCv\src\ofxCvGrayscaleImage.h">
+      <Filter>ofxOpenCV\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenCv\src\ofxCvImage.h">
+      <Filter>ofxOpenCV\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenCv\src\ofxCvMain.h">
+      <Filter>ofxOpenCV\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxOpenCv\src\ofxCvShortImage.h">
+      <Filter>ofxOpenCV\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxVectorMath\src\ofxVectorMath.h">
+      <Filter>ofxVectorMath\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxVectorMath\src\ofxMatrix3x3.h">
+      <Filter>ofxVectorMath\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxVectorMath\src\ofxMatrix4x4.h">
+      <Filter>ofxVectorMath\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxVectorMath\src\ofxPoint2f.h">
+      <Filter>ofxVectorMath\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxVectorMath\src\ofxPoint3f.h">
+      <Filter>ofxVectorMath\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxVectorMath\src\ofxPoint4f.h">
+      <Filter>ofxVectorMath\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxVectorMath\src\ofxQuaternion.h">
+      <Filter>ofxVectorMath\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxVectorMath\src\ofxVec2f.h">
+      <Filter>ofxVectorMath\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxVectorMath\src\ofxVec3f.h">
+      <Filter>ofxVectorMath\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\addons\ofxVectorMath\src\ofxVec4f.h">
+      <Filter>ofxVectorMath\src</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="ofxOpenNI">
+      <UniqueIdentifier>{97f31e5d-4214-4f3d-bdd1-f65cf2ceaeb8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ofxOpenNI\src">
+      <UniqueIdentifier>{75d2f0f8-65c3-47a2-a32b-e3a8dfd9ba00}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ofxOpenNI\include">
+      <UniqueIdentifier>{77199ebe-efbd-4785-ba3e-d985f6be39a9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ofxVectorMath">
+      <UniqueIdentifier>{045c2a8e-af68-4678-bf7a-9229b266983f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ofxOpenCV">
+      <UniqueIdentifier>{8106d559-ee2e-44bc-9261-507ec899a193}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ofxOpenCV\src">
+      <UniqueIdentifier>{0fd773e0-b6f2-4890-bb27-29f690663e7b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ofxVectorMath\src">
+      <UniqueIdentifier>{8d16eb6b-31fa-4d70-b102-6ad05536be0b}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
