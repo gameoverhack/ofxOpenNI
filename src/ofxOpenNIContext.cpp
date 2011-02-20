@@ -6,7 +6,8 @@
 // Startup
 //----------------------------------------
 ofxOpenNIContext::ofxOpenNIContext()
-:is_using_recording(false)
+:is_using_recording(false),
+is_initialized(false)
 {
 
 }

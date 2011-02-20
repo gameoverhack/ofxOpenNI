@@ -198,14 +198,11 @@ bool ofxUserGenerator::setup(ofxOpenNIContext* pContext, ofxDepthGenerator* pDep
 	return true;
 }
 
-
 // Draw all the found users.
 //----------------------------------------
 void ofxUserGenerator::drawUsers() {
-	for(int i = 0;  i < num_users; ++i) {
-		if (tracked_users.at(i)->is_tracked) {
-			drawUser(i);
-		}
+	for(int i = 0;  i < found_users; ++i) {
+		drawUser(i);
 	}
 }
 
@@ -219,13 +216,32 @@ void ofxUserGenerator::drawUser(int nUserNum) {
 	tracked_users.at(nUserNum)->debugDraw();
 }
 
-
-// Get a ref to the xn::UserGenerator object.
+// Draw all users.
 //----------------------------------------
-xn::UserGenerator& ofxUserGenerator::getXnUserGenerator() {
-	return user_generator;
+void ofxUserGenerator::draw() {
+	if(!is_initialized) {
+		return;
+	}
+
+	drawUsers();
+	if(!found_user) {
+		glColor3f(1.0, 0, 0);
+	}
+	else {
+		glColor3f(0.0, 1, 0);
+	}
+	ofCircle(10,10,10);
+	
+	// reset to white for simplicity elsewhere
+	glColor3f(1, 1, 1);
 }
 
+void ofxUserGenerator::drawUserMasks(int x, int y) {
+	for(int i = 0;  i < found_users; ++i) {
+		updateUserMask(i);	// TODO: put into an update cycle instead of here
+		maskImage[i].draw(x, y);
+	}
+}
 
 // Get a tracked user.
 //----------------------------------------
@@ -269,6 +285,7 @@ void ofxUserGenerator::update() {
 	}
 	
 	found_user = false;
+	found_users = num_users;
 	XnUserID* users = new XnUserID[num_users];
 	user_generator.GetUsers(users, found_users);
 	for(int i = 0; i < found_users; ++i) {
@@ -277,42 +294,11 @@ void ofxUserGenerator::update() {
 			tracked_users.at(i)->is_tracked = true;
 			tracked_users.at(i)->id = users[i];
 			tracked_users.at(i)->updateBonePositions();
-		} else {
-			tracked_users.at(i)->is_tracked = false;
 		}
 
 	}
-	found_users = num_users;
-	delete[] users;
-}
-
-// Draw all users.
-//----------------------------------------
-void ofxUserGenerator::draw() {
-	if(!is_initialized) {
-		return;
-	}
-
-	drawUsers();
-	if(!found_user) {
-		glColor3f(1.0, 0, 0);
-	}
-	else {
-		glColor3f(0.0, 1, 0);
-	}
-	ofCircle(10,10,10);
 	
-	// reset to white for simplicity elsewhere
-	glColor3f(1, 1, 1);
-}
-
-void ofxUserGenerator::drawUserMasks(int x, int y) {
-	for(int i = 0;  i < num_users; ++i) {
-		if (tracked_users.at(i)->is_tracked) {
-			updateUserMask(i);	// TODO: put into an update cycle instead of here
-			maskImage[i].draw(x, y);
-		}
-	}
+	delete[] users;
 }
 
 void ofxUserGenerator::updateUserMask(int userID) {
@@ -424,4 +410,10 @@ void ofxUserGenerator::startTracking(XnUserID nID) {
 //----------------------------------------
 bool ofxUserGenerator::needsPoseForCalibration() {
 	return needs_pose;
+}
+
+// Get a ref to the xn::UserGenerator object.
+//----------------------------------------
+xn::UserGenerator& ofxUserGenerator::getXnUserGenerator() {
+	return user_generator;
 }

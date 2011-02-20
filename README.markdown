@@ -1,16 +1,14 @@
 OFXOPENNI FOR MAC & WIN
 =======================
-The ofxOpenNI module is a wrapper for the openNI + NITE + SensorKinect 
-libraries/middleware. Master and Develop branches tested and working in OF 0062 on Mac and Windows (VS 2010 only - currently openNI only works with Micro$oft).
+The ofxOpenNI module is a wrapper for the openNI + NITE + SensorKinect libraries/middleware. 
 
+Master and Develop branches tested and working in OF 0062 on Mac and Windows [VS 2010 only :-( ]
 
-NB: For VS 2010 openNI libs appear to be Release only and therefore no debugging is possible...so Build the solution and then go to your example/bin/ directory and execute the openNiSample.exe outside of the IDE...
-
-Experimental only tested on Mac, but should work on Win as well (issue is more with getting 007 compiled in VS 2010 for me).
+Experimental is for OF 007 - only tested on Mac, but should work in Win too...just haven't made the VS 2010 solution yet
 
 INSTALLATION
 ============
-Go to your addons directory, and follow these commands
+Go to your addons directory, and follow these commands if you're using git
 
 <pre>
 git clone https://github.com/roxlu/ofxOpenNI.git
@@ -37,11 +35,16 @@ or for working with OF 0062 (stable)
 git checkout master
 </pre>
 
-[I've setup my branche's as per ofxKinect - see Theo's instructions
-at https://github.com/ofTheo/ofxKinect/ for differences between master, develop and experimental]
+[I've setup my branche's as per ofxKinect - see  https://github.com/ofTheo/ofxKinect/ for differences between master, develop and experimental]
 
 HOW TO SETUP YOUR APPLICATION
 ==============================
+
+Drivers:
+
+- Install openNI (I used latest unstable: http://www.openni.org/downloadfiles/openni-binaries/20-latest-unstable)
+- Install NITE (I used latest unstable: http://www.openni.org/downloadfiles/openni-compliant-middleware-binaries/33-latest-unstable)
+- SensorKinect drivers (make sure you use https://github.com/avin2/SensorKinect modified drivers, not the standard Prime Sense drivers if you're using a Kinect...might be able to use their openNI install too, but I haven't checked)
 
 Mac:
 
