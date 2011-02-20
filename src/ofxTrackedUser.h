@@ -2,6 +2,8 @@
 
 #include <XnOpenNI.h>
 #include <XnCppWrapper.h>
+#include "ofxVectorMath.h"
+
 #include "ofMain.h"
 
 struct ofxLimb {
@@ -19,8 +21,8 @@ struct ofxLimb {
 	XnSkeletonJoint start_joint;
 	XnSkeletonJoint end_joint;
 	//XnPoint3D position[2];
-	ofVec2f begin;
-	ofVec2f end;
+	ofxVec2f begin;
+	ofxVec2f end;
 	bool found;
 	
 	void debugDraw() {
