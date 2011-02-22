@@ -63,7 +63,6 @@ bool ofxDepthGenerator::setup(ofxOpenNIContext* pContext) {
 		}
 	}	
 	
-	
 	ofLog(OF_LOG_VERBOSE, "Depth camera inited");
 	
 	
@@ -72,7 +71,7 @@ bool ofxDepthGenerator::setup(ofxOpenNIContext* pContext) {
 	XnMapOutputMode map_mode; 
 	map_mode.nXRes = XN_VGA_X_RES; 
 	map_mode.nYRes = XN_VGA_Y_RES;
-	map_mode.nFPS = 30;
+	map_mode.nFPS = 25;
 	
 	result = depth_generator.SetMapOutputMode(map_mode);
 	max_depth = depth_generator.GetDeviceMaxDepth();		
