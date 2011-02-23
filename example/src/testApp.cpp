@@ -27,8 +27,9 @@ void testApp::setupRecording(string _filename) {
 	recordDepth.toggleRegisterViewport(&recordImage);
 	recordContext.toggleMirror();
 		
-	//oniRecorder.setup(&recordContext, &recordDepth, &recordImage, ONI_STREAMING);	
-	oniRecorder.setup(&recordContext, &recordDepth, &recordImage, ONI_CYCLIC, 120);
+	oniRecorder.setup(&recordContext, &recordDepth, &recordImage, ONI_STREAMING);	
+	//oniRecorder.setup(&recordContext, &recordDepth, &recordImage, ONI_CYCLIC, 60); 
+	//read the warning in ofxOpenNIRecorder about memory usage with ONI_CYCLIC recording!!!
 	
 }
 
