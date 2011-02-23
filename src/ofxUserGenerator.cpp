@@ -108,16 +108,19 @@ void ofxUserGenerator::requestCalibration(XnUserID nID) {
 
 // Setup the user generator.
 //----------------------------------------
-bool ofxUserGenerator::setup(ofxOpenNIContext* pContext, ofxDepthGenerator* pDepthGenerator, ofxImageGenerator* pImageGenerator) {
+bool ofxUserGenerator::setup( ofxOpenNIContext* pContext
+							 ,ofxDepthGenerator* pDepthGenerator
+							 ,ofxImageGenerator* pImageGenerator) {
 	
+	// store context and generator references
+	context			= pContext;
 	image_generator = pImageGenerator;
 	depth_generator = pDepthGenerator;
 	
-	context			= pContext;
 	XnStatus result = XN_STATUS_OK;
 	
+	// get meta data so we can setup width and height vars from depth gen size
 	xn::DepthMetaData dm;
-	
 	depth_generator->getXnDepthGenerator().GetMetaData(dm);
 	
 	width = dm.XRes();
@@ -140,7 +143,7 @@ bool ofxUserGenerator::setup(ofxOpenNIContext* pContext, ofxDepthGenerator* pDep
 		}
 	}	
 	
-	// register user callbacks/
+	// register user callbacks
 	XnCallbackHandle user_cb_handle;
 	user_generator.RegisterUserCallbacks(
 		 User_NewUser
@@ -190,10 +193,9 @@ bool ofxUserGenerator::setup(ofxOpenNIContext* pContext, ofxDepthGenerator* pDep
 	}
 
 	// pre-generate the tracked users.
-	tracked_users.reserve(num_users);
 	for(int i = 0; i < num_users; ++i) {
 		ofxTrackedUser* tracked_user = new ofxTrackedUser(this, pDepthGenerator);
-		tracked_users.push_back(tracked_user);
+		tracked_users[i] = tracked_user;
 	}
 
 	return true;
@@ -203,24 +205,26 @@ bool ofxUserGenerator::setup(ofxOpenNIContext* pContext, ofxDepthGenerator* pDep
 // Draw a specific user (start counting at 0)
 //----------------------------------------
 void ofxUserGenerator::drawUser(int nUserNum) {
-	if(nUserNum > tracked_users.size()-1)
+	if(nUserNum > MAX_NUMBER_USERS - 1)
 		return;
-	tracked_users.at(nUserNum)->updateBonePositions();
-	tracked_users.at(nUserNum)->debugDraw();
+	tracked_users[nUserNum]->updateBonePositions();
+	tracked_users[nUserNum]->debugDraw();
 }
 
 // Draw all the found users.
 //----------------------------------------
 void ofxUserGenerator::draw() {
-
-	for(int i = 0;  i < found_users; ++i) {
-		drawUser(i);
-	}
 	
 	// show green/red circle if any one is found
-	if (found_users == 0) {
-		glColor3f(1.0, 0, 0);
-	} else glColor3f(0, 1.0, 0);
+	if (found_users > 0) {
+		
+		// draw all the users
+		for(int i = 0;  i < found_users; ++i) {
+			drawUser(i);
+		}
+		
+		glColor3f(0, 1.0, 0);
+	} else glColor3f(1, 1, 0);
 	
 	ofCircle(10,10,10);
 	
@@ -230,20 +234,27 @@ void ofxUserGenerator::draw() {
 }
 
 void ofxUserGenerator::drawUserMasks(int x, int y) {
+	
 	for(int i = 0;  i < found_users; ++i) {
 		updateUserMask(i);	// TODO: put into an update cycle instead of here
 		maskImage[i].draw(x, y);
 	}
+	
 }
 
 // Get a tracked user.
 //----------------------------------------
 ofxTrackedUser* ofxUserGenerator::getTrackedUser(int nUserNum) {
 	
-	if(nUserNum > found_users-1)
+	if(nUserNum > found_users - 1)
 		return NULL;
-	return tracked_users.at(nUserNum);
+	return tracked_users[nUserNum];
 	
+}
+
+// Get number of tracked users
+int ofxUserGenerator::getNumberOfTrackedUsers() {
+	return found_users;
 }
 
 // Update the tracked users, should be called each frame
@@ -257,13 +268,12 @@ void ofxUserGenerator::update() {
 	
 	for(int i = 0; i < found_users; ++i) {
 		if(user_generator.GetSkeletonCap().IsTracking(users[i])) {	
-			tracked_users.at(i)->id = users[i];
-			tracked_users.at(i)->updateBonePositions();
+			tracked_users[i]->id = users[i];
+			tracked_users[i]->updateBonePositions();
 		}
-
 	}
 	
-	delete[] users;
+	delete [] users;
 }
 
 void ofxUserGenerator::updateUserMask(int userID) {
@@ -271,8 +281,7 @@ void ofxUserGenerator::updateUserMask(int userID) {
 	const XnLabel* pLabels = NULL;
 	xn::SceneMetaData smd;
 	
-	if (user_generator.GetUserPixels(userID, smd) == XN_STATUS_OK)
-	{
+	if (user_generator.GetUserPixels(userID, smd) == XN_STATUS_OK) {
 		pLabels = smd.Data();
 	}
 	
@@ -280,9 +289,7 @@ void ofxUserGenerator::updateUserMask(int userID) {
 		
 		if (*pLabels != 0) {
 			maskPixels[i] = 255;
-		} else {
-            maskPixels[i] = 0;
-		}
+		} else maskPixels[i] = 0;
 		
 	}
 
@@ -325,41 +332,33 @@ void ofxUserGenerator::drawPointCloud(bool showBackground, int cloudPointSize) {
 	const XnLabel* pLabels = NULL;
 	xn::SceneMetaData smd;
 	
-	if (user_generator.GetUserPixels(0, smd) == XN_STATUS_OK)	// TODO: change so you can draw just one user, etc - currently draws all users	
-	{
+	if (user_generator.GetUserPixels(0, smd) == XN_STATUS_OK) {	// TODO: change so you can draw just one user, etc - currently draws all users	
 		bLabelsExists = TRUE;
 		pLabels = smd.Data();
 	}
 	
 	XnUInt32 nIndex = 0;
-	for (XnUInt16 nY = 0; nY < height; nY++)
-	{
-		for (XnUInt16 nX = 0; nX < width; nX++, nIndex++, pLabels++)
-		{
-			fValueH = pDepth[nIndex];
-			if (pDepth[nIndex] == 0)
-				continue;
+	for (XnUInt16 nY = 0; nY < height; nY++) {
+		
+		for (XnUInt16 nX = 0; nX < width; nX++, nIndex++, pLabels++) {
 			
-			if (bLabelsExists)
-			{
-				if (*pLabels == 0)
-				{
-					if (!showBackground)
-					{
-						continue;
-					}
+			fValueH = pDepth[nIndex];
+			
+			if (pDepth[nIndex] == 0) continue;
+			
+			if (bLabelsExists) {
+				if (*pLabels == 0) {
+					if (!showBackground) continue;
 				}
 			}
-			else if (!showBackground)
-			{
-				continue;
-			}
+			else if (!showBackground) continue;
 			
 			glColor3f(float(pColor[nIndex].nRed/127.0), float(pColor[nIndex].nBlue/127.0), float(pColor[nIndex].nGreen/127.0));
 			
 			// TODO: originally this used Real world to projective calls, 
 			// but that slowed things down too much for me...need to check 
 			// ofxKinect code and original to make this more better ;-)
+			
 			XnPoint3D point = xnCreatePoint3D(nX, nY, fValueH);
 			glVertex3f(point.X, point.Y, point.Z);
 			

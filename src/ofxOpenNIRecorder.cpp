@@ -4,19 +4,39 @@
 // undef this if you're using a PrimeSense
 #define USINGKINECT
 
+// Rcorder memory consumption (when using cyclic recorder mode -- from NiBackRecorder readme) 
+// the recorder stores frames in memory in a cyclic buffer that 
+// is dependent on the streams, their resolutions and the amount of time requested.
+
+// Memory consumption
+// ------------------
+// 1 second, depth VGA: 30*2*640*480 = 18432000 bytes = 17.6MB
+// 1 second, depth QVGA: 30*2*320*240 = 4608000 bytes = 4.4MB
+// 1 second, image VGA: 30*3*640*480 = 27648000 bytes = 26.4MB
+// 1 second, image QVGA: 30*3*320*240 = 6912000 bytes = 6.6MB
+
+// This means:
+// 2 minutes, depth QVGA, image QVGA: (4.4MB+6.6MB)*120 = 1.3GB
+// 2 minutes, depth VGA, image VGA: (17.6MB+26.4MB)*120 = 5.2GB
+
+// So be warned, the memory consumption can get quite high when 
+// recording high resolutions and/or long periods in cyclic mode.
+
+// On the other hand streaming straight to disk doesn't chew memory (just your disk;-)
+
+
 // Init
 //----------------------------------------
 ofxOpenNIRecorder::ofxOpenNIRecorder() {
 	is_recording = false;
 }
 
-
 // Shutdown
 //----------------------------------------
 ofxOpenNIRecorder::~ofxOpenNIRecorder() {
+	XN_DELETE_ARR(frames);
 	stopRecord(); // just to be sure.
 }
-
 
 // Setup the recorder.
 //----------------------------------------
@@ -25,17 +45,25 @@ void ofxOpenNIRecorder::setup(
 							  ,ofxDepthGenerator*	pDepth
 							  ,ofxImageGenerator*	pImage
 							  ,int				b_record_type
+							  ,int				b_record_time
 							  ,bool				b_record_image
 							  ,bool				b_record_depth)
 {
 	
+	// set context and generator references
 	context = pContext;
 	depth_generator = pDepth;
 	image_generator = pImage;
 	
+	// set configuration
 	config.record_image = b_record_image;
 	config.record_depth = b_record_depth;
 	config.record_type	= b_record_type;
+	config.record_time	= b_record_time;
+	
+	// set buffer size
+	m_nBufferSize = config.record_time * 30;
+	frames = XN_NEW_ARR(SingleFrame, m_nBufferSize);
 	
 	is_recording = false;
 	
@@ -53,6 +81,10 @@ void ofxOpenNIRecorder::setRecordType(int b_record_type) {
 	config.record_image = b_record_type;
 }
 
+void ofxOpenNIRecorder::setRecordTime(int b_record_time) {
+	config.record_time = b_record_time;
+}
+
 string ofxOpenNIRecorder::getCurrentFileName() {
 	return config.record_name;
 }
@@ -68,18 +100,37 @@ bool ofxOpenNIRecorder::startRecord(string sName) {
 	
 	xn::MockDepthGenerator m_depth;
 	xn::MockImageGenerator m_image;
-	xn::EnumerationErrors errors;
+	
+	// reset dropped frame counting variables
+	nLastDepthTime = 0;
+	nLastImageTime = 0;
+	nMissedDepthFrames = 0;
+	nMissedImageFrames = 0;
+	nDepthFrames = 0;
+	nImageFrames = 0;
 	
 	XnStatus result;
 	
+	// set the record file name
 	config.record_name = ofToDataPath(sName, false);
 	
 	bool do_init = false;
 	
+	// by using this do_init method the interface 
+	// is transparent to users whichever way we are recording
+	// the second call to startRecording when ONI_CYCLING 
+	// dumps the buffer to file (see below stopRecord()
+	
 	if (config.record_type == ONI_CYCLIC && !is_recording) {
 		printf("Start cyclic recording: %s\n", config.record_name.c_str());
+		
+		// reset cyclic recording variables
+		m_nNextWrite = 0;
+		m_nBufferCount = 0;
+		
 		is_recording = true;
-	} else do_init = true;
+		
+	} else do_init = true; 
 	
 	if (do_init) {
 		
@@ -91,10 +142,11 @@ bool ofxOpenNIRecorder::startRecord(string sName) {
 		CHECK_RC(result, "Recorder set destination");
 		
 		if (config.record_depth) {
+			
 			if (config.record_type == ONI_STREAMING) {
 				
 				// just use the depth generator as the node to record
-				result = recorder.AddNodeToRecording(depth_generator->getXnDepthGenerator(), XN_CODEC_16Z_EMB_TABLES);
+				result = recorder.AddNodeToRecording(depth_generator->getXnDepthGenerator(), XN_CODEC_16Z); // XN_CODEC_16Z_EMB_TABLES is smaller, but seems XN_CODEC_16Z is smoother
 				CHECK_RC(result, "Recorder add depth node");
 				
 			} else if (config.record_type == ONI_CYCLIC) {
@@ -105,18 +157,19 @@ bool ofxOpenNIRecorder::startRecord(string sName) {
 																	   ,m_depth);
 				CHECK_RC(result, "Create depth node");
 				
-				result = recorder.AddNodeToRecording(m_depth, XN_CODEC_16Z_EMB_TABLES);
+				result = recorder.AddNodeToRecording(m_depth, XN_CODEC_16Z); // XN_CODEC_16Z_EMB_TABLES is smaller, but seems XN_CODEC_16Z is smoother
+				
 				CHECK_RC(result, "Recorder add depth node");
 			}
-			
-			
 			
 		}
 		
 		// create image node
 		if (config.record_image) {
+			
 			if (config.record_type == ONI_STREAMING) {
 				
+				// just use the image generator as the node to record
 				result = recorder.AddNodeToRecording(image_generator->getXnImageGenerator(), XN_CODEC_NULL); // XN_CODEC_NULL appears to give least frame drops and size not much > JPEG
 				CHECK_RC(result, "Recorder add image node");
 				
@@ -128,7 +181,7 @@ bool ofxOpenNIRecorder::startRecord(string sName) {
 																	   ,m_image);
 				CHECK_RC(result, "Create image node");
 				
-				result = recorder.AddNodeToRecording(m_image, XN_CODEC_JPEG); // XN_CODEC_NULL appears to give least frame drops and size not much > JPEG
+				result = recorder.AddNodeToRecording(m_image, XN_CODEC_NULL); // XN_CODEC_NULL appears to give least frame drops and size not much > JPEG
 				CHECK_RC(result, "Recorder add image node");
 			}
 			
@@ -147,7 +200,6 @@ bool ofxOpenNIRecorder::startRecord(string sName) {
 				CHECK_RC(result, "Enable frame sync");
 			}
 		}
-		
 #endif
 		
 		if (config.record_type == ONI_STREAMING) {
@@ -157,35 +209,33 @@ bool ofxOpenNIRecorder::startRecord(string sName) {
 			
 		} else if (config.record_type == ONI_CYCLIC && is_recording) {
 			
-			// store frames.
-			std::vector<SingleFrame*>::iterator it_frame = frames.begin();
-			while(it_frame != frames.end()) {
-				if(config.record_depth) {
-					m_depth.SetData((*it_frame)->depth_frame);
-					//setDepthFrame(r_depth, (*it_frame)->depth_frame);
+			// Record frames from current position in cyclic buffer loop through to the end
+			if (m_nNextWrite < m_nBufferCount) {
+				
+				// Not first loop, right till end
+				for (XnUInt32 i = m_nNextWrite; i < m_nBufferSize; ++i) {
 					
-				}
-				if(config.record_image) {
-					m_image.SetData((*it_frame)->image_frame);
-					//setImageFrame(r_image, (*it_frame)->image_frame);
+					if (config.record_depth) m_depth.SetData(frames[i].depth_frame);
+					if (config.record_image) m_image.SetData(frames[i].image_frame);
 					
+					recorder.Record();
 				}
-				++it_frame;
+			}
+			
+			// Write frames from the beginning of the buffer to the last one written
+			for (XnUInt32 i = 0; i < m_nNextWrite; ++i) {
+				if (config.record_depth) m_depth.SetData(frames[i].depth_frame);
+				if (config.record_image) m_image.SetData(frames[i].image_frame);
 				
 				recorder.Record();
-				
 			}	
 			
 			// cleanup
-			recorder.Unref();
-			m_image.Unref();
-			m_depth.Unref();
+			recorder.Release();
+			m_image.Release();
+			m_depth.Release();
 			
-			it_frame = frames.begin();
-			while(it_frame != frames.end()) {
-				delete (*it_frame);
-				it_frame = frames.erase(it_frame);
-			}
+			XN_DELETE_ARR(frames);
 		} 
 	}
 	return true;
@@ -195,27 +245,67 @@ void ofxOpenNIRecorder::update() {
 	
 	if (config.record_type == ONI_STREAMING) {
 		
-		recorder.Record(); // is this really doing anything?
+		if (depth_generator->getXnDepthGenerator().IsDataNew()) {
+			recorder.Record(); // is this really doing anything??? Don't think so ;-)
+		}
 		
 	} else if (config.record_type == ONI_CYCLIC && is_recording) {
-		SingleFrame* frame = new SingleFrame();
 		
+		// store depth frame metadata to cyclic buffer array
 		if(config.record_depth) {
 			xn::DepthMetaData dmd;
 			depth_generator->getXnDepthGenerator().GetMetaData(dmd);
-			frame->depth_frame.CopyFrom(dmd);
+			frames[m_nNextWrite].depth_frame.CopyFrom(dmd);
 		}
 		
-		
+		// store image frame metadata to cyclic buffer array
 		if(config.record_image) {
 			xn::ImageMetaData imd;
 			image_generator->getXnImageGenerator().GetMetaData(imd);
-			frame->image_frame.CopyFrom(imd);
+			frames[m_nNextWrite].image_frame.CopyFrom(imd);
 		}
 		
-		frames.push_back(frame);
+		// See if buffer is already full
+		if (m_nBufferCount < m_nBufferSize) m_nBufferCount++;
+		
+		// Make sure cylic buffer pointers are good
+		m_nNextWrite++;
+		
+		// Reset cyclic buffer pointer if we're at the end
+		if (m_nNextWrite == m_nBufferSize) m_nNextWrite = 0;
+	}
+	
+	
+	// Check for missed frames
+	if (config.record_depth) {
+		
+		++nDepthFrames;
+		
+		XnUInt64 nTimestamp = depth_generator->getXnDepthGenerator().GetTimestamp();
+		
+		if (nLastDepthTime != 0 && nTimestamp - nLastDepthTime > 35000) {
+			int missed = (int)(nTimestamp-nLastDepthTime)/32000 - 1;
+			printf("Missed depth: %llu -> %llu = %d > 35000 - %d frames\n",
+				   nLastDepthTime, nTimestamp, XnUInt32(nTimestamp-nLastDepthTime), missed);
+			nMissedDepthFrames += missed;
+		}
+		
+		nLastDepthTime = nTimestamp;
 		
 	}
+	
+	if (config.record_image) {
+		++nImageFrames;
+		XnUInt64 nTimestamp = image_generator->getXnImageGenerator().GetTimestamp();
+		if (nLastImageTime != 0 && nTimestamp - nLastImageTime > 35000) {
+			int missed = (int)(nTimestamp-nLastImageTime)/32000 - 1;
+			printf("Missed image: %llu -> %llu = %d > 35000 - %d frames\n",
+				   nLastImageTime, nTimestamp, XnUInt32(nTimestamp-nLastImageTime), missed);
+			nMissedImageFrames += missed;
+		}
+		nLastImageTime = nTimestamp;
+	}
+	
 }
 
 // Return recording status
@@ -223,24 +313,34 @@ void ofxOpenNIRecorder::update() {
 bool ofxOpenNIRecorder::isRecording() {
 	return is_recording;
 }
+
 // Stop the record
 //----------------------------------------
 bool ofxOpenNIRecorder::stopRecord() {
+	
 	if(is_recording){
-		
-		
 		
 		if (config.record_type == ONI_STREAMING) {
 			
-			recorder.Unref();
+			recorder.Release();
 			printf("Stopped streaming recording: %s\n", config.record_name.c_str());
 			
 		} else if (config.record_type == ONI_CYCLIC) {
 			
-			startRecord(config.record_name);
+			startRecord(config.record_name); // second call to startRecording dumps the buffer to file
 			printf("Stopped cyclic recording: %s\n", config.record_name.c_str());
 			
 		}
+		
+		// summarise dropped frames
+		if (config.record_depth) printf("Missed %d of %d depth frames (%5.2f%%)\n", 
+										nMissedDepthFrames, 
+										(nMissedDepthFrames+nDepthFrames), 
+										(nMissedDepthFrames*100.0)/(nMissedDepthFrames + nDepthFrames));
+		if (config.record_image) printf("Missed %d of %d image frames (%5.2f%%)\n", 
+										nMissedImageFrames, 
+										(nMissedImageFrames+nImageFrames), 
+										(nMissedImageFrames*100.0)/(nMissedImageFrames+nImageFrames));
 		
 		is_recording = false;
 		

@@ -100,7 +100,6 @@ bool ofxDepthGenerator::toggleRegisterViewport(ofxImageGenerator* image_generato
 		} else {
 			registerViewport(image_generator);
 		}
-		
 
 	} else return false;
 

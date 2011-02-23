@@ -27,8 +27,9 @@ void testApp::setupRecording(string _filename) {
 	recordDepth.toggleRegisterViewport(&recordImage);
 	recordContext.toggleMirror();
 		
-	oniRecorder.setup(&recordContext, &recordDepth, &recordImage);	
-		
+	//oniRecorder.setup(&recordContext, &recordDepth, &recordImage, ONI_STREAMING);	
+	oniRecorder.setup(&recordContext, &recordDepth, &recordImage, ONI_CYCLIC, 120);
+	
 }
 
 void testApp::setupPlayback(string _filename) {
@@ -151,8 +152,8 @@ void testApp::keyPressed(int key){
 			}
 			break;
 		case 'p':
-			if (currentFileName != "" && !isRecording && isLive) {
-				setupPlayback(currentFileName);
+			if (oniRecorder.getCurrentFileName() != "" && !isRecording && isLive) {
+				setupPlayback(oniRecorder.getCurrentFileName());
 				isLive = false;
 			} else {
 				isLive = true;

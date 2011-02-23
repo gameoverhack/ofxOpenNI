@@ -15,7 +15,9 @@ class ofxUserGenerator {
 public:
 	ofxUserGenerator();
 	
-	bool setup(ofxOpenNIContext* pContext, ofxDepthGenerator* pDepthGenerator, ofxImageGenerator* image_generator);
+	bool setup(ofxOpenNIContext* pContext, 
+			   ofxDepthGenerator* pDepthGenerator, 
+			   ofxImageGenerator* image_generator);
 	
 	void draw();
 	void drawUserMasks(int x, int y);
@@ -35,6 +37,7 @@ public:
 	
 	xn::UserGenerator& getXnUserGenerator();
 	
+	int				getNumberOfTrackedUsers();
 	ofxTrackedUser* getTrackedUser(int nUserNum);
 
 private:
@@ -49,7 +52,7 @@ private:
 	// vars for user tracking
 	XnBool							needs_pose;
 	XnChar							calibration_pose[20];
-	std::vector<ofxTrackedUser*>	tracked_users;
+	ofxTrackedUser *				tracked_users[MAX_NUMBER_USERS];
 	XnUInt16						num_users;
 	XnUInt16						found_users;
 

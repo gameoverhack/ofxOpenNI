@@ -24,12 +24,14 @@ struct RecordConfiguration {
 		
 		record_depth = true;
 		record_image = true;
+		record_time  = 0;
 		record_type	 = ONI_STREAMING;
 		record_name	 = "";
 		
 	}
 	bool		record_depth;
 	bool		record_image;
+	int			record_time;
 	int			record_type;
 	string		record_name;
 };
@@ -44,6 +46,7 @@ public:
 			   ,ofxDepthGenerator*	pDepth
 			   ,ofxImageGenerator*	pImage
 			   ,int					b_record_type	= ONI_STREAMING
+			   ,int					b_record_time	= 0
 			   ,bool				b_record_image	= true
 			   ,bool				b_record_depth	= true);
 	
@@ -52,6 +55,7 @@ public:
 	void setRecordDepth(bool bShouldRecordDepth);
 	void setRecordImage(bool bShouldRecordImage);
 	void setRecordType(int b_record_type);
+	void setRecordTime(int b_record_time);
 	
 	string getCurrentFileName();
 	
@@ -62,6 +66,8 @@ public:
 	bool isRecording();
 	
 private:
+	
+	xn::Recorder		recorder;
 	
 	ofxOpenNIContext*	context;	
 	ofxDepthGenerator*	depth_generator;
@@ -75,11 +81,22 @@ private:
 		xn::ImageMetaData image_frame;
 	};
 	
-	std::vector<SingleFrame*> frames;
+	SingleFrame*		frames;
+	XnUInt32 m_nNextWrite;
+	XnUInt32 m_nBufferSize;
+	XnUInt32 m_nBufferCount;
+	
+	// To count missed frames
+	XnUInt64 nLastDepthTime;
+	XnUInt64 nLastImageTime;
+	XnUInt32 nMissedDepthFrames;
+	XnUInt32 nMissedImageFrames;
+	XnUInt32 nDepthFrames;
+	XnUInt32 nImageFrames;
 	
 	RecordConfiguration config;
 	
-	bool is_recording;	
-	xn::Recorder recorder;
+	bool				is_recording;	
+
 	
 };
