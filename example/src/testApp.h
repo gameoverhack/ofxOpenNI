@@ -27,8 +27,6 @@ class testApp : public ofBaseApp{
 		string	generateFileName();
 	
 		bool				isLive, isTracking, isRecording, isCloud, isCPBkgnd, isMasking;
-		
-		string				currentFileName;
 	
 		ofxOpenNIContext	recordContext, playContext;
 		ofxDepthGenerator	recordDepth, playDepth;

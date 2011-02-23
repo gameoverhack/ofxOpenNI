@@ -81,12 +81,9 @@ void XN_CALLBACK_TYPE UserCalibration_CalibrationEnd(
 
 // OFXUSERGENERATOR
 // =============================================================================
-ofxUserGenerator::ofxUserGenerator() 
-:needs_pose(false)
-,num_users(MAX_NUMBER_USERS)
-,is_initialized(false)
-{	
-	found_user = false;
+ofxUserGenerator::ofxUserGenerator() {	
+	needs_pose = false;
+	num_users = MAX_NUMBER_USERS;
 }
 
 
@@ -112,12 +109,10 @@ void ofxUserGenerator::requestCalibration(XnUserID nID) {
 // Setup the user generator.
 //----------------------------------------
 bool ofxUserGenerator::setup(ofxOpenNIContext* pContext, ofxDepthGenerator* pDepthGenerator, ofxImageGenerator* pImageGenerator) {
-	if(!pContext->isInitialized()) {
-		return false;
-	}
 	
 	image_generator = pImageGenerator;
 	depth_generator = pDepthGenerator;
+	
 	context			= pContext;
 	XnStatus result = XN_STATUS_OK;
 	
@@ -131,14 +126,15 @@ bool ofxUserGenerator::setup(ofxOpenNIContext* pContext, ofxDepthGenerator* pDep
 	maskPixels = new unsigned char[width * height];
 	
 	// check if the USER generator exists.
-	result = context
-				->getXnContext()
-				.FindExistingNode(XN_NODE_TYPE_USER, user_generator);
+	result = context->getXnContext().FindExistingNode(XN_NODE_TYPE_USER, user_generator);
 	SHOW_RC(result, "Find user generator");
+	
 	if(result != XN_STATUS_OK) {
-		// create user generator.
+		
+		// if one doesn't exist then create user generator.
 		result = user_generator.Create(context->getXnContext());
 		SHOW_RC(result, "Create user generator");
+		
 		if(result != XN_STATUS_OK) {
 			return false;
 		}
@@ -163,47 +159,44 @@ bool ofxUserGenerator::setup(ofxOpenNIContext* pContext, ofxDepthGenerator* pDep
 	
 	// check if we need to pose for calibration
 	if(user_generator.GetSkeletonCap().NeedPoseForCalibration()) {
+		
 		needs_pose = true;
+		
 		if(!user_generator.IsCapabilitySupported(XN_CAPABILITY_POSE_DETECTION)) {
 			printf("Pose required, but not supported!\n");
 			return false;
 		}
+		
 		XnCallbackHandle user_pose_cb_handle;
+		
 		user_generator.GetPoseDetectionCap().RegisterToPoseCallbacks(
 			 UserPose_PoseDetected
 			,NULL
 			,this
 			,user_pose_cb_handle
 		);
+		
 		user_generator.GetSkeletonCap().GetCalibrationPose(calibration_pose);
 		
 	}
 	
 	user_generator.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_ALL);
 	
-	// added by gameover (m gingold) -> needs this to allow skeleton tracking when using pre-recorded .oni
+	// needs this to allow skeleton tracking when using pre-recorded .oni
+	// as otherwise the image/depth nodes play but are not generating callbacks
 	if (context->isUsingRecording()) {
 		result = context->getXnContext().StartGeneratingAll();
 		CHECK_RC(result, "StartGenerating");
 	}
 
-	
 	// pre-generate the tracked users.
 	tracked_users.reserve(num_users);
 	for(int i = 0; i < num_users; ++i) {
 		ofxTrackedUser* tracked_user = new ofxTrackedUser(this, pDepthGenerator);
 		tracked_users.push_back(tracked_user);
 	}
-	is_initialized = true;
-	return true;
-}
 
-// Draw all the found users.
-//----------------------------------------
-void ofxUserGenerator::drawUsers() {
-	for(int i = 0;  i < found_users; ++i) {
-		drawUser(i);
-	}
+	return true;
 }
 
 
@@ -216,24 +209,24 @@ void ofxUserGenerator::drawUser(int nUserNum) {
 	tracked_users.at(nUserNum)->debugDraw();
 }
 
-// Draw all users.
+// Draw all the found users.
 //----------------------------------------
 void ofxUserGenerator::draw() {
-	if(!is_initialized) {
-		return;
-	}
 
-	drawUsers();
-	if(!found_user) {
+	for(int i = 0;  i < found_users; ++i) {
+		drawUser(i);
+	}
+	
+	// show green/red circle if any one is found
+	if (found_users == 0) {
 		glColor3f(1.0, 0, 0);
-	}
-	else {
-		glColor3f(0.0, 1, 0);
-	}
+	} else glColor3f(0, 1.0, 0);
+	
 	ofCircle(10,10,10);
 	
-	// reset to white for simplicity elsewhere
+	// reset to white for simplicity
 	glColor3f(1, 1, 1);
+	
 }
 
 void ofxUserGenerator::drawUserMasks(int x, int y) {
@@ -247,51 +240,23 @@ void ofxUserGenerator::drawUserMasks(int x, int y) {
 //----------------------------------------
 ofxTrackedUser* ofxUserGenerator::getTrackedUser(int nUserNum) {
 	
-	ofxTrackedUser* found_user = NULL;
-	try {
-		found_user = tracked_users.at(nUserNum);
-	}
-	catch( std::out_of_range& rEx) {
+	if(nUserNum > found_users-1)
 		return NULL;
-	}
-	return found_user;
+	return tracked_users.at(nUserNum);
+	
 }
-
-std::vector<ofxTrackedUser*> ofxUserGenerator::getTrackedUsers() {
-	std::vector<ofxTrackedUser*> found;
-	std::vector<ofxTrackedUser*>::iterator it = tracked_users.begin();
-	while(it != tracked_users.end()) {
-		if( (*it)->is_tracked) {
-			found.push_back(*it);
-		}			
-		++it;
-	}
-	return found;
-}
-
 
 // Update the tracked users, should be called each frame
 //----------------------------------------
 void ofxUserGenerator::update() {
-	if(!is_initialized) {
-		return;
-	}
 	
-	// unset
-	std::vector<ofxTrackedUser*>::iterator it = tracked_users.begin();
-	while(it != tracked_users.end()) {
-		(*it)->is_tracked = false;
-		++it;
-	}
-	
-	found_user = false;
 	found_users = num_users;
+	
 	XnUserID* users = new XnUserID[num_users];
 	user_generator.GetUsers(users, found_users);
+	
 	for(int i = 0; i < found_users; ++i) {
 		if(user_generator.GetSkeletonCap().IsTracking(users[i])) {	
-			found_user = true;
-			tracked_users.at(i)->is_tracked = true;
 			tracked_users.at(i)->id = users[i];
 			tracked_users.at(i)->updateBonePositions();
 		}
@@ -360,7 +325,7 @@ void ofxUserGenerator::drawPointCloud(bool showBackground, int cloudPointSize) {
 	const XnLabel* pLabels = NULL;
 	xn::SceneMetaData smd;
 	
-	if (user_generator.GetUserPixels(0, smd) == XN_STATUS_OK)	// TODO: track all users, currently only drawing point cloud for first user
+	if (user_generator.GetUserPixels(0, smd) == XN_STATUS_OK)	// TODO: change so you can draw just one user, etc - currently draws all users	
 	{
 		bLabelsExists = TRUE;
 		pLabels = smd.Data();
@@ -392,6 +357,9 @@ void ofxUserGenerator::drawPointCloud(bool showBackground, int cloudPointSize) {
 			
 			glColor3f(float(pColor[nIndex].nRed/127.0), float(pColor[nIndex].nBlue/127.0), float(pColor[nIndex].nGreen/127.0));
 			
+			// TODO: originally this used Real world to projective calls, 
+			// but that slowed things down too much for me...need to check 
+			// ofxKinect code and original to make this more better ;-)
 			XnPoint3D point = xnCreatePoint3D(nX, nY, fValueH);
 			glVertex3f(point.X, point.Y, point.Z);
 			

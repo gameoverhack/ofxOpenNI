@@ -1,6 +1,6 @@
 #include "ofxImageGenerator.h"
  
-void ofxImageGenerator::generateTexture(){
+void ofxImageGenerator::generateTexture() {
 	xn::ImageMetaData imd;
 	image_generator.GetMetaData(imd);	
 	const XnUInt8* pImage = imd.Data();
@@ -15,9 +15,6 @@ void ofxImageGenerator::draw(float x, float y, float w, float h){
 }
 
 bool ofxImageGenerator::setup(ofxOpenNIContext* pContext) {
-	if(!pContext->isInitialized()) {
-		return false;
-	}
 	
 	//Create image generator
 	XnStatus result = image_generator.Create(pContext->getXnContext());
@@ -35,6 +32,7 @@ bool ofxImageGenerator::setup(ofxOpenNIContext* pContext) {
 		
 		result = image_generator.SetMapOutputMode(map_mode);
 		
+		// TODO: allow for b+w image texture AND add IR class (seperate or part of this class?)
 		image_texture.allocate(map_mode.nXRes, map_mode.nYRes, GL_RGBA);		
 		image_pixels = new unsigned char[map_mode.nXRes * map_mode.nYRes * 3];
 		

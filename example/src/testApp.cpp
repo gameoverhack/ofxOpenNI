@@ -11,43 +11,33 @@ void testApp::setup() {
 	isMasking   = true;
 	
 	setupRecording();
-
+	
 	ofBackground(0, 0, 0);
 	
 }
 
 void testApp::setupRecording(string _filename) {
-	
-	if (!recordContext.isInitialized()) {
 		
-		recordContext.setup();
-		recordContext.setupUsingXMLFile();
-		recordDepth.setup(&recordContext);
-		recordImage.setup(&recordContext);
+	recordContext.setupUsingXMLFile();
+	recordDepth.setup(&recordContext);
+	recordImage.setup(&recordContext);
 		
-		recordUser.setup(&recordContext, &recordDepth, &recordImage);
+	recordUser.setup(&recordContext, &recordDepth, &recordImage);
 		
-		recordDepth.toggleRegisterViewport(&recordImage);
-		recordContext.toggleMirror();
+	recordDepth.toggleRegisterViewport(&recordImage);
+	recordContext.toggleMirror();
 		
-		oniRecorder.setup(&recordContext, &recordDepth, &recordImage);	
-		
-	} else {
-		
-		currentFileName = _filename;
-		cout << currentFileName << endl;
-	}
+	oniRecorder.setup(&recordContext, &recordDepth, &recordImage);	
 		
 }
 
 void testApp::setupPlayback(string _filename) {
 	
-	playContext.clear();
+	playContext.shutdown();
 	playContext.setupUsingRecording(ofToDataPath(_filename));
 	playDepth.setup(&playContext);
 	playImage.setup(&playContext);
 	playUser.setup(&playContext, &playDepth, &playImage);
-	
 	
 	playDepth.toggleRegisterViewport(&playImage);
 	playContext.toggleMirror();
@@ -60,6 +50,7 @@ void testApp::update(){
 	if (isLive) {
 		recordContext.update();
 		if (isTracking) recordUser.update();
+		if (isRecording) oniRecorder.update();
 	} else {
 		playContext.update();
 		if (isTracking) playUser.update();
@@ -140,7 +131,7 @@ void testApp::draw(){
 	ofDrawBitmapString(msg1, 20, 500);
 	ofDrawBitmapString(msg2, 20, 550);
 	ofDrawBitmapString(msg3, 20, 600);
-	ofDrawBitmapString(currentFileName, 20, 700);
+	ofDrawBitmapString(oniRecorder.getCurrentFileName(), 20, 700);
 
 	
 }
@@ -154,8 +145,7 @@ void testApp::keyPressed(int key){
 				isRecording = false;
 				break;
 			} else {
-				setupRecording(generateFileName());
-				oniRecorder.startRecord(currentFileName);
+				oniRecorder.startRecord(generateFileName());
 				isRecording = true;
 				break;
 			}

@@ -45,29 +45,22 @@ ofxDepthGenerator::ofxDepthGenerator(){
 }
 
 bool ofxDepthGenerator::setup(ofxOpenNIContext* pContext) {
-	if(!pContext->isInitialized()) {
-		return false;
-	}
-	
+
 	XnStatus result = XN_STATUS_OK;	
 	
-	// check if the USER generator exists.
-	result = pContext->getXnContext()
-					.FindExistingNode(XN_NODE_TYPE_DEPTH, depth_generator);
-	SHOW_RC(result, "Find depth generator");
-	if(result != XN_STATUS_OK) {
-		result = depth_generator.Create(pContext->getXnContext());
-		SHOW_RC(result, "Create depth generator");
-		if(result != XN_STATUS_OK) {			
-			return false;
-		}
+	// When the context is using a recording we need to fetch the depth generator.
+	// --------------------------------------------------------------------------
+	if(!pContext->isUsingRecording()) {
+		XnStatus result = depth_generator.Create(pContext->getXnContext());
+		CHECK_RC(result, "Creating depth generator using recording");
+	}
+	else {
+		pContext->getDepthGenerator(this);
 	}	
 	
 	ofLog(OF_LOG_VERBOSE, "Depth camera inited");
 	
-	
 	//Set the input to VGA (standard is QVGA wich is not supported on the Kinect)
-
 	XnMapOutputMode map_mode; 
 	map_mode.nXRes = XN_VGA_X_RES; 
 	map_mode.nYRes = XN_VGA_Y_RES;
@@ -76,6 +69,7 @@ bool ofxDepthGenerator::setup(ofxOpenNIContext* pContext) {
 	result = depth_generator.SetMapOutputMode(map_mode);
 	max_depth = depth_generator.GetDeviceMaxDepth();		
 	
+	// TODO: add capability for b+w depth maps (more efficient for draw)
 	depth_texture.allocate(map_mode.nXRes, map_mode.nYRes, GL_RGBA);		
 	depth_pixels = new unsigned char[map_mode.nXRes * map_mode.nYRes * 4];
 	memset(depth_pixels, 0, map_mode.nXRes * map_mode.nYRes * 4 * sizeof(unsigned char));
@@ -84,6 +78,7 @@ bool ofxDepthGenerator::setup(ofxOpenNIContext* pContext) {
 	return true;
 	
 }
+
 void ofxDepthGenerator::draw(float x, float y, float w, float h){
 	generateTexture();
 	glColor3f(1,1,1);
@@ -95,19 +90,15 @@ xn::DepthGenerator& ofxDepthGenerator::getXnDepthGenerator() {
 }
 
 bool ofxDepthGenerator::toggleRegisterViewport(ofxImageGenerator* image_generator) {
-	// Register view point to image map
 	
-	XnStatus result;	
-	
+	// Toggle registering view point to image map
 	if (depth_generator.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT))
 	{
 		
 		if(depth_generator.GetAlternativeViewPointCap().IsViewPointAs(image_generator->getXnImageGenerator())) {
-			result = depth_generator.GetAlternativeViewPointCap().ResetViewPoint();
-			CHECK_RC(result, "Reset Registration");
+			unregisterViewport();
 		} else {
-			result = depth_generator.GetAlternativeViewPointCap().SetViewPoint(image_generator->getXnImageGenerator());
-			CHECK_RC(result, "Registration");
+			registerViewport(image_generator);
 		}
 		
 
@@ -116,7 +107,34 @@ bool ofxDepthGenerator::toggleRegisterViewport(ofxImageGenerator* image_generato
 	return true;
 }
 
+bool ofxDepthGenerator::registerViewport(ofxImageGenerator* image_generator) {
+	
+	// Register view point to image map
+	if (depth_generator.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT)) {
+		
+		XnStatus result = depth_generator.GetAlternativeViewPointCap().SetViewPoint(image_generator->getXnImageGenerator());
+		CHECK_RC(result, "Register viewport");
+		
+	} else return false;
+	
+	return true;
+}
+
+bool ofxDepthGenerator::unregisterViewport() {
+	
+	// Unregister view point from (image) any map	
+	if (depth_generator.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT)) {
+		XnStatus result = depth_generator.GetAlternativeViewPointCap().ResetViewPoint();
+		CHECK_RC(result, "Unregister viewport");
+		
+	} else return false;
+	
+	return true;
+}
+
+// TODO: add capability for b+w depth maps (more efficient for draw)
 void ofxDepthGenerator::generateTexture(){
+	
 	// get meta-data
 	xn::DepthMetaData dmd;
 	depth_generator.GetMetaData(dmd);	
@@ -125,13 +143,8 @@ void ofxDepthGenerator::generateTexture(){
 	const XnDepthPixel* depth = dmd.Data();
 	XN_ASSERT(depth);
 	
-	if (dmd.FrameID() == 0){
-		return;
-	}
-	if (dmd.PixelFormat() == XN_PIXEL_FORMAT_RGB24) {
-		printf("its in yuv\n");
-	}
-	
+	if (dmd.FrameID() == 0) return;
+
 	// copy depth into texture-map
 	for (XnUInt16 y = dmd.YOffset(); y < dmd.YRes() + dmd.YOffset(); y++) {
 		unsigned char * texture = (unsigned char*)depth_pixels + y * dmd.XRes() * 4 + dmd.XOffset()*4;
@@ -142,7 +155,6 @@ void ofxDepthGenerator::generateTexture(){
 			XnUInt8 alpha = 255;
 			
 			XnUInt16 col_index;
-			//printf("%d\n", depth);
 			
 			switch (depth_coloring){
 				case 0: //PSYCHEDELIC_SHADES

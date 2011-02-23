@@ -36,11 +36,11 @@ ofxTrackedUser::ofxTrackedUser(
 ,user_generator(pUserGenerator)
 ,depth_generator(pDepthGenerator) 
 ,xn_user_generator(&user_generator->getXnUserGenerator())
-,is_tracked(false)
 {
 }
 
 void ofxTrackedUser::updateBonePositions() {
+	
 	updateLimb(neck);
 	
 	// left arm + shoulder
@@ -71,6 +71,7 @@ void ofxTrackedUser::updateBonePositions() {
 }
 
 void ofxTrackedUser::updateLimb(ofxLimb& rLimb) {
+	
 	if(!xn_user_generator->GetSkeletonCap().IsTracking(id)) {
 		//printf("Not tracking this user: %d\n", id);
 		return;
@@ -84,18 +85,15 @@ void ofxTrackedUser::updateLimb(ofxLimb& rLimb) {
 		return;
 	}
 	
-	XnPoint3D pos[2];
-	pos[0] = a.position;
-	pos[1] = b.position;
-	depth_generator->getXnDepthGenerator()
-		.ConvertRealWorldToProjective(2, pos, pos);
-
 	rLimb.found = true;
-	rLimb.begin.set(pos[0].X, pos[0].Y);
-	rLimb.end.set(pos[1].X, pos[1].Y);	
+	rLimb.position[0] = a.position;
+	rLimb.position[1] = b.position;
+	depth_generator->getXnDepthGenerator().ConvertRealWorldToProjective(2, rLimb.position, rLimb.position);
+	
 }
 
 void ofxTrackedUser::debugDraw() {
+	
 	neck.debugDraw();
 	
 	// left arm + shoulder
@@ -123,5 +121,6 @@ void ofxTrackedUser::debugDraw() {
 	right_lower_leg.debugDraw();
 	
 	hip.debugDraw();
-	ofDrawBitmapString(ofToString((int)id),neck.begin.x+ 10, neck.begin.y);
+
+	ofDrawBitmapString(ofToString((int)id), neck.position[0].X + 10, neck.position[0].Y);
 }

@@ -4,49 +4,40 @@
 #include <XnOpenNI.h>
 #include <XnCodecIDs.h>
 #include <XnCppWrapper.h>
-#include "ofxOpenNIXML.h"
-#include <fstream>
+
 class ofxDepthGenerator;
 
 class ofxOpenNIContext {
 public:
+	
 	ofxOpenNIContext();
-	
 	~ofxOpenNIContext();	
-
-
-	void update();
-	
-	bool setup();
-	
-	bool toggleMirror();
-	
-	bool setupUsingXMLFile(std::string sFile = "");
 	
 	bool setupUsingRecording(std::string sRecordedFile); 
+	bool setupUsingXMLFile(std::string sFile = "");
 	
-	bool setupUsingXMLObject(ofxOpenNIXML oXML);
-	
-	bool runXMLScript(std::string sXML);
-	
-	xn::Context& getXnContext();
+	void update();
 	
 	bool getDepthGenerator(ofxDepthGenerator* pDepthGenerator);
 	
 	bool isUsingRecording();
 	
-	void addLicense(std::string sVendor, std::string sKey);
-	
 	void enableLogging();
 	
-	bool isInitialized();
+	bool toggleMirror();
+	bool setMirror(XnBool mirroring);
 	
-	void clear();
+	void shutdown();
+	
+	xn::Context& getXnContext();
 	
 private:
+	
+	bool initContext();
+	void addLicense(std::string sVendor, std::string sKey);
 	void logErrors(xn::EnumerationErrors& rErrors);
 	
-	bool is_initialized;
 	bool is_using_recording;
 	xn::Context context;
+	
 };
