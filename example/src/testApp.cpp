@@ -11,43 +11,35 @@ void testApp::setup() {
 	isMasking   = true;
 	
 	setupRecording();
-
+	
 	ofBackground(0, 0, 0);
 	
 }
 
 void testApp::setupRecording(string _filename) {
+		
+	recordContext.setupUsingXMLFile();
+	recordDepth.setup(&recordContext);
+	recordImage.setup(&recordContext);
+		
+	recordUser.setup(&recordContext, &recordDepth, &recordImage);
+		
+	recordDepth.toggleRegisterViewport(&recordImage);
+	recordContext.toggleMirror();
+		
+	oniRecorder.setup(&recordContext, &recordDepth, &recordImage, ONI_STREAMING);	
+	//oniRecorder.setup(&recordContext, &recordDepth, &recordImage, ONI_CYCLIC, 60); 
+	//read the warning in ofxOpenNIRecorder about memory usage with ONI_CYCLIC recording!!!
 	
-	if (!recordContext.isInitialized()) {
-		
-		recordContext.setup();
-		recordContext.setupUsingXMLFile();
-		recordDepth.setup(&recordContext);
-		recordImage.setup(&recordContext);
-		
-		recordUser.setup(&recordContext, &recordDepth, &recordImage);
-		
-		recordDepth.toggleRegisterViewport(&recordImage);
-		recordContext.toggleMirror();
-		
-		oniRecorder.setup(&recordContext, &recordDepth, &recordImage);	
-		
-	} else {
-		
-		currentFileName = _filename;
-		cout << currentFileName << endl;
-	}
-		
 }
 
 void testApp::setupPlayback(string _filename) {
 	
-	playContext.clear();
+	playContext.shutdown();
 	playContext.setupUsingRecording(ofToDataPath(_filename));
 	playDepth.setup(&playContext);
 	playImage.setup(&playContext);
 	playUser.setup(&playContext, &playDepth, &playImage);
-	
 	
 	playDepth.toggleRegisterViewport(&playImage);
 	playContext.toggleMirror();
@@ -60,6 +52,7 @@ void testApp::update(){
 	if (isLive) {
 		recordContext.update();
 		if (isTracking) recordUser.update();
+		if (isRecording) oniRecorder.update();
 	} else {
 		playContext.update();
 		if (isTracking) playUser.update();
@@ -137,10 +130,10 @@ void testApp::draw(){
 	msg3 += "CLOUD USERDATA/BACKGROUND: " + (string)(isCPBkgnd ? "SHOW BACKGROUND\n" : (string)(isTracking ? "SHOW USER\n" : "YOU NEED TO TURN ON TRACKING!!\n"));
 	msg3 += "FPS: " + ofToString(ofGetFrameRate()) + "\n";
 	
-	ofDrawBitmapString(msg1, ofPoint(20, 500));
-	ofDrawBitmapString(msg2, ofPoint(20, 550));
-	ofDrawBitmapString(msg3, ofPoint(20, 600));
-	ofDrawBitmapString(currentFileName, ofPoint(20, 700));
+	ofDrawBitmapString(msg1, 20, 500);
+	ofDrawBitmapString(msg2, 20, 550);
+	ofDrawBitmapString(msg3, 20, 600);
+	ofDrawBitmapString(oniRecorder.getCurrentFileName(), 20, 700);
 
 	
 }
@@ -154,15 +147,14 @@ void testApp::keyPressed(int key){
 				isRecording = false;
 				break;
 			} else {
-				setupRecording(generateFileName());
-				oniRecorder.startRecord(currentFileName);
+				oniRecorder.startRecord(generateFileName());
 				isRecording = true;
 				break;
 			}
 			break;
 		case 'p':
-			if (currentFileName != "" && !isRecording && isLive) {
-				setupPlayback(currentFileName);
+			if (oniRecorder.getCurrentFileName() != "" && !isRecording && isLive) {
+				setupPlayback(oniRecorder.getCurrentFileName());
 				isLive = false;
 			} else {
 				isLive = true;
@@ -189,7 +181,12 @@ string testApp::generateFileName() {
 	
 	string _root = "kinectRecord";
 	
-	string _timestamp = ofGetTimestampString("%Y%m%d%H%M%S");
+	string _timestamp = ofToString(ofGetDay()) + 
+						ofToString(ofGetMonth()) +
+						ofToString(ofGetYear()) +
+						ofToString(ofGetHours()) +
+						ofToString(ofGetMinutes()) +
+						ofToString(ofGetSeconds());
 	
 	string _filename = (_root + _timestamp + ".oni");
 	

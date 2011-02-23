@@ -6,21 +6,17 @@
 
 struct ofxLimb {
 	ofxLimb(XnSkeletonJoint nStartJoint, XnSkeletonJoint nEndJoint) 
-		:start_joint(nStartJoint)
-		,end_joint(nEndJoint)
-		,found(false)
+	:start_joint(nStartJoint)
+	,end_joint(nEndJoint)
+	,found(false)
 	{
-		/*
 		position[0].X = position[1].X = 0;
 		position[0].Y = position[1].Y = 0;
 		position[0].Z = position[1].Z = 0;
-		 */
 	}
 	XnSkeletonJoint start_joint;
 	XnSkeletonJoint end_joint;
-	//XnPoint3D position[2];
-	ofVec2f begin;
-	ofVec2f end;
+	XnPoint3D position[2];
 	bool found;
 	
 	void debugDraw() {
@@ -30,11 +26,8 @@ struct ofxLimb {
 		glLineWidth(5);
 		glColor3f(1,0,0);
 		glBegin(GL_LINES);
-			//std::cout << position[0].X << ", " << position[0].Y << std::endl;
-			glVertex2f(begin.x, begin.y);
-			glVertex2f(end.x, end.y);
-			//glVertex2i(position[0].X, position[0].Y);
-			//glVertex2i(position[1].X, position[1].Y);
+		glVertex2i(position[0].X, position[0].Y);
+		glVertex2i(position[1].X, position[1].Y);
 		glEnd();
 		glPopMatrix();
 	}
@@ -46,8 +39,8 @@ class ofxDepthGenerator;
 class ofxTrackedUser {
 public: 
 	void debugDraw();
-		
-
+	
+	
 	ofxLimb neck;
 	
 	// left arm + shoulder
@@ -73,25 +66,20 @@ public:
 	ofxLimb right_lower_torso;
 	ofxLimb right_upper_leg;
 	ofxLimb right_lower_leg;
-
+	
 	ofxLimb hip;
 	XnUserID id;
-
-
+	
+	
 private:
 	ofxTrackedUser(ofxUserGenerator* pGenerator, ofxDepthGenerator* pDepthGenerator);
 	
 	void updateBonePositions();
-	
 	void updateLimb(ofxLimb& rLimb);
 	
 	ofxUserGenerator* user_generator;
-	
 	xn::UserGenerator* xn_user_generator;
-	
 	ofxDepthGenerator* depth_generator;
-
-	friend class ofxUserGenerator;
 	
-	bool is_tracked;
+	friend class ofxUserGenerator;
 };

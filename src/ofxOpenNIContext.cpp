@@ -5,69 +5,33 @@
 
 // Startup
 //----------------------------------------
-ofxOpenNIContext::ofxOpenNIContext()
-:is_using_recording(false)
-{
-
+ofxOpenNIContext::ofxOpenNIContext() {
+	is_using_recording = false;
 }
 
 // Just initialize; use this when you're creating nodes yourself.
 //----------------------------------------
-bool ofxOpenNIContext::setup(){
+bool ofxOpenNIContext::initContext(){
 	XnStatus result = context.Init();
 	BOOL_RC(result, "ofxOpenNIContext.setup()");
-}
-
-bool ofxOpenNIContext::toggleMirror() {
-	XnStatus result = context.SetGlobalMirror(!context.GetGlobalMirror());
-	BOOL_RC(result, "toggleMirror");
 }
 
 // Initialize using an .ONI recording.
 //----------------------------------------
 bool ofxOpenNIContext::setupUsingRecording(std::string sFileRecording) {
 	
-	setup();
+	initContext();
 	addLicense("PrimeSense", "0KOIk2JeIBYClPWVnMoRKn5cdY4=");
 	
 	is_using_recording = true;
-	XnStatus result = XN_STATUS_OK;
+	
 	std::string file_path = ofToDataPath(sFileRecording.c_str(), true);
 	
 	printf("Attempting to open file: %s\n", file_path.c_str());
 	
-	result = context.OpenFileRecording(file_path.c_str());
+	XnStatus result = context.OpenFileRecording(file_path.c_str());
 	
-	if(result != XN_STATUS_OK) {
-		cout << "FILE ERROR" << endl;
-		is_initialized = false;
-	} else {
-		cout << "FILE OK" << endl;
-		is_initialized = true;
-	}
-	
-	BOOL_RC(result, "Error loading file");
-}
-
-bool ofxOpenNIContext::setupUsingXMLObject(ofxOpenNIXML oXML) {
-	std::string xml = oXML.getXML();
-	string tmp_name = ofToDataPath("tmp.xml",true);
-	ofstream ofs(tmp_name.c_str());
-	ofs << xml.c_str();
-	ofs.close();
-	setupUsingXMLFile(tmp_name);
-	//return runXMLScript(xml);
-}
-
-bool ofxOpenNIContext::runXMLScript(std::string sXML) {
-	XnStatus result = XN_STATUS_OK;
-	xn::EnumerationErrors errors;
-	result = context.RunXmlScript(sXML.c_str(),&errors);
-	if(result != XN_STATUS_OK) {
-		logErrors(errors);		
-		return false;
-	}
-	return true;
+	BOOL_RC(result, "Loading file");
 }
 
 void ofxOpenNIContext::logErrors(xn::EnumerationErrors& rErrors) {
@@ -86,11 +50,6 @@ bool ofxOpenNIContext::isUsingRecording() {
 	return is_using_recording;
 }
 
-
-bool ofxOpenNIContext::isInitialized() {
-	return is_initialized;
-}
-
 // Initialize using an XML file.
 //----------------------------------------
 bool ofxOpenNIContext::setupUsingXMLFile(std::string sFile) {
@@ -100,21 +59,14 @@ bool ofxOpenNIContext::setupUsingXMLFile(std::string sFile) {
 	}
 	
 	std::cout << "Using file:" << sFile << std::endl;
-	
-	XnStatus result = XN_STATUS_OK;
+
 	xn::EnumerationErrors errors;
-	result = context.InitFromXmlFile(sFile.c_str(),&errors);
+	XnStatus result = context.InitFromXmlFile(sFile.c_str(),&errors);
+	
 	if(result != XN_STATUS_OK) {
-		for(xn::EnumerationErrors::Iterator it = errors.Begin(); it != errors.End(); ++it) {
-			XnChar desc[512];
-			xnProductionNodeDescriptionToString(&it.Description(), desc,512);
-			printf("%s failed to to enumerate: %s\n", desc, xnGetStatusString(it.Error()));
-		}
-		is_initialized = false;
+		logErrors(errors);
 	}
-	else {
-		is_initialized = true;
-	}
+
 
 	BOOL_RC(result, "ofxOpenNIContext.setupUsingXMLFile()");
 }
@@ -122,8 +74,7 @@ bool ofxOpenNIContext::setupUsingXMLFile(std::string sFile) {
 
 // When we've been initialized, use this to retrieve the depth
 // generator. I.e. when you load from an ONI file the depth generator
-// is created automatically and this method is used instead of creating
-// it.
+// is created automatically and this method is used instead of creating it.
 //----------------------------------------
 bool ofxOpenNIContext::getDepthGenerator(ofxDepthGenerator* pDepthGenerator) {
 	
@@ -132,10 +83,12 @@ bool ofxOpenNIContext::getDepthGenerator(ofxDepthGenerator* pDepthGenerator) {
 				XN_NODE_TYPE_DEPTH
 				,pDepthGenerator->getXnDepthGenerator()
 	);
-	BOOL_RC(result, "Error retrieving depth generator");
+	BOOL_RC(result, "Retrieving depth generator");
 	
 }
 
+// we need to programmatically add a license when playing back a recording
+// file otherwise the skeleton tracker will throw an error and not work
 void ofxOpenNIContext::addLicense(std::string sVendor, std::string sKey) {
 	XnLicense license = {0};
 	XnStatus status = XN_STATUS_OK;
@@ -159,6 +112,7 @@ void ofxOpenNIContext::addLicense(std::string sVendor, std::string sKey) {
 
 }
 
+// TODO: check this is working and use it with ONI recordings??
 void ofxOpenNIContext::enableLogging() {
 
 	XnStatus result = xnLogSetConsoleOutput(true);
@@ -181,6 +135,15 @@ void ofxOpenNIContext::update(){
 	XnStatus nRetVal = context.WaitAnyUpdateAll();	
 }
 
+// Allow us to mirror the image_gen/depth_gen
+bool ofxOpenNIContext::toggleMirror() {
+	return setMirror(!context.GetGlobalMirror());
+}
+
+bool ofxOpenNIContext::setMirror(XnBool mirroring) {
+	XnStatus result = context.SetGlobalMirror(mirroring);
+	BOOL_RC(result, "Set mirroring");
+}
 
 // Get a reference to the xn::Context.
 //----------------------------------------
@@ -188,15 +151,13 @@ xn::Context& ofxOpenNIContext::getXnContext(){
 	return context;
 }
 
-void ofxOpenNIContext::clear() {
-	printf("Shutdown\n");
+void ofxOpenNIContext::shutdown() {
+	printf("Shutdown context\n");
 	context.Shutdown();
 }
 
 // Shutdown.
 //----------------------------------------
 ofxOpenNIContext::~ofxOpenNIContext(){
-
-	clear();
-
+	shutdown();
 }
