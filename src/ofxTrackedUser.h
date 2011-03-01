@@ -14,6 +14,10 @@ struct ofxLimb {
 		position[0].Y = position[1].Y = 0;
 		position[0].Z = position[1].Z = 0;
 	}
+	
+	ofxLimb(){};
+	~ofxLimb(){};
+	
 	XnSkeletonJoint start_joint;
 	XnSkeletonJoint end_joint;
 	XnPoint3D position[2];
