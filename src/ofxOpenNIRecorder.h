@@ -43,8 +43,6 @@ public:
 	~ofxOpenNIRecorder();
 	
 	void setup(	ofxOpenNIContext*	pContext
-			   ,ofxDepthGenerator*	pDepth
-			   ,ofxImageGenerator*	pImage
 			   ,int					b_record_type	= ONI_STREAMING
 			   ,int					b_record_time	= 0
 			   ,bool				b_record_image	= true
@@ -70,11 +68,8 @@ private:
 	xn::Recorder		recorder;
 	
 	ofxOpenNIContext*	context;	
-	ofxDepthGenerator*	depth_generator;
-	ofxImageGenerator*	image_generator;
-
-	XnStatus setDepthFrame(xn::DepthGenerator& rDepth, const xn::DepthMetaData& rDMD);
-	XnStatus setImageFrame(xn::ImageGenerator& rImage, const xn::ImageMetaData& rIMD);
+	xn::DepthGenerator	depth_generator;
+	xn::ImageGenerator	image_generator;
 	
 	struct SingleFrame {
 		xn::DepthMetaData depth_frame;

@@ -2,7 +2,6 @@
 	if (rc != XN_STATUS_OK)											\
 	{																\
 		printf("%s failed: %s\n", what, xnGetStatusString(rc));		\
-		return rc;													\
 	} else {														\
 		printf("%s succeed: %s\n", what, xnGetStatusString(rc));	\
 	}

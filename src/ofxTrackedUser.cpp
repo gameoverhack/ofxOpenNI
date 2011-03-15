@@ -1,11 +1,7 @@
 #include "ofxTrackedUser.h"
-#include "ofxDepthGenerator.h"
-#include "ofxUserGenerator.h"
+#include "ofxOpenNIContext.h"
 
-ofxTrackedUser::ofxTrackedUser(
-	 ofxUserGenerator* pUserGenerator
-	,ofxDepthGenerator* pDepthGenerator
-) 
+ofxTrackedUser::ofxTrackedUser(ofxOpenNIContext* pContext) 
 :neck(XN_SKEL_HEAD, XN_SKEL_NECK)
 
 // left arm + shoulder
@@ -33,10 +29,10 @@ ofxTrackedUser::ofxTrackedUser(
 ,right_lower_leg(XN_SKEL_RIGHT_KNEE, XN_SKEL_RIGHT_FOOT)
 
 ,hip(XN_SKEL_LEFT_HIP, XN_SKEL_RIGHT_HIP)
-,user_generator(pUserGenerator)
-,depth_generator(pDepthGenerator) 
-,xn_user_generator(&user_generator->getXnUserGenerator())
 {
+	context = pContext;
+	context->getDepthGenerator(&xn_depth_generator);
+	context->getUserGenerator(&xn_user_generator);
 }
 
 void ofxTrackedUser::updateBonePositions() {
@@ -72,14 +68,14 @@ void ofxTrackedUser::updateBonePositions() {
 
 void ofxTrackedUser::updateLimb(ofxLimb& rLimb) {
 	
-	if(!xn_user_generator->GetSkeletonCap().IsTracking(id)) {
+	if(!xn_user_generator.GetSkeletonCap().IsTracking(id)) {
 		//printf("Not tracking this user: %d\n", id);
 		return;
 	}
 	
 	XnSkeletonJointPosition a,b;
-	xn_user_generator->GetSkeletonCap().GetSkeletonJointPosition(id, rLimb.start_joint, a);
-	xn_user_generator->GetSkeletonCap().GetSkeletonJointPosition(id, rLimb.end_joint, b);
+	xn_user_generator.GetSkeletonCap().GetSkeletonJointPosition(id, rLimb.start_joint, a);
+	xn_user_generator.GetSkeletonCap().GetSkeletonJointPosition(id, rLimb.end_joint, b);
 	if(a.fConfidence < 0.3f || b.fConfidence < 0.3f) {
 		rLimb.found = false; 
 		return;
@@ -89,7 +85,7 @@ void ofxTrackedUser::updateLimb(ofxLimb& rLimb) {
 	rLimb.position[0] = a.position;
 	rLimb.position[1] = b.position;
 	
-	depth_generator->getXnDepthGenerator().ConvertRealWorldToProjective(2, rLimb.position, rLimb.position);
+	xn_depth_generator.ConvertRealWorldToProjective(2, rLimb.position, rLimb.position);
 	
 }
 

@@ -9,16 +9,20 @@ ofxOpenNIContext::ofxOpenNIContext() {
 	is_using_recording = false;
 }
 
-// Just initialize; use this when you're creating nodes yourself.
+// Just initialize; use this when you"re creating nodes yourself.
 //----------------------------------------
 bool ofxOpenNIContext::initContext(){
+	xn::EnumerationErrors errors;
 	XnStatus result = context.Init();
+	if(result != XN_STATUS_OK) logErrors(errors);
 	BOOL_RC(result, "ofxOpenNIContext.setup()");
 }
 
 // Initialize using an .ONI recording.
 //----------------------------------------
 bool ofxOpenNIContext::setupUsingRecording(std::string sFileRecording) {
+	
+	xn::EnumerationErrors errors;
 	
 	initContext();
 	addLicense("PrimeSense", "0KOIk2JeIBYClPWVnMoRKn5cdY4=");
@@ -31,6 +35,8 @@ bool ofxOpenNIContext::setupUsingRecording(std::string sFileRecording) {
 	
 	XnStatus result = context.OpenFileRecording(file_path.c_str());
 	
+	if(result != XN_STATUS_OK) logErrors(errors);
+	
 	BOOL_RC(result, "Loading file");
 }
 
@@ -42,54 +48,62 @@ void ofxOpenNIContext::logErrors(xn::EnumerationErrors& rErrors) {
 	}	
 }
 
+// Initialize using an XML file.
+//----------------------------------------
+bool ofxOpenNIContext::setupUsingXMLFile(std::string sFile) {
+	
+	xn::EnumerationErrors errors;
+	
+	if(sFile == "") sFile = ofToDataPath("openni/config/ofxopenni_config.xml",true);
+	
+	printf("Using file: %s\n", sFile.c_str());
+	
+	XnStatus result = context.InitFromXmlFile(sFile.c_str(), &errors);
+	
+	if(result != XN_STATUS_OK) logErrors(errors);
+	
+	BOOL_RC(result, "ofxOpenNIContext.setupUsingXMLFile()");
+	
+}
 
 // This is used by other nodes (ofxDepthGenerator), which need to 
-// use a different initialization when you're loading an recording.
+// use a different initialization when you"re loading an recording.
 //----------------------------------------
 bool ofxOpenNIContext::isUsingRecording() {
 	return is_using_recording;
 }
 
-// Initialize using an XML file.
+// Use these to retrieve references to various node types on the production tree
+// TODO: should these be made static so retrievl is more immediate? Or is this sufficient?
 //----------------------------------------
-bool ofxOpenNIContext::setupUsingXMLFile(std::string sFile) {
-	
-	if(sFile == "") {
-		sFile = ofToDataPath("openni/config/ofxopenni_config.xml",true);
-	}
-	
-	std::cout << "Using file:" << sFile << std::endl;
-
-	xn::EnumerationErrors errors;
-	XnStatus result = context.InitFromXmlFile(sFile.c_str(),&errors);
-	
-	if(result != XN_STATUS_OK) {
-		logErrors(errors);
-	}
-
-
-	BOOL_RC(result, "ofxOpenNIContext.setupUsingXMLFile()");
+bool ofxOpenNIContext::getDepthGenerator(xn::DepthGenerator* depth_generator) {
+	XnStatus result = XN_STATUS_OK;
+	result = context.FindExistingNode(XN_NODE_TYPE_DEPTH, *depth_generator);
+	BOOL_RC(result, "Retrieving depth generator");
 }
 
-
-// When we've been initialized, use this to retrieve the depth
-// generator. I.e. when you load from an ONI file the depth generator
-// is created automatically and this method is used instead of creating it.
-//----------------------------------------
-bool ofxOpenNIContext::getDepthGenerator(ofxDepthGenerator* pDepthGenerator) {
-	
+bool ofxOpenNIContext::getImageGenerator(xn::ImageGenerator* image_generator) {
 	XnStatus result = XN_STATUS_OK;
-	result = context.FindExistingNode(
-				XN_NODE_TYPE_DEPTH
-				,pDepthGenerator->getXnDepthGenerator()
-	);
-	BOOL_RC(result, "Retrieving depth generator");
-	
+	result = context.FindExistingNode(XN_NODE_TYPE_IMAGE, *image_generator);
+	BOOL_RC(result, "Retrieving image generator");
+}
+
+bool ofxOpenNIContext::getIRGenerator(xn::IRGenerator* ir_generator) {
+	XnStatus result = XN_STATUS_OK;
+	result = context.FindExistingNode(XN_NODE_TYPE_IR, *ir_generator);
+	BOOL_RC(result, "Retrieving ir generator");
+}
+
+bool ofxOpenNIContext::getUserGenerator(xn::UserGenerator* user_generator) {
+	XnStatus result = XN_STATUS_OK;
+	result = context.FindExistingNode(XN_NODE_TYPE_USER, *user_generator);
+	BOOL_RC(result, "Retrieving user generator");
 }
 
 // we need to programmatically add a license when playing back a recording
 // file otherwise the skeleton tracker will throw an error and not work
 void ofxOpenNIContext::addLicense(std::string sVendor, std::string sKey) {
+	
 	XnLicense license = {0};
 	XnStatus status = XN_STATUS_OK;
 	
@@ -107,17 +121,17 @@ void ofxOpenNIContext::addLicense(std::string sVendor, std::string sKey) {
 	
 	status = context.AddLicense(license);
 	SHOW_RC(status, "AddLicense");
-
+	
 	xnPrintRegisteredLicenses();
-
+	
 }
 
 // TODO: check this is working and use it with ONI recordings??
 void ofxOpenNIContext::enableLogging() {
-
+	
 	XnStatus result = xnLogSetConsoleOutput(true);
 	SHOW_RC(result, "Set console output");
-			
+	
 	result = xnLogSetSeverityFilter(XN_LOG_VERBOSE);
 	SHOW_RC(result, "Set log level");
 	
@@ -125,9 +139,8 @@ void ofxOpenNIContext::enableLogging() {
 	//xnLogSetConsoleOutput(bVerbose || bList);
 	//xnLogSetSeverityFilter(bVerbose ? XN_LOG_VERBOSE : XN_LOG_WARNING);
 	xnLogSetMaskState(XN_LOG_MASK_ALL, TRUE);
-
+	
 }
-
 
 // Update all nodes, should be call in the ofTestApp::update()
 //----------------------------------------
@@ -143,6 +156,66 @@ bool ofxOpenNIContext::toggleMirror() {
 bool ofxOpenNIContext::setMirror(XnBool mirroring) {
 	XnStatus result = context.SetGlobalMirror(mirroring);
 	BOOL_RC(result, "Set mirroring");
+}
+
+bool ofxOpenNIContext::toggleRegisterViewport() {
+	
+	// get refs to depth and image generators TODO: make work with IR generator
+	xn::DepthGenerator depth_generator;
+	getDepthGenerator(&depth_generator);
+	
+	xn::ImageGenerator image_generator;
+	getImageGenerator(&image_generator);
+	
+	// Toggle registering view point to image map
+	if (depth_generator.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT))
+	{
+		
+		if(depth_generator.GetAlternativeViewPointCap().IsViewPointAs(image_generator)) {
+			unregisterViewport();
+		} else {
+			registerViewport();
+		}
+		
+	} else return false;
+	
+	return true;
+}
+
+bool ofxOpenNIContext::registerViewport() {
+	
+	// get refs to depth and image generators TODO: make work with IR generator
+	xn::DepthGenerator depth_generator;
+	getDepthGenerator(&depth_generator);
+	
+	xn::ImageGenerator image_generator;
+	getImageGenerator(&image_generator);
+	
+	// Register view point to image map
+	if (depth_generator.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT)) {
+		
+		XnStatus result = depth_generator.GetAlternativeViewPointCap().SetViewPoint(image_generator);
+		CHECK_RC(result, "Register viewport");
+		
+	} else return false;
+	
+	return true;
+}
+
+bool ofxOpenNIContext::unregisterViewport() {
+	
+	// get refs to depth generator
+	xn::DepthGenerator depth_generator;
+	getDepthGenerator(&depth_generator);
+	
+	// Unregister view point from (image) any map	
+	if (depth_generator.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT)) {
+		XnStatus result = depth_generator.GetAlternativeViewPointCap().ResetViewPoint();
+		CHECK_RC(result, "Unregister viewport");
+		
+	} else return false;
+	
+	return true;
 }
 
 // Get a reference to the xn::Context.

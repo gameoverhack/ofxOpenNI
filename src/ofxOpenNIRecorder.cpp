@@ -42,8 +42,6 @@ ofxOpenNIRecorder::~ofxOpenNIRecorder() {
 //----------------------------------------
 void ofxOpenNIRecorder::setup(
 							  ofxOpenNIContext*	pContext
-							  ,ofxDepthGenerator*	pDepth
-							  ,ofxImageGenerator*	pImage
 							  ,int				b_record_type
 							  ,int				b_record_time
 							  ,bool				b_record_image
@@ -52,8 +50,8 @@ void ofxOpenNIRecorder::setup(
 	
 	// set context and generator references
 	context = pContext;
-	depth_generator = pDepth;
-	image_generator = pImage;
+	context->getDepthGenerator(&depth_generator);
+	context->getImageGenerator(&image_generator);
 	
 	// set configuration
 	config.record_image = b_record_image;
@@ -146,15 +144,13 @@ bool ofxOpenNIRecorder::startRecord(string sName) {
 			if (config.record_type == ONI_STREAMING) {
 				
 				// just use the depth generator as the node to record
-				result = recorder.AddNodeToRecording(depth_generator->getXnDepthGenerator(), XN_CODEC_16Z); // XN_CODEC_16Z_EMB_TABLES is smaller, but seems XN_CODEC_16Z is smoother
+				result = recorder.AddNodeToRecording(depth_generator, XN_CODEC_16Z); // XN_CODEC_16Z_EMB_TABLES is smaller, but seems XN_CODEC_16Z is smoother
 				CHECK_RC(result, "Recorder add depth node");
 				
 			} else if (config.record_type == ONI_CYCLIC) {
 				
 				// create a mock node based on the depth generator to record
-				result = context->getXnContext().CreateMockNodeBasedOn(depth_generator->getXnDepthGenerator()
-																	   ,NULL
-																	   ,m_depth);
+				result = context->getXnContext().CreateMockNodeBasedOn(depth_generator, NULL, m_depth);
 				CHECK_RC(result, "Create depth node");
 				
 				result = recorder.AddNodeToRecording(m_depth, XN_CODEC_16Z); // XN_CODEC_16Z_EMB_TABLES is smaller, but seems XN_CODEC_16Z is smoother
@@ -170,15 +166,13 @@ bool ofxOpenNIRecorder::startRecord(string sName) {
 			if (config.record_type == ONI_STREAMING) {
 				
 				// just use the image generator as the node to record
-				result = recorder.AddNodeToRecording(image_generator->getXnImageGenerator(), XN_CODEC_NULL); // XN_CODEC_NULL appears to give least frame drops and size not much > JPEG
+				result = recorder.AddNodeToRecording(image_generator, XN_CODEC_NULL); // XN_CODEC_NULL appears to give least frame drops and size not much > JPEG
 				CHECK_RC(result, "Recorder add image node");
 				
 			} else if (config.record_type == ONI_CYCLIC) {
 				
 				// create a mock node based on the image generator to record
-				result = context->getXnContext().CreateMockNodeBasedOn(image_generator->getXnImageGenerator()
-																	   ,NULL
-																	   ,m_image);
+				result = context->getXnContext().CreateMockNodeBasedOn(image_generator, NULL, m_image);
 				CHECK_RC(result, "Create image node");
 				
 				result = recorder.AddNodeToRecording(m_image, XN_CODEC_NULL); // XN_CODEC_NULL appears to give least frame drops and size not much > JPEG
@@ -191,12 +185,9 @@ bool ofxOpenNIRecorder::startRecord(string sName) {
 		// if we try to frame sync then recording fails
 #ifndef USINGKINECT	
 		// Frame Sync
-		xn::DepthGenerator& xn_depth = depth->getXnDepthGenerator();
-		xn::ImageGenerator& xn_image = image->getXnImageGenerator();
-		
 		if(xn_depth.IsCapabilitySupported(XN_CAPABILITY_FRAME_SYNC)) {
-			if(xn_depth.GetFrameSyncCap().CanFrameSyncWith(xn_image)) {
-				result = xn_depth.GetFrameSyncCap().FrameSyncWith(xn_image);
+			if(depth_generator.GetFrameSyncCap().CanFrameSyncWith(image_generator)) {
+				result = depth_generator.GetFrameSyncCap().FrameSyncWith(image_generator);
 				CHECK_RC(result, "Enable frame sync");
 			}
 		}
@@ -245,7 +236,7 @@ void ofxOpenNIRecorder::update() {
 	
 	if (config.record_type == ONI_STREAMING) {
 		
-		if (depth_generator->getXnDepthGenerator().IsDataNew()) {
+		if (depth_generator.IsDataNew()) {
 			recorder.Record(); // is this really doing anything??? Don't think so ;-)
 		}
 		
@@ -254,14 +245,14 @@ void ofxOpenNIRecorder::update() {
 		// store depth frame metadata to cyclic buffer array
 		if(config.record_depth) {
 			xn::DepthMetaData dmd;
-			depth_generator->getXnDepthGenerator().GetMetaData(dmd);
+			depth_generator.GetMetaData(dmd);
 			frames[m_nNextWrite].depth_frame.CopyFrom(dmd);
 		}
 		
 		// store image frame metadata to cyclic buffer array
 		if(config.record_image) {
 			xn::ImageMetaData imd;
-			image_generator->getXnImageGenerator().GetMetaData(imd);
+			image_generator.GetMetaData(imd);
 			frames[m_nNextWrite].image_frame.CopyFrom(imd);
 		}
 		
@@ -281,7 +272,7 @@ void ofxOpenNIRecorder::update() {
 		
 		++nDepthFrames;
 		
-		XnUInt64 nTimestamp = depth_generator->getXnDepthGenerator().GetTimestamp();
+		XnUInt64 nTimestamp = depth_generator.GetTimestamp();
 		
 		if (nLastDepthTime != 0 && nTimestamp - nLastDepthTime > 35000) {
 			int missed = (int)(nTimestamp-nLastDepthTime)/32000 - 1;
@@ -296,7 +287,7 @@ void ofxOpenNIRecorder::update() {
 	
 	if (config.record_image) {
 		++nImageFrames;
-		XnUInt64 nTimestamp = image_generator->getXnImageGenerator().GetTimestamp();
+		XnUInt64 nTimestamp = image_generator.GetTimestamp();
 		if (nLastImageTime != 0 && nTimestamp - nLastImageTime > 35000) {
 			int missed = (int)(nTimestamp-nLastImageTime)/32000 - 1;
 			printf("Missed image: %llu -> %llu = %d > 35000 - %d frames\n",

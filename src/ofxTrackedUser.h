@@ -38,8 +38,7 @@ struct ofxLimb {
 	
 };
 
-class ofxUserGenerator;
-class ofxDepthGenerator;
+class ofxOpenNIContext;
 class ofxTrackedUser {
 public: 
 	void debugDraw();
@@ -76,14 +75,14 @@ public:
 	
 	
 private:
-	ofxTrackedUser(ofxUserGenerator* pGenerator, ofxDepthGenerator* pDepthGenerator);
+	ofxTrackedUser(ofxOpenNIContext* pContext);
 	
 	void updateBonePositions();
 	void updateLimb(ofxLimb& rLimb);
 	
-	ofxUserGenerator* user_generator;
-	xn::UserGenerator* xn_user_generator;
-	ofxDepthGenerator* depth_generator;
+	ofxOpenNIContext*		context;
+	xn::UserGenerator		xn_user_generator;
+	xn::DepthGenerator		xn_depth_generator;
 	
 	friend class ofxUserGenerator;
 };

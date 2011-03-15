@@ -47,26 +47,26 @@ ofxDepthGenerator::ofxDepthGenerator(){
 bool ofxDepthGenerator::setup(ofxOpenNIContext* pContext) {
 
 	XnStatus result = XN_STATUS_OK;	
+	XnMapOutputMode map_mode; 
 	
-	// When the context is using a recording we need to fetch the depth generator.
-	// --------------------------------------------------------------------------
-	if(!pContext->isUsingRecording()) {
-		XnStatus result = depth_generator.Create(pContext->getXnContext());
-		CHECK_RC(result, "Creating depth generator using recording");
-	}
-	else {
-		pContext->getDepthGenerator(this);
+	// Try to fetch depth generator before creating one
+	if(pContext->getDepthGenerator(&depth_generator)) {
+		// found the depth generator so set map_mode from it
+		depth_generator.GetMapOutputMode(map_mode);
+	} else {
+		result = depth_generator.Create(pContext->getXnContext());
+		CHECK_RC(result, "Creating depth generator");
+		
+		// make new map mode -> default to 640 x 480 @ 30fps
+		map_mode.nXRes = XN_VGA_X_RES;
+		map_mode.nYRes = XN_VGA_Y_RES;
+		map_mode.nFPS  = 30;
+		
+		depth_generator.SetMapOutputMode(map_mode);
 	}	
 	
 	ofLog(OF_LOG_VERBOSE, "Depth camera inited");
-	
-	//Set the input to VGA (standard is QVGA wich is not supported on the Kinect)
-	XnMapOutputMode map_mode; 
-	map_mode.nXRes = XN_VGA_X_RES; 
-	map_mode.nYRes = XN_VGA_Y_RES;
-	map_mode.nFPS = 25;
-	
-	result = depth_generator.SetMapOutputMode(map_mode);
+
 	max_depth = depth_generator.GetDeviceMaxDepth();		
 	
 	// TODO: add capability for b+w depth maps (more efficient for draw)
@@ -78,57 +78,20 @@ bool ofxDepthGenerator::setup(ofxOpenNIContext* pContext) {
 	return true;
 	
 }
-
-void ofxDepthGenerator::draw(float x, float y, float w, float h){
+void ofxDepthGenerator::update() {
+	
 	generateTexture();
+	
+}
+
+void ofxDepthGenerator::draw(float x, float y, float w, float h) {
+	//generateTexture();
 	glColor3f(1,1,1);
 	depth_texture.draw(x, y, w, h);	
 }
 
 xn::DepthGenerator& ofxDepthGenerator::getXnDepthGenerator() {
 	return depth_generator;
-}
-
-bool ofxDepthGenerator::toggleRegisterViewport(ofxImageGenerator* image_generator) {
-	
-	// Toggle registering view point to image map
-	if (depth_generator.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT))
-	{
-		
-		if(depth_generator.GetAlternativeViewPointCap().IsViewPointAs(image_generator->getXnImageGenerator())) {
-			unregisterViewport();
-		} else {
-			registerViewport(image_generator);
-		}
-
-	} else return false;
-
-	return true;
-}
-
-bool ofxDepthGenerator::registerViewport(ofxImageGenerator* image_generator) {
-	
-	// Register view point to image map
-	if (depth_generator.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT)) {
-		
-		XnStatus result = depth_generator.GetAlternativeViewPointCap().SetViewPoint(image_generator->getXnImageGenerator());
-		CHECK_RC(result, "Register viewport");
-		
-	} else return false;
-	
-	return true;
-}
-
-bool ofxDepthGenerator::unregisterViewport() {
-	
-	// Unregister view point from (image) any map	
-	if (depth_generator.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT)) {
-		XnStatus result = depth_generator.GetAlternativeViewPointCap().ResetViewPoint();
-		CHECK_RC(result, "Unregister viewport");
-		
-	} else return false;
-	
-	return true;
 }
 
 // TODO: add capability for b+w depth maps (more efficient for draw)
@@ -225,5 +188,5 @@ void ofxDepthGenerator::generateTexture(){
 		}	
 	}
 	
-	depth_texture.loadData((unsigned char *)depth_pixels,dmd.XRes(), dmd.YRes(), GL_RGBA);	
+	depth_texture.loadData((unsigned char *)depth_pixels, dmd.XRes(), dmd.YRes(), GL_RGBA);	
 }

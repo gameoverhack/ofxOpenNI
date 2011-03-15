@@ -22,13 +22,13 @@ void testApp::setupRecording(string _filename) {
 	recordDepth.setup(&recordContext);
 	recordImage.setup(&recordContext);
 		
-	recordUser.setup(&recordContext, &recordDepth, &recordImage);
+	recordUser.setup(&recordContext);
 		
-	recordDepth.toggleRegisterViewport(&recordImage);
+	recordContext.toggleRegisterViewport();
 	recordContext.toggleMirror();
 		
-	oniRecorder.setup(&recordContext, &recordDepth, &recordImage, ONI_STREAMING);	
-	//oniRecorder.setup(&recordContext, &recordDepth, &recordImage, ONI_CYCLIC, 60); 
+	oniRecorder.setup(&recordContext, ONI_STREAMING);	
+	//oniRecorder.setup(&recordContext, ONI_CYCLIC, 60); 
 	//read the warning in ofxOpenNIRecorder about memory usage with ONI_CYCLIC recording!!!
 	
 }
@@ -39,9 +39,9 @@ void testApp::setupPlayback(string _filename) {
 	playContext.setupUsingRecording(ofToDataPath(_filename));
 	playDepth.setup(&playContext);
 	playImage.setup(&playContext);
-	playUser.setup(&playContext, &playDepth, &playImage);
+	playUser.setup(&playContext);
 	
-	playDepth.toggleRegisterViewport(&playImage);
+	playContext.toggleRegisterViewport();
 	playContext.toggleMirror();
 	
 }
@@ -51,10 +51,14 @@ void testApp::update(){
 	
 	if (isLive) {
 		recordContext.update();
+		recordDepth.update();
+		recordImage.update();
 		if (isTracking) recordUser.update();
 		if (isRecording) oniRecorder.update();
 	} else {
 		playContext.update();
+		playDepth.update();
+		playImage.update();
 		if (isTracking) playUser.update();
 	}
 }

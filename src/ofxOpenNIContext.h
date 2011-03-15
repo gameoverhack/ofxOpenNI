@@ -5,8 +5,10 @@
 #include <XnCodecIDs.h>
 #include <XnCppWrapper.h>
 
-class ofxDepthGenerator;
 
+//class ofxIRGenerator;
+//class ofxImageGenerator;
+//class ofxDepthGenerator;
 class ofxOpenNIContext {
 public:
 	
@@ -18,7 +20,14 @@ public:
 	
 	void update();
 	
-	bool getDepthGenerator(ofxDepthGenerator* pDepthGenerator);
+	bool toggleRegisterViewport();
+	bool registerViewport();
+	bool unregisterViewport();
+	
+	bool getDepthGenerator(xn::DepthGenerator* depth_generator);
+	bool getImageGenerator(xn::ImageGenerator* image_generator);
+	bool getIRGenerator(xn::IRGenerator* ir_generator);
+	bool getUserGenerator(xn::UserGenerator* user_generator);
 	
 	bool isUsingRecording();
 	

@@ -108,31 +108,26 @@ void ofxUserGenerator::requestCalibration(XnUserID nID) {
 
 // Setup the user generator.
 //----------------------------------------
-bool ofxUserGenerator::setup( ofxOpenNIContext* pContext
-							 ,ofxDepthGenerator* pDepthGenerator
-							 ,ofxImageGenerator* pImageGenerator) {
+bool ofxUserGenerator::setup( ofxOpenNIContext* pContext) {
 	
 	// store context and generator references
 	context			= pContext;
-	image_generator = pImageGenerator;
-	depth_generator = pDepthGenerator;
+	context->getDepthGenerator(&depth_generator);
+	context->getImageGenerator(&image_generator);
 	
 	XnStatus result = XN_STATUS_OK;
 	
-	// get meta data so we can setup width and height vars from depth gen size
-	xn::DepthMetaData dm;
-	depth_generator->getXnDepthGenerator().GetMetaData(dm);
+	// get map_mode so we can setup width and height vars from depth gen size
+	XnMapOutputMode map_mode; 
+	depth_generator.GetMapOutputMode(map_mode);
 	
-	width = dm.XRes();
-	height = dm.YRes();
+	width = map_mode.nXRes;
+	height = map_mode.nYRes;
 	
 	maskPixels = new unsigned char[width * height];
 	
 	// check if the USER generator exists.
-	result = context->getXnContext().FindExistingNode(XN_NODE_TYPE_USER, user_generator);
-	SHOW_RC(result, "Find user generator");
-	
-	if(result != XN_STATUS_OK) {
+	if(!context->getUserGenerator(&user_generator)) {
 		
 		// if one doesn't exist then create user generator.
 		result = user_generator.Create(context->getXnContext());
@@ -194,7 +189,8 @@ bool ofxUserGenerator::setup( ofxOpenNIContext* pContext
 
 	// pre-generate the tracked users.
 	for(int i = 0; i < num_users; ++i) {
-		ofxTrackedUser* tracked_user = new ofxTrackedUser(this, pDepthGenerator);
+		printf("Creting user: %i\n", i);
+		ofxTrackedUser* tracked_user = new ofxTrackedUser(context);
 		tracked_users[i] = tracked_user;
 	}
 
@@ -315,8 +311,8 @@ void ofxUserGenerator::drawPointCloud(bool showBackground, int cloudPointSize) {
 	xn::DepthMetaData dm;
 	xn::ImageMetaData im;
 	
-	depth_generator->getXnDepthGenerator().GetMetaData(dm);
-	image_generator->getXnImageGenerator().GetMetaData(im);
+	depth_generator.GetMetaData(dm);
+	image_generator.GetMetaData(im);
 	
 	const XnDepthPixel* pDepth = dm.Data();
 	const XnRGB24Pixel* pColor = im.RGB24Data();

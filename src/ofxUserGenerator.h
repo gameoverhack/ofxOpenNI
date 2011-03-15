@@ -15,9 +15,7 @@ class ofxUserGenerator {
 public:
 	ofxUserGenerator();
 	
-	bool setup(ofxOpenNIContext* pContext, 
-			   ofxDepthGenerator* pDepthGenerator, 
-			   ofxImageGenerator* image_generator);
+	bool setup(ofxOpenNIContext* pContext);
 	
 	void draw();
 	void drawUserMasks(int x, int y);
@@ -45,8 +43,8 @@ private:
 	void drawUser(int nUserNum);
 	
 	ofxOpenNIContext*	context;
-	ofxDepthGenerator*	depth_generator;
-	ofxImageGenerator*	image_generator;
+	xn::DepthGenerator	depth_generator;
+	xn::ImageGenerator	image_generator;
 	xn::UserGenerator	user_generator;
 	
 	// vars for user tracking
