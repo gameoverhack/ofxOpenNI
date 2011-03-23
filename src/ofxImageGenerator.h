@@ -1,5 +1,5 @@
-#ifndef __H_OFXIMAGEENERATOR
-#define __H_OFXIMAGEENERATOR
+#ifndef _H_OFXIMAGEENERATOR
+#define _H_OFXIMAGEENERATOR
 
 #include "ofxOpenNIContext.h"
 

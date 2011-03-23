@@ -32,7 +32,14 @@ bool ofxImageGenerator::setup(ofxOpenNIContext* pContext) {
 	XnStatus result = XN_STATUS_OK;	
 	XnMapOutputMode map_mode;
 	
-	// Try to fetch depth generator before creating one
+	// check we don't already have an IR generator -> can only have an image OR an ir gen
+	xn::IRGenerator ir_generator;
+	if(pContext->getIRGenerator(&ir_generator)) {
+		printf("Can't init image generator: can only have image OR IR gen, not both!!!");
+		return false;
+	}
+	
+	// Try to fetch image generator before creating one
 	if(pContext->getImageGenerator(&image_generator)) {
 		// found the image generator so set map_mode from it
 		image_generator.GetMapOutputMode(map_mode);
@@ -47,15 +54,16 @@ bool ofxImageGenerator::setup(ofxOpenNIContext* pContext) {
 		
 		image_generator.SetMapOutputMode(map_mode);
 	}
-	
-	ofLog(OF_LOG_VERBOSE, "Image camera inited");
 
 	// TODO: add capability for b+w depth maps (more efficient for draw)
 	image_texture.allocate(map_mode.nXRes, map_mode.nYRes, GL_RGBA);		
 	image_pixels = new unsigned char[map_mode.nXRes * map_mode.nYRes * 3];
 	memset(image_pixels, 0, map_mode.nXRes * map_mode.nYRes * 3 * sizeof(unsigned char));
 	
-	image_generator.StartGenerating();		
+	image_generator.StartGenerating();	
+	
+	printf("Image camera inited");
+	
 	return true;
 	
 }

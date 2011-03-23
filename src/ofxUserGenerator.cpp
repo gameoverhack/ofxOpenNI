@@ -29,6 +29,8 @@ void XN_CALLBACK_TYPE User_LostUser(
 )
 {
 	printf("Lost user %d\n", nID);
+	rGenerator.GetSkeletonCap().Reset(nID);
+	
 }
 
 // Callback: Detected a pose
@@ -83,7 +85,6 @@ void XN_CALLBACK_TYPE UserCalibration_CalibrationEnd(
 // =============================================================================
 ofxUserGenerator::ofxUserGenerator() {	
 	needs_pose = false;
-	num_users = MAX_NUMBER_USERS;
 }
 
 
@@ -111,7 +112,7 @@ void ofxUserGenerator::requestCalibration(XnUserID nID) {
 bool ofxUserGenerator::setup( ofxOpenNIContext* pContext) {
 	
 	// store context and generator references
-	context			= pContext;
+	context	= pContext;
 	context->getDepthGenerator(&depth_generator);
 	context->getImageGenerator(&image_generator);
 	
@@ -124,7 +125,22 @@ bool ofxUserGenerator::setup( ofxOpenNIContext* pContext) {
 	width = map_mode.nXRes;
 	height = map_mode.nYRes;
 	
-	maskPixels = new unsigned char[width * height];
+	// set update mask pixels default to false
+	useMaskPixels = false;
+	
+	// setup mask pixels array TODO: clean this up on closing or dtor
+	for (int user = 0; user < MAX_NUMBER_USERS; user++) {
+		maskPixels[user] = new unsigned char[width * height];
+	}
+	
+	// set update cloud points default to false
+	useCloudPoints = false;
+	
+	// setup cloud points array TODO: clean this up on closing or dtor
+	for (int user = 0; user < MAX_NUMBER_USERS; user++) {
+		cloudPoints[user] = new ofPoint[width * height];
+		cloudColors[user] = new ofColor[width * height];
+	}
 	
 	// check if the USER generator exists.
 	if(!context->getUserGenerator(&user_generator)) {
@@ -180,16 +196,15 @@ bool ofxUserGenerator::setup( ofxOpenNIContext* pContext) {
 	
 	user_generator.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_ALL);
 	
-	// needs this to allow skeleton tracking when using pre-recorded .oni
+	// needs this to allow skeleton tracking when using pre-recorded .oni or nodes init'd by code (as opposed to xml)
 	// as otherwise the image/depth nodes play but are not generating callbacks
-	if (context->isUsingRecording()) {
-		result = context->getXnContext().StartGeneratingAll();
-		CHECK_RC(result, "StartGenerating");
-	}
+	//if (context->isUsingRecording()) {
+	result = context->getXnContext().StartGeneratingAll();
+	CHECK_RC(result, "StartGenerating");
 
 	// pre-generate the tracked users.
-	for(int i = 0; i < num_users; ++i) {
-		printf("Creting user: %i\n", i);
+	for(int i = 0; i < MAX_NUMBER_USERS; ++i) {
+		printf("Creting user: %i\n", i+1);
 		ofxTrackedUser* tracked_user = new ofxTrackedUser(context);
 		tracked_users[i] = tracked_user;
 	}
@@ -201,7 +216,7 @@ bool ofxUserGenerator::setup( ofxOpenNIContext* pContext) {
 // Draw a specific user (start counting at 0)
 //----------------------------------------
 void ofxUserGenerator::drawUser(int nUserNum) {
-	if(nUserNum > MAX_NUMBER_USERS - 1)
+	if(nUserNum - 1 > MAX_NUMBER_USERS)
 		return;
 	tracked_users[nUserNum]->updateBonePositions();
 	tracked_users[nUserNum]->debugDraw();
@@ -219,22 +234,14 @@ void ofxUserGenerator::draw() {
 			drawUser(i);
 		}
 		
-		glColor3f(0, 1.0, 0);
-	} else glColor3f(1, 1, 0);
+		glColor3f(0, 1.0f, 0);
+		
+	} else glColor3f(1.0f, 0, 0);
 	
-	ofCircle(10,10,10);
+	ofCircle(10, 10, 10);
 	
 	// reset to white for simplicity
-	glColor3f(1, 1, 1);
-	
-}
-
-void ofxUserGenerator::drawUserMasks(int x, int y) {
-	
-	for(int i = 0;  i < found_users; ++i) {
-		updateUserMask(i);	// TODO: put into an update cycle instead of here
-		maskImage[i].draw(x, y);
-	}
+	glColor3f(1.0f, 1.0f, 1.0f);
 	
 }
 
@@ -242,9 +249,9 @@ void ofxUserGenerator::drawUserMasks(int x, int y) {
 //----------------------------------------
 ofxTrackedUser* ofxUserGenerator::getTrackedUser(int nUserNum) {
 	
-	if(nUserNum > found_users - 1)
+	if(nUserNum - 1 > found_users)
 		return NULL;
-	return tracked_users[nUserNum];
+	return tracked_users[nUserNum - 1];
 	
 }
 
@@ -257,9 +264,9 @@ int ofxUserGenerator::getNumberOfTrackedUsers() {
 //----------------------------------------
 void ofxUserGenerator::update() {
 	
-	found_users = num_users;
+	found_users = MAX_NUMBER_USERS;
 	
-	XnUserID* users = new XnUserID[num_users];
+	XnUserID* users = new XnUserID[MAX_NUMBER_USERS];
 	user_generator.GetUsers(users, found_users);
 	
 	for(int i = 0; i < found_users; ++i) {
@@ -270,99 +277,146 @@ void ofxUserGenerator::update() {
 	}
 	
 	delete [] users;
+	
+	if (useMaskPixels) updateUserPixels();
+	if (useCloudPoints) updateCloudPoints();
 }
 
-void ofxUserGenerator::updateUserMask(int userID) {
+void ofxUserGenerator::setUseMaskPixels(bool b) {
+	useMaskPixels = b;
+}
+
+void ofxUserGenerator::setUseCloudPoints(bool b) {
+	useCloudPoints = b;
+}
+
+// return user pixels -> use 0 (default) to get all user masks
+// or specify a number if you want seperate masks
+//----------------------------------------
+unsigned char * ofxUserGenerator::getUserPixels(int userID) {
 	
-	const XnLabel* pLabels = NULL;
+	if (!useMaskPixels && userID == 0) {			// for people who just want all the user masks at once and don't want to waste the extra cycles looking through all users!!!
+		
+		xn::SceneMetaData smd;
+		unsigned short *userPix;
+		
+		if (user_generator.GetUserPixels(0, smd) == XN_STATUS_OK) { 
+			userPix = (unsigned short*)smd.Data();					
+		}
+		
+		for (int i =0 ; i < width * height; i++) {
+			if (userPix[i] == 0) {
+				maskPixels[0][i] =  0;
+			} else maskPixels[0][i] = 255;
+			
+			
+		}
+		
+	}
+	
+	return maskPixels[userID];
+}
+
+// return user pixels -> use 0 (default) to get all user masks
+// or specify a number if you want seperate masks
+//----------------------------------------
+void ofxUserGenerator::updateUserPixels() {
+	
 	xn::SceneMetaData smd;
+	unsigned short *userPix;
 	
-	if (user_generator.GetUserPixels(userID, smd) == XN_STATUS_OK) {
-		pLabels = smd.Data();
-	}
-	
-	for (int i =0 ; i < width * height; i++, pLabels++) {
+	if (user_generator.GetUserPixels(0, smd) == XN_STATUS_OK) { //	GetUserPixels is supposed to take a user ID number,
+		userPix = (unsigned short*)smd.Data();					//  but you get the same data no matter what you pass.
+	}															//	userPix actually contains an array where each value
+																//  corresponds to the user being tracked. 
+																//  Ie.,	if userPix[i] == 0 then it's not being tracked -> it's the background!
+																//			if userPix[i] > 0 then the pixel belongs to the user who's value IS userPix[i]
+																//  // (many thanks to ascorbin who's code made this apparent to me)
+	for (int i =0 ; i < width * height; i++) {
 		
-		if (*pLabels != 0) {
-			maskPixels[i] = 255;
-		} else maskPixels[i] = 0;
-		
+		// lets cycle through the users and allocate pixels into seperate masks for each user, including 0 as all users
+		for (int user = 0; user < MAX_NUMBER_USERS; user++) {
+			if (userPix[i] == user) {
+				maskPixels[user][i] = (user == 0 ? 0 : 255);
+			} else maskPixels[user][i] = (user == 0 ? 255 : 0);
+		}
+
 	}
-
-	if(maskImage[userID].width == 0 && maskImage[userID].height == 0) {
-		maskImage[userID].allocate(width, height);
-	}
-	
-	maskImage[userID].setFromPixels(maskPixels, width, height);
-
-	maskImage[userID].erode_3x3();
-	maskImage[userID].erode_3x3();
-}
-
-void ofxUserGenerator::setPointCloudRotation(int _x) {
-	cloudPointRotationY = _x;
 }
 
 //----------------------------------------
-void ofxUserGenerator::drawPointCloud(bool showBackground, int cloudPointSize) {
-
-	float fValueH = 0;
+void ofxUserGenerator::updateCloudPoints() {
 	
 	xn::DepthMetaData dm;
 	xn::ImageMetaData im;
 	
+	const XnRGB24Pixel*		pColor;
+	const XnDepthPixel*		pDepth;
+	
 	depth_generator.GetMetaData(dm);
-	image_generator.GetMetaData(im);
+	pDepth = dm.Data();
 	
-	const XnDepthPixel* pDepth = dm.Data();
-	const XnRGB24Pixel* pColor = im.RGB24Data();
+	bool hasImageGenerator = image_generator.IsValid();
+	
+	if (hasImageGenerator) {
+		image_generator.GetMetaData(im);
+		pColor = im.RGB24Data();
+	}
 
-	glPushMatrix();
-
-	ofRotateY(cloudPointRotationY);
-	
-	glPointSize (cloudPointSize);
-	glBegin(GL_POINTS);
-	
-	XnBool bLabelsExists = false;
-	const XnLabel* pLabels = NULL;
 	xn::SceneMetaData smd;
+	unsigned short *userPix;
 	
-	if (user_generator.GetUserPixels(0, smd) == XN_STATUS_OK) {	// TODO: change so you can draw just one user, etc - currently draws all users	
-		bLabelsExists = TRUE;
-		pLabels = smd.Data();
+	if (user_generator.GetUserPixels(0, smd) == XN_STATUS_OK) {
+		userPix = (unsigned short*)smd.Data();					
 	}
 	
-	XnUInt32 nIndex = 0;
-	for (XnUInt16 nY = 0; nY < height; nY++) {
+	int step = 1;
+	int nIndex = 0;
+	
+	for (int nY = 0; nY < height; nY += step) {
 		
-		for (XnUInt16 nX = 0; nX < width; nX++, nIndex++, pLabels++) {
-			
-			fValueH = pDepth[nIndex];
-			
-			if (pDepth[nIndex] == 0) continue;
-			
-			if (bLabelsExists) {
-				if (*pLabels == 0) {
-					if (!showBackground) continue;
+		for (int nX = 0; nX < width; nX += step, nIndex += step) {
+		
+			for (int user = 0; user < MAX_NUMBER_USERS; user++) {
+
+				if (userPix[nIndex] == user || user == 0) {
+					cloudPoints[user][nIndex].x = nX;
+					cloudPoints[user][nIndex].y = nY;
+					cloudPoints[user][nIndex].z = pDepth[nIndex];
+					cloudColors[user][nIndex].r = hasImageGenerator ? pColor[nIndex].nRed : 255;
+					cloudColors[user][nIndex].g = hasImageGenerator ? pColor[nIndex].nGreen : 255;
+					cloudColors[user][nIndex].b = hasImageGenerator ? pColor[nIndex].nBlue : 255;
+					cloudColors[user][nIndex].a = 255;
+				} else {
+					cloudPoints[user][nIndex].z = 0;	// behaves a bit wackily (you need to ignore z == 0 data for userID > 0...)
 				}
+
 			}
-			else if (!showBackground) continue;
-			
-			glColor3f(float(pColor[nIndex].nRed/127.0), float(pColor[nIndex].nBlue/127.0), float(pColor[nIndex].nGreen/127.0));
-			
-			// TODO: originally this used Real world to projective calls, 
-			// but that slowed things down too much for me...need to check 
-			// ofxKinect code and original to make this more better ;-)
-			
-			XnPoint3D point = xnCreatePoint3D(nX, nY, fValueH);
-			glVertex3f(point.X, point.Y, point.Z);
-			
+		
 		}
 	}
-	glEnd();
+}
 
-	glPopMatrix();
+ofPoint ofxUserGenerator::getWorldCoordinateAt(int x, int y, int userID) {
+	
+	return cloudPoints[userID][y * height + x];
+	
+}
+
+ofColor ofxUserGenerator::getWorldColorAt(int x, int y, int userID) {
+	
+	return cloudColors[userID][y * height + x];
+	
+}
+
+//----------------------------------------
+int ofxUserGenerator::getWidth() {
+	return width;
+}
+
+//----------------------------------------
+int ofxUserGenerator::getHeight() {
+	return height;
 }
 
 //----------------------------------------

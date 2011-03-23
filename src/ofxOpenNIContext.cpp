@@ -48,6 +48,17 @@ void ofxOpenNIContext::logErrors(xn::EnumerationErrors& rErrors) {
 	}	
 }
 
+// Initialize using code only
+bool ofxOpenNIContext::setup() {
+	
+	if (initContext()) {
+		addLicense("PrimeSense", "0KOIk2JeIBYClPWVnMoRKn5cdY4=");
+		enableLogging();
+		return true;
+	} else return false;
+
+}
+
 // Initialize using an XML file.
 //----------------------------------------
 bool ofxOpenNIContext::setupUsingXMLFile(std::string sFile) {
@@ -132,12 +143,9 @@ void ofxOpenNIContext::enableLogging() {
 	XnStatus result = xnLogSetConsoleOutput(true);
 	SHOW_RC(result, "Set console output");
 	
-	result = xnLogSetSeverityFilter(XN_LOG_VERBOSE);
+	result = xnLogSetSeverityFilter(XN_LOG_INFO);	// TODO: set different log levels with code; enable and disable functionality
 	SHOW_RC(result, "Set log level");
-	
-	//xnLogInitSystem();
-	//xnLogSetConsoleOutput(bVerbose || bList);
-	//xnLogSetSeverityFilter(bVerbose ? XN_LOG_VERBOSE : XN_LOG_WARNING);
+
 	xnLogSetMaskState(XN_LOG_MASK_ALL, TRUE);
 	
 }
@@ -165,7 +173,10 @@ bool ofxOpenNIContext::toggleRegisterViewport() {
 	getDepthGenerator(&depth_generator);
 	
 	xn::ImageGenerator image_generator;
-	getImageGenerator(&image_generator);
+	if (!getImageGenerator(&image_generator)) {
+		printf("No Image generator found: cannot register viewport");
+		return false;
+	}
 	
 	// Toggle registering view point to image map
 	if (depth_generator.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT))
@@ -189,7 +200,10 @@ bool ofxOpenNIContext::registerViewport() {
 	getDepthGenerator(&depth_generator);
 	
 	xn::ImageGenerator image_generator;
-	getImageGenerator(&image_generator);
+	if (!getImageGenerator(&image_generator)) {
+		printf("No Image generator found: cannot register viewport");
+		return false;
+	}
 	
 	// Register view point to image map
 	if (depth_generator.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT)) {

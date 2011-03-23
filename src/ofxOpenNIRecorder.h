@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _H_OFXOPENNIRECORDER
+#define _H_OFXOPENNIRECORDER
 
 #include "ofxOpenNIContext.h"
 #include "ofxDepthGenerator.h"
@@ -20,10 +21,12 @@ const string RecordType[] = {
 
 // Record Configuration
 struct RecordConfiguration {
+	
 	RecordConfiguration() {
 		
 		record_depth = true;
 		record_image = true;
+		record_ir	 = false;
 		record_time  = 0;
 		record_type	 = ONI_STREAMING;
 		record_name	 = "";
@@ -31,6 +34,7 @@ struct RecordConfiguration {
 	}
 	bool		record_depth;
 	bool		record_image;
+	bool		record_ir;
 	int			record_time;
 	int			record_type;
 	string		record_name;
@@ -38,6 +42,7 @@ struct RecordConfiguration {
 
 
 class ofxOpenNIRecorder {
+	
 public:
 	ofxOpenNIRecorder();
 	~ofxOpenNIRecorder();
@@ -46,6 +51,7 @@ public:
 			   ,int					b_record_type	= ONI_STREAMING
 			   ,int					b_record_time	= 0
 			   ,bool				b_record_image	= true
+			   ,bool				b_record_ir		= false
 			   ,bool				b_record_depth	= true);
 	
 	void update();
@@ -70,10 +76,12 @@ private:
 	ofxOpenNIContext*	context;	
 	xn::DepthGenerator	depth_generator;
 	xn::ImageGenerator	image_generator;
+	xn::IRGenerator		ir_generator;
 	
 	struct SingleFrame {
-		xn::DepthMetaData depth_frame;
-		xn::ImageMetaData image_frame;
+		xn::DepthMetaData	depth_frame;
+		xn::ImageMetaData	image_frame;
+		xn::IRMetaData		ir_frame;
 	};
 	
 	SingleFrame*		frames;
@@ -95,3 +103,5 @@ private:
 
 	
 };
+
+#endif

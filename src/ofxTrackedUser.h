@@ -1,8 +1,9 @@
-#pragma once
+#ifndef _H_OFXTRACKEDUSER
+#define _H_OFXTRACKEDUSER
 
+#include "ofMain.h"
 #include <XnOpenNI.h>
 #include <XnCppWrapper.h>
-#include "ofMain.h"
 
 struct ofxLimb {
 	ofxLimb(XnSkeletonJoint nStartJoint, XnSkeletonJoint nEndJoint) 
@@ -41,8 +42,8 @@ struct ofxLimb {
 class ofxOpenNIContext;
 class ofxTrackedUser {
 public: 
-	void debugDraw();
 	
+	void debugDraw();
 	
 	ofxLimb neck;
 	
@@ -81,8 +82,10 @@ private:
 	void updateLimb(ofxLimb& rLimb);
 	
 	ofxOpenNIContext*		context;
-	xn::UserGenerator		xn_user_generator;
-	xn::DepthGenerator		xn_depth_generator;
+	xn::UserGenerator		user_generator;
+	xn::DepthGenerator		depth_generator;
 	
 	friend class ofxUserGenerator;
 };
+
+#endif

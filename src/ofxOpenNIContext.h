@@ -1,20 +1,19 @@
-#pragma once
+#ifndef _H_OFXOPENNICONTEXT
+#define _H_OFXOPENNICONTEXT
 
 #include "ofMain.h"
 #include <XnOpenNI.h>
 #include <XnCodecIDs.h>
 #include <XnCppWrapper.h>
 
-
-//class ofxIRGenerator;
-//class ofxImageGenerator;
-//class ofxDepthGenerator;
 class ofxOpenNIContext {
+	
 public:
 	
 	ofxOpenNIContext();
 	~ofxOpenNIContext();	
 	
+	bool setup();
 	bool setupUsingRecording(std::string sRecordedFile); 
 	bool setupUsingXMLFile(std::string sFile = "");
 	
@@ -50,3 +49,5 @@ private:
 	xn::Context context;
 	
 };
+
+#endif

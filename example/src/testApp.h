@@ -1,11 +1,10 @@
 #ifndef _TEST_APP
 #define _TEST_APP
 
+//#define USE_IR // Uncomment this to use infra red instead of RGB cam...
 
 #include "ofMain.h"
 #include "ofxOpenNI.h"
-
-
 
 class testApp : public ofBaseApp{
 
@@ -13,7 +12,7 @@ class testApp : public ofBaseApp{
 		void setup();
 		void update();
 		void draw();
-
+	
 		void keyPressed  (int key);
 		void keyReleased(int key);
 		void mouseMoved(int x, int y );
@@ -30,10 +29,21 @@ class testApp : public ofBaseApp{
 	
 		ofxOpenNIContext	recordContext, playContext;
 		ofxDepthGenerator	recordDepth, playDepth;
-		ofxImageGenerator	recordImage, playImage;
+#ifdef USE_IR
+		ofxIRGenerator		recordImage, playImage;
+#else
+		ofxImageGenerator	recordImage, playImage; 
+#endif
 		ofxUserGenerator	recordUser, playUser;
 		ofxOpenNIRecorder	oniRecorder;
-
+		
+		void				drawMasks();
+		void				drawPointCloud(ofxUserGenerator * user_generator, int userID);
+	
+		int					nearThreshold, farThreshold;
+		int					pointCloudRotationY;
+		
+		ofImage				allUserMasks, user1Mask, user2Mask, depthRangeMask;
 		
 };
 

@@ -40,21 +40,36 @@ ofxOpenNIRecorder::~ofxOpenNIRecorder() {
 
 // Setup the recorder.
 //----------------------------------------
-void ofxOpenNIRecorder::setup(
-							  ofxOpenNIContext*	pContext
+void ofxOpenNIRecorder::setup(ofxOpenNIContext*	pContext
 							  ,int				b_record_type
 							  ,int				b_record_time
 							  ,bool				b_record_image
+							  ,bool				b_record_ir
 							  ,bool				b_record_depth)
 {
 	
 	// set context and generator references
 	context = pContext;
 	context->getDepthGenerator(&depth_generator);
-	context->getImageGenerator(&image_generator);
+	if (b_record_image) context->getImageGenerator(&image_generator);
+	
+	// check we have correct settings for recording image OR ir generators
+	if (b_record_ir || (b_record_image && !image_generator.IsValid())) context->getIRGenerator(&ir_generator);
+	
+	if ((b_record_ir || b_record_image) && !image_generator.IsValid() && ir_generator.IsValid()) {
+		printf("Switching recording to IR generator");
+		b_record_ir		= true;
+		b_record_image	= false;
+	}
+	if ((b_record_ir || b_record_image) && !image_generator.IsValid() && !ir_generator.IsValid()) {
+		printf("No Image or IR generator detected!");
+		b_record_ir		= false;
+		b_record_image	= false;
+	}
 	
 	// set configuration
 	config.record_image = b_record_image;
+	config.record_ir	= b_record_ir;
 	config.record_depth = b_record_depth;
 	config.record_type	= b_record_type;
 	config.record_time	= b_record_time;
@@ -96,8 +111,9 @@ bool ofxOpenNIRecorder::startRecord(string sName) {
 		return false;
 	}
 	
-	xn::MockDepthGenerator m_depth;
-	xn::MockImageGenerator m_image;
+	xn::MockDepthGenerator	m_depth;
+	xn::MockImageGenerator	m_image;
+	xn::MockIRGenerator		m_ir;
 	
 	// reset dropped frame counting variables
 	nLastDepthTime = 0;
@@ -181,6 +197,27 @@ bool ofxOpenNIRecorder::startRecord(string sName) {
 			
 		}
 		
+		// create ir node
+		if (config.record_ir) {
+			
+			if (config.record_type == ONI_STREAMING) {
+				
+				// just use the image generator as the node to record
+				result = recorder.AddNodeToRecording(ir_generator, XN_CODEC_NULL); // XN_CODEC_NULL appears to give least frame drops and size not much > JPEG
+				CHECK_RC(result, "Recorder add ir node");
+				
+			} else if (config.record_type == ONI_CYCLIC) {
+				
+				// create a mock node based on the image generator to record
+				result = context->getXnContext().CreateMockNodeBasedOn(ir_generator, NULL, m_ir);
+				CHECK_RC(result, "Create ir node");
+				
+				result = recorder.AddNodeToRecording(m_ir, XN_CODEC_NULL); // XN_CODEC_NULL appears to give least frame drops and size not much > JPEG
+				CHECK_RC(result, "Recorder add ir node");
+			}
+			
+		}
+		
 		// Frame sync is currently not possible with Kinect cameras!!
 		// if we try to frame sync then recording fails
 #ifndef USINGKINECT	
@@ -206,8 +243,9 @@ bool ofxOpenNIRecorder::startRecord(string sName) {
 				// Not first loop, right till end
 				for (XnUInt32 i = m_nNextWrite; i < m_nBufferSize; ++i) {
 					
-					if (config.record_depth) m_depth.SetData(frames[i].depth_frame);
-					if (config.record_image) m_image.SetData(frames[i].image_frame);
+					if (config.record_depth)	m_depth.SetData(frames[i].depth_frame);
+					if (config.record_image)	m_image.SetData(frames[i].image_frame);
+					if (config.record_ir)		m_ir.SetData(frames[i].ir_frame);
 					
 					recorder.Record();
 				}
@@ -215,14 +253,17 @@ bool ofxOpenNIRecorder::startRecord(string sName) {
 			
 			// Write frames from the beginning of the buffer to the last one written
 			for (XnUInt32 i = 0; i < m_nNextWrite; ++i) {
-				if (config.record_depth) m_depth.SetData(frames[i].depth_frame);
-				if (config.record_image) m_image.SetData(frames[i].image_frame);
+				
+				if (config.record_depth)	m_depth.SetData(frames[i].depth_frame);
+				if (config.record_image)	m_image.SetData(frames[i].image_frame);
+				if (config.record_ir)		m_ir.SetData(frames[i].ir_frame);
 				
 				recorder.Record();
 			}	
 			
 			// cleanup
 			recorder.Release();
+			m_ir.Release();
 			m_image.Release();
 			m_depth.Release();
 			
@@ -236,9 +277,9 @@ void ofxOpenNIRecorder::update() {
 	
 	if (config.record_type == ONI_STREAMING) {
 		
-		if (depth_generator.IsDataNew()) {
-			recorder.Record(); // is this really doing anything??? Don't think so ;-)
-		}
+		//if (depth_generator.IsDataNew()) {
+		//	recorder.Record(); // is this really doing anything??? Don't think so ;-)
+		//}
 		
 	} else if (config.record_type == ONI_CYCLIC && is_recording) {
 		
@@ -254,6 +295,13 @@ void ofxOpenNIRecorder::update() {
 			xn::ImageMetaData imd;
 			image_generator.GetMetaData(imd);
 			frames[m_nNextWrite].image_frame.CopyFrom(imd);
+		}
+		
+		// store ir frame metadata to cyclic buffer array
+		if(config.record_ir) {
+			xn::IRMetaData ird;
+			ir_generator.GetMetaData(ird);
+			frames[m_nNextWrite].ir_frame.CopyFrom(ird);
 		}
 		
 		// See if buffer is already full
@@ -291,6 +339,18 @@ void ofxOpenNIRecorder::update() {
 		if (nLastImageTime != 0 && nTimestamp - nLastImageTime > 35000) {
 			int missed = (int)(nTimestamp-nLastImageTime)/32000 - 1;
 			printf("Missed image: %llu -> %llu = %d > 35000 - %d frames\n",
+				   nLastImageTime, nTimestamp, XnUInt32(nTimestamp-nLastImageTime), missed);
+			nMissedImageFrames += missed;
+		}
+		nLastImageTime = nTimestamp;
+	}
+	
+	if (config.record_ir) {
+		++nImageFrames;
+		XnUInt64 nTimestamp = ir_generator.GetTimestamp();
+		if (nLastImageTime != 0 && nTimestamp - nLastImageTime > 35000) {
+			int missed = (int)(nTimestamp-nLastImageTime)/32000 - 1;
+			printf("Missed image (IR): %llu -> %llu = %d > 35000 - %d frames\n",
 				   nLastImageTime, nTimestamp, XnUInt32(nTimestamp-nLastImageTime), missed);
 			nMissedImageFrames += missed;
 		}

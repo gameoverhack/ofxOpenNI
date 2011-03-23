@@ -64,10 +64,10 @@ bool ofxDepthGenerator::setup(ofxOpenNIContext* pContext) {
 		
 		depth_generator.SetMapOutputMode(map_mode);
 	}	
-	
-	ofLog(OF_LOG_VERBOSE, "Depth camera inited");
 
-	max_depth = depth_generator.GetDeviceMaxDepth();		
+	width		= map_mode.nXRes;
+	height		= map_mode.nYRes;
+	max_depth	= depth_generator.GetDeviceMaxDepth();		
 	
 	// TODO: add capability for b+w depth maps (more efficient for draw)
 	depth_texture.allocate(map_mode.nXRes, map_mode.nYRes, GL_RGBA);		
@@ -75,19 +75,52 @@ bool ofxDepthGenerator::setup(ofxOpenNIContext* pContext) {
 	memset(depth_pixels, 0, map_mode.nXRes * map_mode.nYRes * 4 * sizeof(unsigned char));
 	
 	depth_generator.StartGenerating();	
+	
+	// setup mask pixels TODO: make do multiple ranges
+	maskPixels = new unsigned char[map_mode.nXRes * map_mode.nYRes];
+	
+	printf("Depth camera inited");
+	
 	return true;
 	
 }
 void ofxDepthGenerator::update() {
-	
 	generateTexture();
-	
 }
 
 void ofxDepthGenerator::draw(float x, float y, float w, float h) {
-	//generateTexture();
 	glColor3f(1,1,1);
 	depth_texture.draw(x, y, w, h);	
+}
+
+// returns mask pixels in a range TODO: make do multiple ranges
+unsigned char* ofxDepthGenerator::getDepthPixels(int nearThreshold, int farThreshold) {
+	
+	xn::DepthMetaData dmd;
+	depth_generator.GetMetaData(dmd);
+	const XnDepthPixel* depth = dmd.Data();
+	
+	int numPixels = dmd.XRes() * dmd.YRes();
+	for(int i = 0; i < numPixels; i++, depth++) {
+		if(*depth < farThreshold && *depth > nearThreshold) {
+			maskPixels[i] = 255;
+		} else {
+			maskPixels[i] = 0;
+		}
+	}
+	return maskPixels;
+}
+
+int ofxDepthGenerator::getWidth() {
+	return width;
+}
+
+int ofxDepthGenerator::getHeight() {
+	return height;
+}
+
+int ofxDepthGenerator::getMaxDepth() {
+	return max_depth;
 }
 
 xn::DepthGenerator& ofxDepthGenerator::getXnDepthGenerator() {
@@ -109,8 +142,8 @@ void ofxDepthGenerator::generateTexture(){
 
 	// copy depth into texture-map
 	for (XnUInt16 y = dmd.YOffset(); y < dmd.YRes() + dmd.YOffset(); y++) {
-		unsigned char * texture = (unsigned char*)depth_pixels + y * dmd.XRes() * 4 + dmd.XOffset()*4;
-		for (XnUInt16 x = 0; x < dmd.XRes(); x++, depth++, texture+=4){
+		unsigned char * texture = (unsigned char*)depth_pixels + y * dmd.XRes() * 4 + dmd.XOffset() * 4;
+		for (XnUInt16 x = 0; x < dmd.XRes(); x++, depth++, texture += 4) {
 			XnUInt8 red = 0;
 			XnUInt8 green = 0;
 			XnUInt8 blue = 0;

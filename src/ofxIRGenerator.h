@@ -1,13 +1,17 @@
-#pragma once
+#ifndef _H_OFXIRGENERATOR
+#define _H_OFXIRGENERATOR
 
 #include "ofxOpenNIContext.h"
 
 class ofxIRGenerator {
+	
 public:
 	
-	ofxIRGenerator(){};
+	ofxIRGenerator();
+	~ofxIRGenerator();
 	
 	bool setup(ofxOpenNIContext* pContext);
+	void update();
 	void draw(float x=0, float y=0, float w=640, float h=480);
 	
 	xn::IRGenerator& getXnIRGenerator();
@@ -22,3 +26,4 @@ private:
 	
 };
 
+#endif
