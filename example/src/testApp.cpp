@@ -1,14 +1,18 @@
 #include "testApp.h"
 
+// ROGER:: REMOVE THIS!!!
+bool status = true;
+
 //--------------------------------------------------------------
 void testApp::setup() {
 	
-	isLive		= true;
-	isTracking	= false;
-	isRecording = false;
-	isCloud		= false;
-	isCPBkgnd	= true;
-	isMasking   = true;
+	isLive				= true;
+	isTracking			= true;
+	isTrackingHands		= true;
+	isRecording			= false;
+	isCloud				= false;
+	isCPBkgnd			= true;
+	isMasking			= true;
 	
 	setupRecording();
 
@@ -22,13 +26,16 @@ void testApp::setupRecording(string _filename) {
 		
 		recordContext.setup();
 		recordContext.setupUsingXMLFile();
+		//recordContext.enableLogging(XN_LOG_WARNING);
+
 		recordDepth.setup(&recordContext);
 		recordImage.setup(&recordContext);
-		
 		recordUser.setup(&recordContext, &recordDepth, &recordImage);
+		recordGesture.setup(&recordContext, &recordDepth);
 		
 		recordDepth.toggleRegisterViewport(&recordImage);
 		recordContext.toggleMirror();
+		
 		
 		oniRecorder.setup(&recordContext, &recordDepth, &recordImage);	
 		
@@ -37,7 +44,6 @@ void testApp::setupRecording(string _filename) {
 		currentFileName = _filename;
 		cout << currentFileName << endl;
 	}
-		
 }
 
 void testApp::setupPlayback(string _filename) {
@@ -47,7 +53,8 @@ void testApp::setupPlayback(string _filename) {
 	playDepth.setup(&playContext);
 	playImage.setup(&playContext);
 	playUser.setup(&playContext, &playDepth, &playImage);
-	
+	playGesture.setup(&playContext, &playDepth);
+
 	
 	playDepth.toggleRegisterViewport(&playImage);
 	playContext.toggleMirror();
@@ -59,9 +66,11 @@ void testApp::update(){
 	
 	if (isLive) {
 		recordContext.update();
+		recordDepth.update();
 		if (isTracking) recordUser.update();
 	} else {
 		playContext.update();
+		playDepth.update();
 		if (isTracking) playUser.update();
 	}
 }
@@ -89,6 +98,10 @@ void testApp::draw(){
 				glDisable(GL_BLEND);
 			}
 		}
+		if (isTrackingHands)
+		{
+			recordGesture.drawHands();
+		}
 		
 		if (isCloud) {
 			recordUser.drawPointCloud(isCPBkgnd);
@@ -109,6 +122,10 @@ void testApp::draw(){
 				glDisable(GL_BLEND);
 			}
 		}
+		if (isTrackingHands)
+		{
+			playGesture.drawHands();
+		}
 		
 		if (isCloud) {
 			playUser.drawPointCloud(isCPBkgnd);
@@ -120,26 +137,26 @@ void testApp::draw(){
 	
 	ofSetColor(255, 255, 0);
 	
-	string msg1, msg2, msg3;	//drawBitmapString is limited to some numebr of characters -> is this a bug in 007 or always the case?
+	string statusPlay		= (string)(isLive ? "LIVE STREAM\n" : "PLAY STREAM\n");
+	string statusRec		= (string)(!isRecording ? "READY\n" : "RECORDING\n");
+	string statusSkeleton	= (string)(isTracking ? "TRACKING USERS\n" : "NOT TRACKING\n");
+	string statusHands		= (string)(isTrackingHands ? "TRACKING HANDS\n" : "NOT TRACKING\n");
+	string statusMask		= (string)(!isMasking ? "HIDE\n" : (isTracking ? "SHOW\n" : "YOU NEED TO TURN ON TRACKING!!\n"));
+	string statusCloud		= (string)(isCloud ? "ON\n" : "OFF\n");
+	string statusCloudData	= (string)(isCPBkgnd ? "SHOW BACKGROUND\n" : (isTracking ? "SHOW USER\n" : "YOU NEED TO TURN ON TRACKING!!\n"));
+
+	stringstream msg;
+	msg
+	<< "Press 's' to start/stop recording          : " << statusRec << endl
+	<< "Press 't' to toggle skeleton tracking      : " << statusSkeleton << endl
+	<< "Press 'h' to toggle hand tracking          : " << statusHands << endl
+	<< "Press 'm' to toggle drawing Masks          : " << statusMask << endl
+	<< "Press 'c' to toggle draw Cloud points      : " << statusCloud << endl
+	<< "Press 'b' to toggle Cloud User data        : " << statusCloudData << endl
+	<< endl
+	<< "FPS: " + ofToString(ofGetFrameRate()) + "\n";
 	
-	msg1 += "Press 's' to start/stop recording\n";
-	msg1 += "Press 'p' to toggle playback/live streams\n";
-	msg1 += "Press 't' to toggle tracking\n";
-	msg2 += "Press 'm' to toggle drawing Masks\n";
-	msg2 += "Press 'c' to toggle draw Cloud points\n";
-	msg2 += "Press 'b' to toggle Cloud User data (ie., background removal)\n\n";
-	
-	msg3 += (string)(isTracking ? "TRACKING USERS\n" : "NOT TRACKING USERS\n");
-	msg3 += (string)(isLive ? "LIVE STREAM\n" : "PLAY STREAM\n");
-	msg3 += (string)(!isRecording ? "READY\n" : "RECORDING\n");
-	msg3 += "MASK DRAWING: " + (string)(!isMasking ? "HIDE\n" : (string)(isTracking ? "SHOW\n" : "YOU NEED TO TURN ON TRACKING!!\n"));
-	msg3 += "CLOUD DRAWING: " + (string)(isCloud ? "ON\n" : "OFF\n");
-	msg3 += "CLOUD USERDATA/BACKGROUND: " + (string)(isCPBkgnd ? "SHOW BACKGROUND\n" : (string)(isTracking ? "SHOW USER\n" : "YOU NEED TO TURN ON TRACKING!!\n"));
-	msg3 += "FPS: " + ofToString(ofGetFrameRate()) + "\n";
-	
-	ofDrawBitmapString(msg1, 20, 500);
-	ofDrawBitmapString(msg2, 20, 550);
-	ofDrawBitmapString(msg3, 20, 600);
+	ofDrawBitmapString(msg.str(), 20, 500);
 	ofDrawBitmapString(currentFileName, 20, 700);
 
 	
@@ -167,6 +184,9 @@ void testApp::keyPressed(int key){
 			} else {
 				isLive = true;
 			}
+			break;
+		case 'h':
+			isTrackingHands = !isTrackingHands;
 			break;
 		case 't':
 			isTracking = !isTracking;

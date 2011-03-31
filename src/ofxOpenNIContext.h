@@ -4,6 +4,7 @@
 #include <XnOpenNI.h>
 #include <XnCodecIDs.h>
 #include <XnCppWrapper.h>
+#include <XnLog.h>
 #include "ofxOpenNIXML.h"
 #include <fstream>
 class ofxDepthGenerator;
@@ -37,7 +38,7 @@ public:
 	
 	void addLicense(std::string sVendor, std::string sKey);
 	
-	void enableLogging();
+	void enableLogging(XnLogSeverity level=XN_LOG_VERBOSE);
 	
 	bool isInitialized();
 	

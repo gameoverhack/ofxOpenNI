@@ -41,7 +41,7 @@ void CreateRainbowPallet() {
 
 ofxDepthGenerator::ofxDepthGenerator(){
 	CreateRainbowPallet();	
-	depth_coloring = 2;
+	depth_coloring = COLORING_RAINBOW;
 }
 
 bool ofxDepthGenerator::setup(ofxOpenNIContext* pContext) {
@@ -75,18 +75,28 @@ bool ofxDepthGenerator::setup(ofxOpenNIContext* pContext) {
 	map_mode.nFPS = 30;
 	
 	result = depth_generator.SetMapOutputMode(map_mode);
-	max_depth = depth_generator.GetDeviceMaxDepth();		
+	
+	// Default max depth is on GlobalDefaults.ini: MaxDepthValue=10000
+	max_depth = depth_generator.GetDeviceMaxDepth();
 	
 	depth_texture.allocate(map_mode.nXRes, map_mode.nYRes, GL_RGBA);		
 	depth_pixels = new unsigned char[map_mode.nXRes * map_mode.nYRes * 4];
 	memset(depth_pixels, 0, map_mode.nXRes * map_mode.nYRes * 4 * sizeof(unsigned char));
 	
 	depth_generator.StartGenerating();	
-	return true;
 	
+	return true;
 }
+
+// Do not call from your app!!!
+// This is called only by update callback.
+void ofxDepthGenerator::update(){
+	// get meta-data
+	depth_generator.GetMetaData(dmd);
+	this->generateTexture();
+}
+
 void ofxDepthGenerator::draw(float x, float y, float w, float h){
-	generateTexture();
 	glColor3f(1,1,1);
 	depth_texture.draw(x, y, w, h);	
 }
@@ -118,9 +128,6 @@ bool ofxDepthGenerator::toggleRegisterViewport(ofxImageGenerator* image_generato
 }
 
 void ofxDepthGenerator::generateTexture(){
-	// get meta-data
-	xn::DepthMetaData dmd;
-	depth_generator.GetMetaData(dmd);	
 	
 	// get the pixels
 	const XnDepthPixel* depth = dmd.Data();
@@ -134,6 +141,7 @@ void ofxDepthGenerator::generateTexture(){
 	}
 	
 	// copy depth into texture-map
+	float max;
 	for (XnUInt16 y = dmd.YOffset(); y < dmd.YRes() + dmd.YOffset(); y++) {
 		unsigned char * texture = (unsigned char*)depth_pixels + y * dmd.XRes() * 4 + dmd.XOffset()*4;
 		for (XnUInt16 x = 0; x < dmd.XRes(); x++, depth++, texture+=4){
@@ -146,9 +154,9 @@ void ofxDepthGenerator::generateTexture(){
 			//printf("%d\n", depth);
 			
 			switch (depth_coloring){
-				case 0: //PSYCHEDELIC_SHADES
+				case COLORING_PSYCHEDELIC_SHADES:
 					alpha *= (((XnFloat)(*depth % 10) / 20) + 0.5);
-				case 1: //PSYCHEDELIC					
+				case COLORING_PSYCHEDELIC:
 					switch ((*depth/10) % 10){
 						case 0:
 							red = 255;
@@ -190,20 +198,73 @@ void ofxDepthGenerator::generateTexture(){
 							break;
 					}
 					break;
-				case 2: //RAINBOW
+				case COLORING_RAINBOW:
 					col_index = (XnUInt16)(((*depth) / (max_depth / 256)));
 					red = PalletIntsR[col_index];
 					green = PalletIntsG[col_index];
 					blue = PalletIntsB[col_index];
 					break;
-				case 3: //CYCLIC_RAINBOW
+				case COLORING_CYCLIC_RAINBOW:
 					col_index = (*depth % 256);
 					red = PalletIntsR[col_index];
 					green = PalletIntsG[col_index];
 					blue = PalletIntsB[col_index];
 					break;
+				case COLORING_BLUES:
+					// 3 bytes of depth: black (R0G0B0) >> blue (001) >> cyan (011) >> white (111)
+					//float max = 255*3;
+					max = 256+255+255;	// half depth
+					col_index = (XnUInt16)(((*depth) / ( max_depth / max)));
+					if ( col_index < 256 )
+					{
+						blue	= col_index;
+						green	= 0;
+						red		= 0;
+					}
+					else if ( col_index < (256+255) )
+					{
+						blue	= 255;
+						green	= (col_index % 256) + 1;
+						red		= 0;
+					}
+					else if ( col_index < (256+255+255) )
+					{
+						blue	= 255;
+						green	= 255;
+						red		= (col_index % 256) + 1;
+					}
+					else
+					{
+						blue	= 255;
+						green	= 255;
+						red		= 255;
+					}
+					break;
+				case COLORING_GREY:
+					max = 255;	// half depth
+					{
+						XnUInt8 a = (XnUInt8)(((*depth) / ( max_depth / max)));
+						red		= a;
+						green	= a;
+						blue	= a;
+					}
+					break;
+				case COLORING_STATUS:
+					//
+					// ROGER :: TODO
+					// REMOVER ISTO!!!
+					//
+					{
+						extern bool status;
+						max = 255;	// half depth
+						XnUInt8 a = 255 - (XnUInt8)(((*depth) / ( max_depth / max)));
+						red		= ( status ? 0 : a);
+						green	= ( status ? a : 0);
+						blue	= 0;
+					}
+					break;
 			}
-			
+
 			texture[0] = red;
 			texture[1] = green;
 			texture[2] = blue;
@@ -216,4 +277,19 @@ void ofxDepthGenerator::generateTexture(){
 	}
 	
 	depth_texture.loadData((unsigned char *)depth_pixels,dmd.XRes(), dmd.YRes(), GL_RGBA);	
+}
+
+
+
+
+//
+// ROGER
+ofColor ofxDepthGenerator::getPixel( const ofPoint & p )
+{
+	return this->getPixel( (int)p.x, (int)p.y );
+}
+ofColor ofxDepthGenerator::getPixel( int x, int y )
+{
+	int i = ( y * XN_VGA_X_RES + x ) * 4;
+	return ofColor( depth_pixels[i], depth_pixels[i+1], depth_pixels[i+2], depth_pixels[i+3] );
 }

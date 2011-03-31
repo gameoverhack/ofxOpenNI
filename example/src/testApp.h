@@ -27,6 +27,7 @@ class testApp : public ofBaseApp{
 		string	generateFileName();
 	
 		bool				isLive, isTracking, isRecording, isCloud, isCPBkgnd, isMasking;
+		bool				isTrackingHands;
 		
 		string				currentFileName;
 	
@@ -34,9 +35,9 @@ class testApp : public ofBaseApp{
 		ofxDepthGenerator	recordDepth, playDepth;
 		ofxImageGenerator	recordImage, playImage;
 		ofxUserGenerator	recordUser, playUser;
+		ofxGestureGenerator recordGesture, playGesture;
 		ofxOpenNIRecorder	oniRecorder;
 
-		
 };
 
 #endif

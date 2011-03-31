@@ -2,7 +2,7 @@
 	<Licenses>
 		<License vendor="PrimeSense" key="0KOIk2JeIBYClPWVnMoRKn5cdY4="/>
 	</Licenses>
-	<Log writeToConsole="true" writeToFile="true">
+	<Log writeToConsole="false" writeToFile="false">
 		<!-- 0 - Verbose, 1 - Info, 2 - Warning, 3 - Error (default) -->
 		<LogLevel value="1"/>
 		<Masks>
@@ -19,8 +19,12 @@
 				<Mirror on="true"/>
 			</Configuration>
 		</Node>
-
+		
 		<!-- ofxUserGenerator -->
 		<Node type="User" />
+        
+        <!-- ofxGestureGenerator -->
+		<Node type="Gesture" />
+		<Node type="Hands" />
 	</ProductionNodes>
 </OpenNI>

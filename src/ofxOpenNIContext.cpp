@@ -1,7 +1,6 @@
 #include "ofxOpenNIContext.h"
 #include "ofxDepthGenerator.h"
 #include "ofxOpenNIMacros.h"
-#include <XnLog.h>
 
 // Startup
 //----------------------------------------
@@ -161,12 +160,12 @@ void ofxOpenNIContext::addLicense(std::string sVendor, std::string sKey) {
 
 }
 
-void ofxOpenNIContext::enableLogging() {
+void ofxOpenNIContext::enableLogging(XnLogSeverity level) {
 
 	XnStatus result = xnLogSetConsoleOutput(true);
 	SHOW_RC(result, "Set console output");
 			
-	result = xnLogSetSeverityFilter(XN_LOG_VERBOSE);
+	result = xnLogSetSeverityFilter(level);
 	SHOW_RC(result, "Set log level");
 	
 	//xnLogInitSystem();
