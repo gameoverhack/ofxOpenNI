@@ -1,53 +1,55 @@
-#pragma once
+#ifndef _H_OFXOPENNICONTEXT
+#define _H_OFXOPENNICONTEXT
 
 #include "ofMain.h"
 #include <XnOpenNI.h>
 #include <XnCodecIDs.h>
 #include <XnCppWrapper.h>
 #include <XnLog.h>
-#include "ofxOpenNIXML.h"
 #include <fstream>
-class ofxDepthGenerator;
 
 class ofxOpenNIContext {
-public:
-	ofxOpenNIContext();
 	
+public:
+	
+	ofxOpenNIContext();
 	~ofxOpenNIContext();	
-
-
-	void update();
 	
 	bool setup();
-	
-	bool toggleMirror();
-	
+	bool setupUsingRecording(std::string sRecordedFile); 
 	bool setupUsingXMLFile(std::string sFile = "");
 	
-	bool setupUsingRecording(std::string sRecordedFile); 
+	void update();
 	
-	bool setupUsingXMLObject(ofxOpenNIXML oXML);
+	bool toggleRegisterViewport();
+	bool registerViewport();
+	bool unregisterViewport();
 	
-	bool runXMLScript(std::string sXML);
-	
-	xn::Context& getXnContext();
-	
-	bool getDepthGenerator(ofxDepthGenerator* pDepthGenerator);
+	bool getDepthGenerator(xn::DepthGenerator* depth_generator);
+	bool getImageGenerator(xn::ImageGenerator* image_generator);
+	bool getIRGenerator(xn::IRGenerator* ir_generator);
+	bool getUserGenerator(xn::UserGenerator* user_generator);
 	
 	bool isUsingRecording();
 	
-	void addLicense(std::string sVendor, std::string sKey);
+	void enableLogging();
 	
-	void enableLogging(XnLogSeverity level=XN_LOG_VERBOSE);
+	bool toggleMirror();
+	bool setMirror(XnBool mirroring);
 	
-	bool isInitialized();
+	void shutdown();
 	
-	void clear();
+	xn::Context& getXnContext();
 	
 private:
+	
+	bool initContext();
+	void addLicense(std::string sVendor, std::string sKey);
 	void logErrors(xn::EnumerationErrors& rErrors);
 	
-	bool is_initialized;
 	bool is_using_recording;
 	xn::Context context;
+	
 };
+
+#endif

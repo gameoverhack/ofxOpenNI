@@ -80,9 +80,6 @@ ofxGestureGenerator::ofxGestureGenerator(){
 
 //--------------------------------------------------------------
 bool ofxGestureGenerator::setup(ofxOpenNIContext* pContext, ofxDepthGenerator* pDepthGenerator) {
-	if(!pContext->isInitialized()) {
-		return false;
-	}
 	
 	context = pContext;
 	depth_generator = pDepthGenerator;
@@ -106,14 +103,17 @@ bool ofxGestureGenerator::setup(ofxOpenNIContext* pContext, ofxDepthGenerator* p
 	result = handsGenerator.RegisterHandCallbacks(HandCreate, HandUpdate, HandDestroy, this, hand_cb_handle);
 	
 	// pre-generate the tracked users.
-	num_hands = MAX_NUMBER_HANDS;
-	tracked_hands.reserve(num_hands);
-	for(int i = 0; i < num_hands; ++i) {
+	max_hands = MAX_NUMBER_HANDS;
+	tracked_hands.reserve(max_hands);
+	for(int i = 0; i < max_hands; ++i) {
 		ofxTrackedHand* hand = new ofxTrackedHand(depth_generator);
 		tracked_hands.push_back(hand);
 	}
 	found_hands = 0;
 	
+	isFiltering = false;
+	isAcceptingGestures = false;
+
 	// Start looking for gestures
 	this->addGestures();
 	ofLog(OF_LOG_VERBOSE, "Gesture camera inited");
@@ -125,71 +125,117 @@ bool ofxGestureGenerator::setup(ofxOpenNIContext* pContext, ofxDepthGenerator* p
 //--------------------------------------------------------------
 ofxGestureGenerator::~ofxGestureGenerator()
 {
-	for(int i = 0; i < num_hands; ++i)
+	for(int i = 0; i < max_hands; ++i)
 		delete tracked_hands[i];
 }
 
 //--------------------------------------------------------------
 void ofxGestureGenerator::addGestures()
 {
-	gestureGenerator.AddGesture("Click", NULL);
-	gestureGenerator.AddGesture("Wave", NULL);
-	gestureGenerator.AddGesture("RaiseHand", NULL);
+	if (!isAcceptingGestures)
+	{
+		gestureGenerator.AddGesture("Click", NULL);
+		gestureGenerator.AddGesture("Wave", NULL);
+		gestureGenerator.AddGesture("RaiseHand", NULL);
+		isAcceptingGestures = true;
+	}
 }
 
 //--------------------------------------------------------------
 void ofxGestureGenerator::removeGestures()
 {
-	gestureGenerator.RemoveGesture("Wave");
-	gestureGenerator.RemoveGesture("Click");
-	gestureGenerator.RemoveGesture("RaiseHand");
+	if (isAcceptingGestures)
+	{
+		gestureGenerator.RemoveGesture("Wave");
+		gestureGenerator.RemoveGesture("Click");
+		gestureGenerator.RemoveGesture("RaiseHand");
+		isAcceptingGestures = false;
+	}
 }
 
+//--------------------------------------------------------------
+ofxTrackedHand* ofxGestureGenerator::getHand()
+{
+	// Return first tracked hand
+	for(int i = 0;  i < max_hands; ++i) {
+		ofxTrackedHand *hand = tracked_hands[i];
+		if (hand->isBeingTracked)
+			return hand;
+	}
+	return NULL;
+}
+
+// Draw all hands
+//--------------------------------------------------------------
+void ofxGestureGenerator::drawHands() {
+	for(int i = 0;  i < max_hands; ++i)
+		tracked_hands[i]->draw();
+}
+
+// Draw one hand
+//--------------------------------------------------------------
+void ofxGestureGenerator::drawHand(int nID) {
+	for(int i = 0;  i < max_hands; ++i) {
+		ofxTrackedHand *hand = tracked_hands[i];
+		if (hand->nID == nID)
+		{
+			hand->draw();
+			return;
+		}
+	}
+}
+
+// Drop all hands
+//--------------------------------------------------------------
+void ofxGestureGenerator::dropHands() {
+	handsGenerator.StopTrackingAll();
+}
+
+
+//--------------------------------------------------------------
+// CALLBACK PIVATES
 //--------------------------------------------------------------
 void ofxGestureGenerator::startHandTracking(const XnPoint3D* pPosition)
 {
 	handsGenerator.StartTracking(*pPosition);
 }
 
-
-
 //--------------------------------------------------------------
 void ofxGestureGenerator::newHand(XnUserID nID, const XnPoint3D* pPosition)
 {
 	// Look for a free hand
-	for(int i = 0;  i < num_hands; ++i) {
+	for(int i = 0;  i < max_hands; ++i) {
 		ofxTrackedHand *hand = tracked_hands[i];
 		if (hand->isBeingTracked == false)
 		{
 			hand->isBeingTracked = true;
 			hand->nID = nID;
-			hand->update(pPosition, true);
+			hand->update(pPosition, isFiltering, true);
 			found_hands++;
 			// Stop getting gestures?
-			if (found_hands >= num_hands)
+			if (found_hands >= max_hands)
 				this->removeGestures();
 			return;
 		}
 	}
 }
-
 //--------------------------------------------------------------
 void ofxGestureGenerator::updateHand(XnUserID nID, const XnPoint3D* pPosition)
 {
-	for(int i = 0;  i < num_hands; ++i) {
+	for(int i = 0;  i < max_hands; ++i) {
 		ofxTrackedHand *hand = tracked_hands[i];
 		if (hand->nID == nID)
 		{
 			if (hand->isBeingTracked)
-				hand->update(pPosition);
+				hand->update(pPosition, isFiltering);
 			return;
 		}
 	}
 }
-
+//--------------------------------------------------------------
 void ofxGestureGenerator::destroyHand(XnUserID nID)
 {
-	for(int i = 0;  i < num_hands; ++i) {
+	for(int i = 0;  i < max_hands; ++i) {
 		ofxTrackedHand *hand = tracked_hands[i];
 		if (hand->nID == nID)
 		{
@@ -202,61 +248,28 @@ void ofxGestureGenerator::destroyHand(XnUserID nID)
 	}
 }
 
+
+
 //--------------------------------------------------------------
-ofxTrackedHand* ofxGestureGenerator::getHand()
-{
-	// Return first tracked hand
-	for(int i = 0;  i < num_hands; ++i) {
-		ofxTrackedHand *hand = tracked_hands[i];
-		if (hand->isBeingTracked)
-			return hand;
-	}
-	return NULL;
-}
-
-
-
-
-// Draw all hands
-//--------------------------------------------------------------
-void ofxGestureGenerator::drawHands() {
-	for(int i = 0;  i < num_hands; ++i)
-		tracked_hands[i]->draw();
-}
-
-// Draw one hand
-//--------------------------------------------------------------
-void ofxGestureGenerator::drawHand(int nID) {
-	for(int i = 0;  i < num_hands; ++i) {
-		ofxTrackedHand *hand = tracked_hands[i];
-		if (hand->nID == nID)
-		{
-			hand->draw();
-			return;
-		}
-	}
-}
-
-
-////////////////////////////////////////////////
 //
 // HANDS
 //
+//--------------------------------------------------------------
 
 //--------------------------------------------------------------
 ofxTrackedHand::ofxTrackedHand(ofxDepthGenerator* pDepthGenerator)
 {
 	depth_generator = pDepthGenerator;
 	isBeingTracked = false;
-	isFiltering = false;
 }
 
 //--------------------------------------------------------------
+// High-pass filter based on iOS Accelerometer sample
 // Filter: 0.01 .. 1.0
 //	Lower  = less noise, less speed
 //	Higher = more noise, more speed
 #define FILTER_FACTOR		0.20
-void ofxTrackedHand::update(const XnPoint3D* pPosition, bool force) {
+void ofxTrackedHand::update(const XnPoint3D* pPosition, bool filter, bool force) {
 	rawPos = *pPosition;
 	XnPoint3D rawProj = rawPos;
 	depth_generator->getXnDepthGenerator().ConvertRealWorldToProjective(1, &rawProj, &rawProj);
@@ -264,7 +277,7 @@ void ofxTrackedHand::update(const XnPoint3D* pPosition, bool force) {
 	float xres = 640.0f;
 	float yres = 480.0f;
 	float zres = depth_generator->getMaxDepth();
-	if (isFiltering && !force)
+	if (filter && !force)
 	{
 		progPos.x = ( (rawProj.X / xres) * FILTER_FACTOR) + (progPos.x * (1.0 - FILTER_FACTOR));
 		progPos.y = ( (rawProj.Y / yres) * FILTER_FACTOR) + (progPos.y * (1.0 - FILTER_FACTOR));
@@ -281,7 +294,6 @@ void ofxTrackedHand::update(const XnPoint3D* pPosition, bool force) {
 		progPos.z = (projectPos.z / zres);
 	}
 }
-
 
 //--------------------------------------------------------------
 void ofxTrackedHand::draw() {

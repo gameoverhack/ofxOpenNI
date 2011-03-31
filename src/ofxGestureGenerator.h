@@ -6,6 +6,7 @@
 
 
 //
+// This is ready for more hands, but.....
 // If MAX_NUMBER_HANDS > 1, gesture triggers several Gesture_Recognized callbacks
 // So, to detect more hands, we need to figure out how to identify if a gesture
 // is from the same hand or from another hand.
@@ -19,19 +20,17 @@ public:
 	
 	ofxTrackedHand(ofxDepthGenerator* pDepthGenerator);
 
-	void update(const XnPoint3D* pPosition, bool force=false);
-
+	void update(const XnPoint3D* pPosition, bool filter=false, bool force=false);
+	
 	void draw();
 	
 	ofxDepthGenerator* depth_generator;
 	
-	bool isBeingTracked;
-	bool isFiltering;
-	XnUserID nID;
-	XnPoint3D rawPos;
-	ofPoint projectPos;		// position on screen
-	ofPoint progPos;		// position from 0.0 to 1.0
-	
+	bool		isBeingTracked;
+	XnUserID	nID;
+	XnPoint3D	rawPos;
+	ofPoint		projectPos;		// position on screen
+	ofPoint		progPos;		// position from 0.0 to 1.0
 };
 
 
@@ -44,10 +43,18 @@ public:
 	
 	bool setup(ofxOpenNIContext* pContext, ofxDepthGenerator* pDepthGenerator);
 	
-	void addGestures();
+	int getHandsCount()		{ return found_hands; };
 	
-	void removeGestures();
-
+	ofxTrackedHand* getHand();
+	
+	void dropHands();
+	
+	void drawHands();
+	
+	void drawHand(int nHandNum);
+	
+	// CALLBACK PRIVATES
+	
 	void startHandTracking(const XnPoint3D* pPosition);
 	
 	void newHand(XnUserID nID, const XnPoint3D* pPosition);
@@ -56,27 +63,28 @@ public:
 	
 	void destroyHand(XnUserID nID);
 	
-	void drawHands();
-	
-	void drawHand(int nHandNum);
-	
-	int getHandsCount() { return found_hands; };
+	bool isFiltering;
 
-	ofxTrackedHand* getHand();
+private:
+	
+	void addGestures();
+	
+	void removeGestures();
 	
 	xn::GestureGenerator& getXnGestureGenerator();
 	
-private:
-	
-	ofxOpenNIContext* context;
-	ofxDepthGenerator* depth_generator;
 
-	xn::GestureGenerator gestureGenerator;
-	xn::HandsGenerator handsGenerator;
+	ofxOpenNIContext*		context;
+	ofxDepthGenerator*		depth_generator;
+
+	xn::GestureGenerator	gestureGenerator;
+	xn::HandsGenerator		handsGenerator;
 
 	std::vector<ofxTrackedHand*> tracked_hands;
-	XnUInt16 num_hands;
-	int found_hands;
+
+	XnUInt16		max_hands;
+	int				found_hands;
+	bool			isAcceptingGestures;
 
 };
 

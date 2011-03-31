@@ -1,11 +1,7 @@
 #include "ofxTrackedUser.h"
-#include "ofxDepthGenerator.h"
-#include "ofxUserGenerator.h"
+#include "ofxOpenNIContext.h"
 
-ofxTrackedUser::ofxTrackedUser(
-	 ofxUserGenerator* pUserGenerator
-	,ofxDepthGenerator* pDepthGenerator
-) 
+ofxTrackedUser::ofxTrackedUser(ofxOpenNIContext* pContext) 
 :neck(XN_SKEL_HEAD, XN_SKEL_NECK)
 
 // left arm + shoulder
@@ -33,14 +29,14 @@ ofxTrackedUser::ofxTrackedUser(
 ,right_lower_leg(XN_SKEL_RIGHT_KNEE, XN_SKEL_RIGHT_FOOT)
 
 ,hip(XN_SKEL_LEFT_HIP, XN_SKEL_RIGHT_HIP)
-,user_generator(pUserGenerator)
-,depth_generator(pDepthGenerator) 
-,xn_user_generator(&user_generator->getXnUserGenerator())
-,is_tracked(false)
 {
+	context = pContext;
+	context->getDepthGenerator(&depth_generator);
+	context->getUserGenerator(&user_generator);
 }
 
 void ofxTrackedUser::updateBonePositions() {
+	
 	updateLimb(neck);
 	
 	// left arm + shoulder
@@ -71,31 +67,30 @@ void ofxTrackedUser::updateBonePositions() {
 }
 
 void ofxTrackedUser::updateLimb(ofxLimb& rLimb) {
-	if(!xn_user_generator->GetSkeletonCap().IsTracking(id)) {
+	
+	if(!user_generator.GetSkeletonCap().IsTracking(id)) {
 		//printf("Not tracking this user: %d\n", id);
 		return;
 	}
 	
 	XnSkeletonJointPosition a,b;
-	xn_user_generator->GetSkeletonCap().GetSkeletonJointPosition(id, rLimb.start_joint, a);
-	xn_user_generator->GetSkeletonCap().GetSkeletonJointPosition(id, rLimb.end_joint, b);
+	user_generator.GetSkeletonCap().GetSkeletonJointPosition(id, rLimb.start_joint, a);
+	user_generator.GetSkeletonCap().GetSkeletonJointPosition(id, rLimb.end_joint, b);
 	if(a.fConfidence < 0.3f || b.fConfidence < 0.3f) {
 		rLimb.found = false; 
 		return;
 	}
 	
-	XnPoint3D pos[2];
-	pos[0] = a.position;
-	pos[1] = b.position;
-	depth_generator->getXnDepthGenerator()
-		.ConvertRealWorldToProjective(2, pos, pos);
-
 	rLimb.found = true;
-	rLimb.begin.set(pos[0].X, pos[0].Y);
-	rLimb.end.set(pos[1].X, pos[1].Y);	
+	rLimb.position[0] = a.position;
+	rLimb.position[1] = b.position;
+	
+	depth_generator.ConvertRealWorldToProjective(2, rLimb.position, rLimb.position);
+	
 }
 
 void ofxTrackedUser::debugDraw() {
+	
 	neck.debugDraw();
 	
 	// left arm + shoulder
@@ -123,5 +118,6 @@ void ofxTrackedUser::debugDraw() {
 	right_lower_leg.debugDraw();
 	
 	hip.debugDraw();
-	ofDrawBitmapString(ofToString((int)id),neck.begin.x+ 10, neck.begin.y);
+
+	ofDrawBitmapString(ofToString((int)id), neck.position[0].X + 10, neck.position[0].Y);
 }

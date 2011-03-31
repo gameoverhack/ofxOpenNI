@@ -22,32 +22,35 @@
 
 
 
-#ifndef __XN_OPEN_NI_H__
-#define __XN_OPEN_NI_H__
+#ifndef _ININODEALLOCATOR_H
+#define _ININODEALLOCATOR_H
 
 //---------------------------------------------------------------------------
-// Includes
+// Types
 //---------------------------------------------------------------------------
-#include "XnTypes.h"
-#include "XnContext.h"
-#include "XnLicensing.h"
-#include "XnUtils.h"
-#include "XnPrdNodeInfo.h"
-#include "XnQueries.h"
-#include "XnPrdNode.h"
-#include "XnEnumerationErrors.h"
+class XnNode;
 
-#include "XnVersion.h"
-#include "XnStatusCodes.h"
-#include "XnStatus.h"
+/**
+ * Node Allocator - general interface for node allocation and deallocation.
+ */
+class INiNodeAllocator
+{
+public:
+	virtual ~INiNodeAllocator() {}
 
-//---------------------------------------------------------------------------
-// Defines
-//---------------------------------------------------------------------------
-#define XN_MASK_OPEN_NI "OpenNI"
+	/**
+	* Allocate a new XnNode
+	* 
+	* @return	NULL	if allocating a new node failed
+	*/
+	virtual XnNode *Allocate() = 0;
 
-//---------------------------------------------------------------------------
-// Enumeration and Creations
-//---------------------------------------------------------------------------
+	/**
+	* Release an XnNode
+	* 
+	* @param	pNode	[in]	The node to deallocate
+	*/
+	virtual void Deallocate(XnNode *pNode) = 0;
+};
 
-#endif // __XN_OPEN_NI_H__
+#endif //_ININODEALLOCATOR_H

@@ -45,113 +45,128 @@ ofxDepthGenerator::ofxDepthGenerator(){
 }
 
 bool ofxDepthGenerator::setup(ofxOpenNIContext* pContext) {
-	if(!pContext->isInitialized()) {
-		return false;
-	}
-	
-	XnStatus result = XN_STATUS_OK;	
-	
-	// check if the USER generator exists.
-	result = pContext->getXnContext()
-					.FindExistingNode(XN_NODE_TYPE_DEPTH, depth_generator);
-	SHOW_RC(result, "Find depth generator");
-	if(result != XN_STATUS_OK) {
-		result = depth_generator.Create(pContext->getXnContext());
-		SHOW_RC(result, "Create depth generator");
-		if(result != XN_STATUS_OK) {			
-			return false;
-		}
-	}	
-	
-	
-	ofLog(OF_LOG_VERBOSE, "Depth camera inited");
-	
-	
-	//Set the input to VGA (standard is QVGA wich is not supported on the Kinect)
 
+	XnStatus result = XN_STATUS_OK;	
 	XnMapOutputMode map_mode; 
-	map_mode.nXRes = XN_VGA_X_RES; 
-	map_mode.nYRes = XN_VGA_Y_RES;
-	map_mode.nFPS = 30;
 	
-	result = depth_generator.SetMapOutputMode(map_mode);
-	
+	// Try to fetch depth generator before creating one
+	if(pContext->getDepthGenerator(&depth_generator)) {
+		// found the depth generator so set map_mode from it
+		depth_generator.GetMapOutputMode(map_mode);
+	} else {
+		result = depth_generator.Create(pContext->getXnContext());
+		CHECK_RC(result, "Creating depth generator");
+		
+		// make new map mode -> default to 640 x 480 @ 30fps
+		map_mode.nXRes = XN_VGA_X_RES;
+		map_mode.nYRes = XN_VGA_Y_RES;
+		map_mode.nFPS  = 30;
+		
+		depth_generator.SetMapOutputMode(map_mode);
+	}	
+
 	// Default max depth is on GlobalDefaults.ini: MaxDepthValue=10000
-	max_depth = depth_generator.GetDeviceMaxDepth();
+	max_depth	= depth_generator.GetDeviceMaxDepth();		
+	width		= map_mode.nXRes;
+	height		= map_mode.nYRes;
 	
+	// TODO: add capability for b+w depth maps (more efficient for draw)
 	depth_texture.allocate(map_mode.nXRes, map_mode.nYRes, GL_RGBA);		
 	depth_pixels = new unsigned char[map_mode.nXRes * map_mode.nYRes * 4];
 	memset(depth_pixels, 0, map_mode.nXRes * map_mode.nYRes * 4 * sizeof(unsigned char));
 	
 	depth_generator.StartGenerating();	
 	
+	// setup mask pixels TODO: make do multiple ranges
+	maskPixels = new unsigned char[map_mode.nXRes * map_mode.nYRes];
+	
+	printf("Depth camera inited");
+	
 	return true;
 }
-
-// Do not call from your app!!!
-// This is called only by update callback.
-void ofxDepthGenerator::update(){
+void ofxDepthGenerator::update() {
 	// get meta-data
 	depth_generator.GetMetaData(dmd);
 	this->generateTexture();
 }
 
-void ofxDepthGenerator::draw(float x, float y, float w, float h){
+void ofxDepthGenerator::draw(float x, float y, float w, float h) {
 	glColor3f(1,1,1);
 	depth_texture.draw(x, y, w, h);	
+}
+
+void ofxDepthGenerator::setDepthColoring(enumDepthColoring c) {
+	depth_coloring = c;
+}
+
+
+// returns mask pixels in a range TODO: make do multiple ranges
+unsigned char* ofxDepthGenerator::getDepthPixels(int nearThreshold, int farThreshold) {
+	
+	xn::DepthMetaData dmd;
+	depth_generator.GetMetaData(dmd);
+	const XnDepthPixel* depth = dmd.Data();
+	
+	int numPixels = dmd.XRes() * dmd.YRes();
+	for(int i = 0; i < numPixels; i++, depth++) {
+		if(*depth < farThreshold && *depth > nearThreshold) {
+			maskPixels[i] = 255;
+		} else {
+			maskPixels[i] = 0;
+		}
+	}
+	return maskPixels;
+}
+
+int ofxDepthGenerator::getWidth() {
+	return width;
+}
+
+int ofxDepthGenerator::getHeight() {
+	return height;
+}
+
+int ofxDepthGenerator::getMaxDepth() {
+	return max_depth;
 }
 
 xn::DepthGenerator& ofxDepthGenerator::getXnDepthGenerator() {
 	return depth_generator;
 }
 
-bool ofxDepthGenerator::toggleRegisterViewport(ofxImageGenerator* image_generator) {
-	// Register view point to image map
-	
-	XnStatus result;	
-	
-	if (depth_generator.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT))
-	{
-		
-		if(depth_generator.GetAlternativeViewPointCap().IsViewPointAs(image_generator->getXnImageGenerator())) {
-			result = depth_generator.GetAlternativeViewPointCap().ResetViewPoint();
-			CHECK_RC(result, "Reset Registration");
-		} else {
-			result = depth_generator.GetAlternativeViewPointCap().SetViewPoint(image_generator->getXnImageGenerator());
-			CHECK_RC(result, "Registration");
-		}
-		
-
-	} else return false;
-
-	return true;
+// Get a pixel from the depth map
+ofColor ofxDepthGenerator::getPixel( const ofPoint & p )
+{
+	return this->getPixel( (int)p.x, (int)p.y );
+}
+ofColor ofxDepthGenerator::getPixel( int x, int y )
+{
+	int i = ( y * XN_VGA_X_RES + x ) * 4;
+	return ofColor( depth_pixels[i], depth_pixels[i+1], depth_pixels[i+2], depth_pixels[i+3] );
 }
 
+
+
+// TODO: add capability for b+w depth maps (more efficient for draw)
 void ofxDepthGenerator::generateTexture(){
 	
 	// get the pixels
 	const XnDepthPixel* depth = dmd.Data();
 	XN_ASSERT(depth);
 	
-	if (dmd.FrameID() == 0){
-		return;
-	}
-	if (dmd.PixelFormat() == XN_PIXEL_FORMAT_RGB24) {
-		printf("its in yuv\n");
-	}
-	
+	if (dmd.FrameID() == 0) return;
+
 	// copy depth into texture-map
 	float max;
 	for (XnUInt16 y = dmd.YOffset(); y < dmd.YRes() + dmd.YOffset(); y++) {
-		unsigned char * texture = (unsigned char*)depth_pixels + y * dmd.XRes() * 4 + dmd.XOffset()*4;
-		for (XnUInt16 x = 0; x < dmd.XRes(); x++, depth++, texture+=4){
+		unsigned char * texture = (unsigned char*)depth_pixels + y * dmd.XRes() * 4 + dmd.XOffset() * 4;
+		for (XnUInt16 x = 0; x < dmd.XRes(); x++, depth++, texture += 4) {
 			XnUInt8 red = 0;
 			XnUInt8 green = 0;
 			XnUInt8 blue = 0;
 			XnUInt8 alpha = 255;
 			
 			XnUInt16 col_index;
-			//printf("%d\n", depth);
 			
 			switch (depth_coloring){
 				case COLORING_PSYCHEDELIC_SHADES:
@@ -212,8 +227,7 @@ void ofxDepthGenerator::generateTexture(){
 					break;
 				case COLORING_BLUES:
 					// 3 bytes of depth: black (R0G0B0) >> blue (001) >> cyan (011) >> white (111)
-					//float max = 255*3;
-					max = 256+255+255;	// half depth
+					max = 256+255+255;
 					col_index = (XnUInt16)(((*depth) / ( max_depth / max)));
 					if ( col_index < 256 )
 					{
@@ -250,10 +264,13 @@ void ofxDepthGenerator::generateTexture(){
 					}
 					break;
 				case COLORING_STATUS:
-					//
-					// ROGER :: TODO
-					// REMOVER ISTO!!!
-					//
+					// This is something to use on installations
+					// when the end user needs to know if the camera is tracking or not
+					// The scene will be painted GREEN if status == true
+					// The scene will be painted RED if status == false
+					// Usage: declare a global bool status and that's it!
+					// I'll keep it commented so you dont have to have a status on every project
+#if 0
 					{
 						extern bool status;
 						max = 255;	// half depth
@@ -262,6 +279,7 @@ void ofxDepthGenerator::generateTexture(){
 						green	= ( status ? a : 0);
 						blue	= 0;
 					}
+#endif
 					break;
 			}
 
@@ -276,20 +294,8 @@ void ofxDepthGenerator::generateTexture(){
 		}	
 	}
 	
-	depth_texture.loadData((unsigned char *)depth_pixels,dmd.XRes(), dmd.YRes(), GL_RGBA);	
+	depth_texture.loadData((unsigned char *)depth_pixels, dmd.XRes(), dmd.YRes(), GL_RGBA);	
 }
 
 
 
-
-//
-// ROGER
-ofColor ofxDepthGenerator::getPixel( const ofPoint & p )
-{
-	return this->getPixel( (int)p.x, (int)p.y );
-}
-ofColor ofxDepthGenerator::getPixel( int x, int y )
-{
-	int i = ( y * XN_VGA_X_RES + x ) * 4;
-	return ofColor( depth_pixels[i], depth_pixels[i+1], depth_pixels[i+2], depth_pixels[i+3] );
-}

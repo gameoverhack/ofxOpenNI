@@ -1,7 +1,7 @@
-#pragma once
+#ifndef _H_OFXDEPTHGENERATOR
+#define _H_OFXDEPTHGENERATOR
 
 #include "ofxOpenNIContext.h"
-#include "ofxImageGenerator.h"
 
 enum enumDepthColoring {
 	COLORING_PSYCHEDELIC_SHADES = 0,
@@ -14,40 +14,43 @@ enum enumDepthColoring {
 	COLORING_COUNT
 };
 
-
 class ofxDepthGenerator {
+	
 public:
+	
 	ofxDepthGenerator();
 	
-	bool setup(ofxOpenNIContext* pContext);
+	bool				setup(ofxOpenNIContext* pContext);
 	
-	void update();
+	void				draw(float x=0, float y=0, float w=640, float h=480);
+	void				update();
 	
-	void applyDepthCutoff();
+	unsigned char*		getDepthPixels(int nearThreshold = 0, int farThreshold = 10000);
 	
-	void draw(float x=0, float y=0, float w=640, float h=480);
+	xn::DepthGenerator&	getXnDepthGenerator();
 	
-	bool toggleRegisterViewport(ofxImageGenerator* image_generator);
+	void				setDepthColoring(enumDepthColoring c);
 	
-	void generateTexture();
-	
-	// ROGER
-	void setDepthColoring(enumDepthColoring c)	{ depth_coloring = c; };
-	float getMaxDepth()							{ return max_depth; };
-	ofColor getPixel(int x, int y);
-	ofColor getPixel(const ofPoint & p);
-	
-	
-	xn::DepthGenerator& getXnDepthGenerator();
-	
+	int					getMaxDepth();
+	int					getWidth();
+	int					getHeight();
+
+	ofColor				getPixel(int x, int y);
+	ofColor				getPixel(const ofPoint & p);
+
 private:
 	
-	xn::DepthGenerator depth_generator;
-	xn::DepthMetaData dmd;
+	void				generateTexture();
 
-	ofTexture depth_texture;
-	unsigned char * depth_pixels;
-	int depth_coloring;
-	float max_depth;
+	xn::DepthGenerator	depth_generator;
+	xn::DepthMetaData	dmd;
+
+	ofTexture			depth_texture;
+	unsigned char *		depth_pixels;
+	int					depth_coloring;
+	int					width, height;
+	float				max_depth;
+	unsigned char*		maskPixels;
 };
 
+#endif

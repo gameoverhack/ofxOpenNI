@@ -1,13 +1,13 @@
-#pragma once
+#ifndef _H_OFXUSERGENERATOR
+#define _H_OFXUSERGENERATOR
 
 #include "ofxOpenNIContext.h"
 #include "ofxDepthGenerator.h"
 #include "ofxImageGenerator.h"
-#include "ofxCvGrayscaleImage.h"
 
 #include <vector>
 
-#define MAX_NUMBER_USERS 15
+#define MAX_NUMBER_USERS 8
 
 class ofxTrackedUser;
 
@@ -15,60 +15,55 @@ class ofxUserGenerator {
 public:
 	ofxUserGenerator();
 	
-	bool setup(ofxOpenNIContext* pContext, ofxDepthGenerator* pDepthGenerator, ofxImageGenerator* image_generator);
+	bool				setup(ofxOpenNIContext* pContext);
 	
-	void draw();
-	
-	void updateUserMask(int userID);
-	
-	void drawUserMasks(int x, int y);
-	
-	void drawPointCloud(bool showBackground, int cloudPointSize = 1);
-	
-	void setPointCloudRotation(int _x);
-	
-	void update();
-	
-	void requestCalibration(XnUserID nID);
-	
-	bool needsPoseForCalibration();
-	
-	void startPoseDetection(XnUserID nID);
-	
-	void stopPoseDetection(XnUserID nID);
-	
-	void startTracking(XnUserID nID);
-	
-	xn::UserGenerator& getXnUserGenerator();
-	
-	ofxTrackedUser* getTrackedUser(int nUserNum);
-	
-	std::vector<ofxTrackedUser*> getTrackedUsers();
+	void				draw();
+	void				update();
 
-private:	
-	void drawUsers();
-	void drawUser(int nUserNum);
+	void				startTracking(XnUserID nID);
+	void				startPoseDetection(XnUserID nID);
+	void				stopPoseDetection(XnUserID nID);
+	void				requestCalibration(XnUserID nID);
+	bool				needsPoseForCalibration();
 	
-	XnBool needs_pose;
-	xn::UserGenerator user_generator;
-	ofxOpenNIContext* context;
-	ofxDepthGenerator* depth_generator;
-	ofxImageGenerator* image_generator;
-	XnChar calibration_pose[20];
-	std::vector<ofxTrackedUser*> tracked_users;
-	XnUInt16 num_users;
-	XnUInt16 found_users;
+	void				setUseMaskPixels(bool b);
+	void				setUseCloudPoints(bool b);
 	
-	bool is_initialized;
-	bool found_user;
-
-	int cloudPointRotationY;
+	xn::UserGenerator&	getXnUserGenerator();
 	
-	unsigned char * maskPixels;
-	ofxCvGrayscaleImage maskImage[MAX_NUMBER_USERS];
+	int					getNumberOfTrackedUsers();
+	ofxTrackedUser*		getTrackedUser(int nUserNum);
+	unsigned char *		getUserPixels(int userID = 0);
+	ofPoint				getWorldCoordinateAt(int x, int y, int userID = 0);
+	ofColor				getWorldColorAt(int x, int y, int userID = 0);
 	
-	XnUInt16 width, height;
+	int					getWidth();
+	int					getHeight();
+	
+private:
+	
+	void				drawUser(int nUserNum);
+	void				updateUserPixels();
+	void				updateCloudPoints();
+	
+	ofxOpenNIContext*	context;
+	xn::DepthGenerator	depth_generator;
+	xn::ImageGenerator	image_generator;
+	xn::UserGenerator	user_generator;
+	
+	// vars for user tracking
+	XnBool							needs_pose;
+	XnChar							calibration_pose[20];
+	ofxTrackedUser *				tracked_users[MAX_NUMBER_USERS];
+	XnUInt16						found_users;
+	
+	// vars for cloud point and masking
+	XnUInt16			width, height;
+	unsigned char *		maskPixels[MAX_NUMBER_USERS];
+	ofPoint		*		cloudPoints[MAX_NUMBER_USERS];
+	ofColor		*		cloudColors[MAX_NUMBER_USERS];
+	bool				useMaskPixels, useCloudPoints;
 	
 };
 
-
+#endif

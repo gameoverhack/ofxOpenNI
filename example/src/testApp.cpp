@@ -1,62 +1,56 @@
 #include "testApp.h"
 
-// ROGER:: REMOVE THIS!!!
-bool status = true;
-
 //--------------------------------------------------------------
 void testApp::setup() {
 	
-	isLive				= true;
-	isTracking			= true;
-	isTrackingHands		= true;
-	isRecording			= false;
-	isCloud				= false;
-	isCPBkgnd			= true;
-	isMasking			= true;
+	isLive			= true;
+	isTracking		= false;
+	isTrackingHands	= true;
+	isFiltering		= false;
+	isRecording		= false;
+	isCloud			= false;
+	isCPBkgnd		= true;
+	isMasking		= true;
+	
+	nearThreshold = 500;
+	farThreshold  = 1000;
 	
 	setupRecording();
-
+	
 	ofBackground(0, 0, 0);
 	
 }
 
 void testApp::setupRecording(string _filename) {
 	
-	if (!recordContext.isInitialized()) {
-		
-		recordContext.setup();
-		recordContext.setupUsingXMLFile();
-		//recordContext.enableLogging(XN_LOG_WARNING);
-
-		recordDepth.setup(&recordContext);
-		recordImage.setup(&recordContext);
-		recordUser.setup(&recordContext, &recordDepth, &recordImage);
-		recordGesture.setup(&recordContext, &recordDepth);
-		
-		recordDepth.toggleRegisterViewport(&recordImage);
-		recordContext.toggleMirror();
-		
-		
-		oniRecorder.setup(&recordContext, &recordDepth, &recordImage);	
-		
-	} else {
-		
-		currentFileName = _filename;
-		cout << currentFileName << endl;
-	}
+	//recordContext.setup();	// all nodes created by code -> NOT using the xml config file at all
+	recordContext.setupUsingXMLFile();
+	recordDepth.setup(&recordContext);
+	recordImage.setup(&recordContext);
+	recordUser.setup(&recordContext);
+	recordUser.setUseMaskPixels(isMasking);
+	recordUser.setUseCloudPoints(isCloud);
+	recordGesture.setup(&recordContext, &recordDepth);
+	recordContext.toggleRegisterViewport();
+	recordContext.toggleMirror();
+	
+	oniRecorder.setup(&recordContext, ONI_STREAMING);	
+	//oniRecorder.setup(&recordContext, ONI_CYCLIC, 60); 
+	//read the warning in ofxOpenNIRecorder about memory usage with ONI_CYCLIC recording!!!
+	
 }
 
 void testApp::setupPlayback(string _filename) {
 	
-	playContext.clear();
+	playContext.shutdown();
 	playContext.setupUsingRecording(ofToDataPath(_filename));
 	playDepth.setup(&playContext);
 	playImage.setup(&playContext);
-	playUser.setup(&playContext, &playDepth, &playImage);
+	playUser.setup(&playContext);
+	playUser.setUseMaskPixels(isMasking);
+	playUser.setUseCloudPoints(isCloud);
 	playGesture.setup(&playContext, &playDepth);
-
-	
-	playDepth.toggleRegisterViewport(&playImage);
+	playContext.toggleRegisterViewport();
 	playContext.toggleMirror();
 	
 }
@@ -65,13 +59,47 @@ void testApp::setupPlayback(string _filename) {
 void testApp::update(){
 	
 	if (isLive) {
+		
+		// update all nodes
 		recordContext.update();
 		recordDepth.update();
+		recordImage.update();
+		
+		// demo getting depth pixels directly from depth gen
+		depthRangeMask.setFromPixels(recordDepth.getDepthPixels(nearThreshold, farThreshold), 
+									 recordDepth.getWidth(), recordDepth.getHeight(), OF_IMAGE_GRAYSCALE);
+		
+		// update tracking/recording nodes
 		if (isTracking) recordUser.update();
+		if (isRecording) oniRecorder.update();
+		
+		// demo getting pixels from user gen
+		if (isTracking && isMasking) {
+			allUserMasks.setFromPixels(recordUser.getUserPixels(), recordUser.getWidth(), recordUser.getHeight(), OF_IMAGE_GRAYSCALE);
+			user1Mask.setFromPixels(recordUser.getUserPixels(1), recordUser.getWidth(), recordUser.getHeight(), OF_IMAGE_GRAYSCALE);
+			user2Mask.setFromPixels(recordUser.getUserPixels(2), recordUser.getWidth(), recordUser.getHeight(), OF_IMAGE_GRAYSCALE);
+		}
+		
 	} else {
+		
+		// update all nodes
 		playContext.update();
 		playDepth.update();
+		playImage.update();
+		
+		// demo getting depth pixels directly from depth gen
+		depthRangeMask.setFromPixels(playDepth.getDepthPixels(nearThreshold, farThreshold), 
+									 playDepth.getWidth(), playDepth.getHeight(), OF_IMAGE_GRAYSCALE);
+		
+		// update tracking/recording nodes
 		if (isTracking) playUser.update();
+		
+		// demo getting pixels from user gen
+		if (isTracking && isMasking) {
+			allUserMasks.setFromPixels(recordUser.getUserPixels(), recordUser.getWidth(), recordUser.getHeight(), OF_IMAGE_GRAYSCALE);
+			user1Mask.setFromPixels(recordUser.getUserPixels(1), recordUser.getWidth(), recordUser.getHeight(), OF_IMAGE_GRAYSCALE);
+			user2Mask.setFromPixels(recordUser.getUserPixels(2), recordUser.getWidth(), recordUser.getHeight(), OF_IMAGE_GRAYSCALE);
+		}
 	}
 }
 
@@ -87,118 +115,186 @@ void testApp::draw(){
 		
 		recordDepth.draw(0,0,640,480);
 		recordImage.draw(640, 0, 640, 480);
+		depthRangeMask.draw(0, 480, 320, 240);	// can use this with openCV to make masks, find contours etc when not dealing with openNI 'User' like objects
+		
 		if (isTracking) {
-			
 			recordUser.draw();
-			
-			if(isMasking) {
-				glEnable(GL_BLEND);
-				glBlendFunc(GL_DST_COLOR, GL_ZERO);
-				recordUser.drawUserMasks(640, 0);
-				glDisable(GL_BLEND);
-			}
+			if (isMasking) drawMasks();
+			if (isCloud) drawPointCloud(&recordUser, 1);	// 0 gives you all point clouds; use userID to see point clouds for specific users
 		}
 		if (isTrackingHands)
-		{
 			recordGesture.drawHands();
-		}
-		
-		if (isCloud) {
-			recordUser.drawPointCloud(isCPBkgnd);
-		}
 		
 	} else {
 		
 		playDepth.draw(0,0,640,480);
 		playImage.draw(640, 0, 640, 480);
+		depthRangeMask.draw(0, 480, 320, 240);	// can use this with openCV to make masks, find contours etc when not dealing with openNI 'User' like objects
+		
 		if (isTracking) {
-			
 			playUser.draw();
+			if (isCloud) drawPointCloud(&playUser, 0);
+			if (isMasking) drawMasks();
 			
-			if(isMasking) {
-				glEnable(GL_BLEND);
-				glBlendFunc(GL_DST_COLOR, GL_ZERO);
-				playUser.drawUserMasks(640, 0);
-				glDisable(GL_BLEND);
-			}
 		}
 		if (isTrackingHands)
-		{
 			playGesture.drawHands();
-		}
-		
-		if (isCloud) {
-			playUser.drawPointCloud(isCPBkgnd);
-		}
-		
 	}
 	
 	glPopMatrix();
 	
 	ofSetColor(255, 255, 0);
 	
-	string statusPlay		= (string)(isLive ? "LIVE STREAM\n" : "PLAY STREAM\n");
-	string statusRec		= (string)(!isRecording ? "READY\n" : "RECORDING\n");
-	string statusSkeleton	= (string)(isTracking ? "TRACKING USERS\n" : "NOT TRACKING\n");
-	string statusHands		= (string)(isTrackingHands ? "TRACKING HANDS\n" : "NOT TRACKING\n");
-	string statusMask		= (string)(!isMasking ? "HIDE\n" : (isTracking ? "SHOW\n" : "YOU NEED TO TURN ON TRACKING!!\n"));
-	string statusCloud		= (string)(isCloud ? "ON\n" : "OFF\n");
-	string statusCloudData	= (string)(isCPBkgnd ? "SHOW BACKGROUND\n" : (isTracking ? "SHOW USER\n" : "YOU NEED TO TURN ON TRACKING!!\n"));
-
+	string statusPlay		= (string)(isLive ? "LIVE STREAM" : "PLAY STREAM");
+	string statusRec		= (string)(!isRecording ? "READY" : "RECORDING");
+	string statusSkeleton	= (string)(isTracking ? "TRACKING USERS: " + (string)(isLive ? ofToString(recordUser.getNumberOfTrackedUsers()) : ofToString(playUser.getNumberOfTrackedUsers())) + "" : "NOT TRACKING USERS");
+	string statusHands		= (string)(isTrackingHands ? "TRACKING HANDS: " + (string)(isLive ? ofToString(recordGesture.getHandsCount()) : ofToString(recordGesture.getHandsCount())) + ""  : "NOT TRACKING");
+	string statusFilter		= (string)(isFiltering ? "SMOOTH HANDS" : "REAL-TIME HANDS");
+	string statusMask		= (string)(!isMasking ? "HIDE" : (isTracking ? "SHOW" : "YOU NEED TO TURN ON TRACKING!!"));
+	string statusCloud		= (string)(isCloud ? "ON" : "OFF");
+	string statusCloudData	= (string)(isCPBkgnd ? "SHOW BACKGROUND" : (isTracking ? "SHOW USER" : "YOU NEED TO TURN ON TRACKING!!"));
+	
 	stringstream msg;
 	msg
-	<< "Press 's' to start/stop recording          : " << statusRec << endl
-	<< "Press 't' to toggle skeleton tracking      : " << statusSkeleton << endl
-	<< "Press 'h' to toggle hand tracking          : " << statusHands << endl
-	<< "Press 'm' to toggle drawing Masks          : " << statusMask << endl
-	<< "Press 'c' to toggle draw Cloud points      : " << statusCloud << endl
-	<< "Press 'b' to toggle Cloud User data        : " << statusCloudData << endl
+	<< "    s : start/stop recording  : " << statusRec << endl
+	<< "    p : playback/live streams : " << statusPlay << endl
+	<< "    t : skeleton tracking     : " << statusSkeleton << endl
+	<< "    h : hand tracking         : " << statusHands << endl
+	<< "    f : filter hands (smooth) : " << statusFilter << endl
+	<< "    m : drawing Masks         : " << statusMask << endl
+	<< "    c : draw Cloud points     : " << statusCloud << endl
+	<< "    b : Cloud User data       : " << statusCloudData << endl
+	<< "- / + : nearThreshold         : " << ofToString(nearThreshold) << endl
+	<< "< / > : farThreshold          : " << ofToString(farThreshold) << endl
 	<< endl
-	<< "FPS: " + ofToString(ofGetFrameRate()) + "\n";
+	<< "File  : " << oniRecorder.getCurrentFileName() << endl
+	<< "FPS   : " << ofToString(ofGetFrameRate());
 	
-	ofDrawBitmapString(msg.str(), 20, 500);
-	ofDrawBitmapString(currentFileName, 20, 700);
-
+	ofDrawBitmapString(msg.str(), 20, 560);
 	
 }
+
+void testApp:: drawMasks() {
+	glPushMatrix();
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_DST_COLOR, GL_ZERO);
+	allUserMasks.draw(640, 0);
+	glDisable(GL_BLEND);
+	user1Mask.draw(320, 480, 320, 240);
+	user2Mask.draw(640, 480, 320, 240);
+	glPopMatrix();
+}
+
+void testApp::drawPointCloud(ofxUserGenerator * user_generator, int userID) {
+	
+	glPushMatrix();
+	
+	int w = user_generator->getWidth();
+	int h = user_generator->getHeight();
+	
+	glTranslatef(w, h/2, -500);
+	ofRotateY(pointCloudRotationY);
+	
+	glBegin(GL_POINTS);
+	
+	int step = 1;
+	
+	for(int y = 0; y < h; y += step) {
+		for(int x = 0; x < w; x += step) {
+			ofPoint pos = user_generator->getWorldCoordinateAt(x, y, userID);
+			if (pos.z == 0 && isCPBkgnd) continue;	// gets rid of background -> still a bit weird if userID > 0...
+			ofColor color = user_generator->getWorldColorAt(x,y, userID);
+			glColor4ub((unsigned char)color.r, (unsigned char)color.g, (unsigned char)color.b, (unsigned char)color.a);
+			glVertex3f(pos.x, pos.y, pos.z);
+		}
+	}
+	
+	glEnd();
+	
+	glColor3f(1.0f, 1.0f, 1.0f);
+	
+	glPopMatrix();
+}
+
 
 //--------------------------------------------------------------
 void testApp::keyPressed(int key){
 	switch (key) {
 		case 's':
+		case 'S':
 			if (isRecording) {
 				oniRecorder.stopRecord();
 				isRecording = false;
 				break;
 			} else {
-				setupRecording(generateFileName());
-				oniRecorder.startRecord(currentFileName);
+				oniRecorder.startRecord(generateFileName());
 				isRecording = true;
 				break;
 			}
 			break;
 		case 'p':
-			if (currentFileName != "" && !isRecording && isLive) {
-				setupPlayback(currentFileName);
+		case 'P':
+			if (oniRecorder.getCurrentFileName() != "" && !isRecording && isLive) {
+				setupPlayback(oniRecorder.getCurrentFileName());
 				isLive = false;
 			} else {
 				isLive = true;
 			}
 			break;
-		case 'h':
-			isTrackingHands = !isTrackingHands;
-			break;
 		case 't':
+		case 'T':
 			isTracking = !isTracking;
 			break;
+		case 'h':
+		case 'H':
+			isTrackingHands = !isTrackingHands;
+			if (!isTrackingHands)
+				recordGesture.dropHands();
+			break;
+		case 'f':
+		case 'F':
+			isFiltering = !isFiltering;
+			recordGesture.isFiltering = isFiltering;
+			playGesture.isFiltering = isFiltering;
+			break;
 		case 'm':
+		case 'M':
 			isMasking = !isMasking;
+			recordUser.setUseMaskPixels(isMasking);
+			playUser.setUseMaskPixels(isMasking);
 			break;
 		case 'c':
+		case 'C':
 			isCloud = !isCloud;
+			recordUser.setUseCloudPoints(isCloud);
+			playUser.setUseCloudPoints(isCloud);
 			break;
 		case 'b':
+		case 'B':
 			isCPBkgnd = !isCPBkgnd;
+			break;
+		case '>':
+		case '.':
+			farThreshold += 50;
+			if (farThreshold > recordDepth.getMaxDepth()) farThreshold = recordDepth.getMaxDepth();
+			break;
+			
+		case '<':		
+		case ',':		
+			farThreshold -= 50;
+			if (farThreshold < 0) farThreshold = 0;
+			break;
+			
+		case '+':
+		case '=':
+			nearThreshold += 50;
+			if (nearThreshold > recordDepth.getMaxDepth()) nearThreshold = recordDepth.getMaxDepth();
+			break;
+			
+		case '-':
+		case '_':
+			nearThreshold -= 50;
+			if (nearThreshold < 0) nearThreshold = 0;
 			break;
 		default:
 			break;
@@ -210,11 +306,11 @@ string testApp::generateFileName() {
 	string _root = "kinectRecord";
 	
 	string _timestamp = ofToString(ofGetDay()) + 
-						ofToString(ofGetMonth()) +
-						ofToString(ofGetYear()) +
-						ofToString(ofGetHours()) +
-						ofToString(ofGetMinutes()) +
-						ofToString(ofGetSeconds());
+	ofToString(ofGetMonth()) +
+	ofToString(ofGetYear()) +
+	ofToString(ofGetHours()) +
+	ofToString(ofGetMinutes()) +
+	ofToString(ofGetSeconds());
 	
 	string _filename = (_root + _timestamp + ".oni");
 	
@@ -230,30 +326,27 @@ void testApp::keyReleased(int key){
 //--------------------------------------------------------------
 void testApp::mouseMoved(int x, int y ){
 	
-	if (isLive && isCloud) {
-		recordUser.setPointCloudRotation(x);
-	} else if (!isLive && isCloud) {
-		playUser.setPointCloudRotation(x);
-	}
+	if (isCloud) pointCloudRotationY = x;
+	
 }
 
 //--------------------------------------------------------------
 void testApp::mouseDragged(int x, int y, int button){
-
+	
 }
 
 //--------------------------------------------------------------
 void testApp::mousePressed(int x, int y, int button){
-
+	
 }
 
 //--------------------------------------------------------------
 void testApp::mouseReleased(int x, int y, int button){
-
+	
 }
 
 //--------------------------------------------------------------
 void testApp::windowResized(int w, int h){
-
+	
 }
 
