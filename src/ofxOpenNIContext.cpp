@@ -111,6 +111,18 @@ bool ofxOpenNIContext::getUserGenerator(xn::UserGenerator* user_generator) {
 	BOOL_RC(result, "Retrieving user generator");
 }
 
+bool ofxOpenNIContext::getGestureGenerator(xn::GestureGenerator* gesture_generator) {
+	XnStatus result = XN_STATUS_OK;
+	result = context.FindExistingNode(XN_NODE_TYPE_GESTURE, *gesture_generator);
+	BOOL_RC(result, "Retrieving gesture generator");
+}
+
+bool ofxOpenNIContext::getHandsGenerator(xn::HandsGenerator* hands_generator) {
+	XnStatus result = XN_STATUS_OK;
+	result = context.FindExistingNode(XN_NODE_TYPE_HANDS, *hands_generator);
+	BOOL_RC(result, "Retrieving hands generator");
+}
+
 // we need to programmatically add a license when playing back a recording
 // file otherwise the skeleton tracker will throw an error and not work
 void ofxOpenNIContext::addLicense(std::string sVendor, std::string sKey) {
@@ -143,7 +155,7 @@ void ofxOpenNIContext::enableLogging() {
 	XnStatus result = xnLogSetConsoleOutput(true);
 	SHOW_RC(result, "Set console output");
 	
-	result = xnLogSetSeverityFilter(XN_LOG_INFO);	// TODO: set different log levels with code; enable and disable functionality
+	result = xnLogSetSeverityFilter(XN_LOG_ERROR);	// TODO: set different log levels with code; enable and disable functionality
 	SHOW_RC(result, "Set log level");
 
 	xnLogSetMaskState(XN_LOG_MASK_ALL, TRUE);

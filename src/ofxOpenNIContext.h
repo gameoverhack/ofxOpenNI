@@ -4,7 +4,7 @@
 #include "ofMain.h"
 #include <XnOpenNI.h>
 #include <XnCodecIDs.h>
-#include <XnCppWrapper.h>
+#include "XnCppWrapper.h"
 
 class ofxOpenNIContext {
 	
@@ -27,7 +27,8 @@ public:
 	bool getImageGenerator(xn::ImageGenerator* image_generator);
 	bool getIRGenerator(xn::IRGenerator* ir_generator);
 	bool getUserGenerator(xn::UserGenerator* user_generator);
-	
+	bool getGestureGenerator(xn::GestureGenerator* gesture_generator);
+	bool getHandsGenerator(xn::HandsGenerator* hands_generator);
 	bool isUsingRecording();
 	
 	void enableLogging();

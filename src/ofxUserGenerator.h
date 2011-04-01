@@ -12,7 +12,9 @@
 class ofxTrackedUser;
 
 class ofxUserGenerator {
+
 public:
+	
 	ofxUserGenerator();
 	
 	bool				setup(ofxOpenNIContext* pContext);
