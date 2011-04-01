@@ -68,7 +68,7 @@ bool ofxIRGenerator::setup(ofxOpenNIContext* pContext) {
 	
 	ir_generator.StartGenerating();		
 	
-	printf("IR camera inited");
+	printf("IR camera inited\n");
 	
 	return true;
 	

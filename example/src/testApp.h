@@ -6,6 +6,7 @@
 #include "ofMain.h"
 #include "ofxOpenNI.h"
 
+
 class testApp : public ofBaseApp{
 
 	public:
@@ -26,7 +27,7 @@ class testApp : public ofBaseApp{
 		string	generateFileName();
 	
 		bool				isLive, isTracking, isRecording, isCloud, isCPBkgnd, isMasking;
-	
+
 		ofxOpenNIContext	recordContext, playContext;
 		ofxDepthGenerator	recordDepth, playDepth;
 #ifdef USE_IR

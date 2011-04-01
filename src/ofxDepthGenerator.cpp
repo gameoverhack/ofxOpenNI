@@ -79,7 +79,7 @@ bool ofxDepthGenerator::setup(ofxOpenNIContext* pContext) {
 	// setup mask pixels TODO: make do multiple ranges
 	maskPixels = new unsigned char[map_mode.nXRes * map_mode.nYRes];
 	
-	printf("Depth camera inited");
+	printf("Depth camera inited\n");
 	
 	return true;
 	

@@ -29,7 +29,7 @@ void testApp::setupRecording(string _filename) {
 	recordUser.setUseCloudPoints(isCloud);
 	recordContext.toggleRegisterViewport();
 	recordContext.toggleMirror();
-		
+	
 	oniRecorder.setup(&recordContext, ONI_STREAMING);	
 	//oniRecorder.setup(&recordContext, ONI_CYCLIC, 60); 
 	//read the warning in ofxOpenNIRecorder about memory usage with ONI_CYCLIC recording!!!
@@ -91,9 +91,9 @@ void testApp::update(){
 		
 		// demo getting pixels from user gen
 		if (isTracking && isMasking) {
-			allUserMasks.setFromPixels(recordUser.getUserPixels(), recordUser.getWidth(), recordUser.getHeight(), OF_IMAGE_GRAYSCALE);
-			user1Mask.setFromPixels(recordUser.getUserPixels(1), recordUser.getWidth(), recordUser.getHeight(), OF_IMAGE_GRAYSCALE);
-			user2Mask.setFromPixels(recordUser.getUserPixels(2), recordUser.getWidth(), recordUser.getHeight(), OF_IMAGE_GRAYSCALE);
+			allUserMasks.setFromPixels(playUser.getUserPixels(), playUser.getWidth(), playUser.getHeight(), OF_IMAGE_GRAYSCALE);
+			user1Mask.setFromPixels(playUser.getUserPixels(1), playUser.getWidth(), playUser.getHeight(), OF_IMAGE_GRAYSCALE);
+			user2Mask.setFromPixels(playUser.getUserPixels(2), playUser.getWidth(), playUser.getHeight(), OF_IMAGE_GRAYSCALE);
 		}
 	}
 }
@@ -110,28 +110,31 @@ void testApp::draw(){
 		
 		recordDepth.draw(0,0,640,480);
 		recordImage.draw(640, 0, 640, 480);
+		
 		depthRangeMask.draw(0, 480, 320, 240);	// can use this with openCV to make masks, find contours etc when not dealing with openNI 'User' like objects
-
+		
 		if (isTracking) {
 			
 			recordUser.draw();
-
+			
 			if (isMasking) drawMasks();
 			if (isCloud) drawPointCloud(&recordUser, 1);	// 0 gives you all point clouds; use userID to see point clouds for specific users
+			
 		}
 		
 	} else {
 		
 		playDepth.draw(0,0,640,480);
 		playImage.draw(640, 0, 640, 480);
+		
 		depthRangeMask.draw(0, 480, 320, 240);	// can use this with openCV to make masks, find contours etc when not dealing with openNI 'User' like objects
 
 		if (isTracking) {
 			
 			playUser.draw();
 			
-			if (isCloud) drawPointCloud(&playUser, 0);
 			if (isMasking) drawMasks();
+			if (isCloud) drawPointCloud(&playUser, 0);	// 0 gives you all point clouds; use userID to see point clouds for specific users
 
 		}
 
@@ -269,6 +272,9 @@ void testApp::keyPressed(int key){
 		case '-':		
 			nearThreshold -= 50;
 			if (nearThreshold < 0) nearThreshold = 0;
+			break;
+		case 'r':		
+			recordContext.toggleRegisterViewport();
 			break;
 		default:
 			break;

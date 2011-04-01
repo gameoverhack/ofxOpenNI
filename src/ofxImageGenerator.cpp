@@ -62,7 +62,7 @@ bool ofxImageGenerator::setup(ofxOpenNIContext* pContext) {
 	
 	image_generator.StartGenerating();	
 	
-	printf("Image camera inited");
+	printf("Image camera inited\n");
 	
 	return true;
 	
