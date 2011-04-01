@@ -2,45 +2,56 @@
 #include "ofxOpenNIMacros.h"
 #include "ofxTrackedHand.h"
 
-// GESTURE CALLBACKS
-// =============================================================================
-// Callback: New Gesture was detected
-void XN_CALLBACK_TYPE
-Gesture_Recognized(
-				   xn::GestureGenerator& generator,
-				   const XnChar* strGesture,
-				   const XnPoint3D* pIDPosition,
-				   const XnPoint3D* pEndPosition, void* pCookie
-				   )
+// ctor
+//--------------------------------------------------------------
+ofxHandGenerator::ofxHandGenerator(){
+	// set defaults
+	setMinDistBetweenHands(100);
+	setMaxNumHands(2);
+	setSmoothing(1);
+	setMinTimeBetweenHands(1000);
+}
+
+// dtor
+//--------------------------------------------------------------
+ofxHandGenerator::~ofxHandGenerator()
 {
-	printf("Gesture recognized: %s  posID [%d, %d, %d]  posEND [%d, %d, %d]\n", strGesture,
-		   (int)pIDPosition->X, (int)pIDPosition->Y, (int)pIDPosition->Z,
-		   (int)pEndPosition->X, (int)pEndPosition->Y, (int)pEndPosition->Z);
+	// TODO: Unregister callbacks on shutdown
+	tracked_hands.clear();
+	//removeGestures();
+	hands_generator.Unref();
+}
+
+//--------------------------------------------------------------
+// GESTURE EVENT LISTENER CALLBACK
+//--------------------------------------------------------------
+void ofxHandGenerator::gestureRecognized(gesture & last_gesture) {
 	
-	ofxHandGenerator* gest = static_cast<ofxHandGenerator*>(pCookie);
-	
+	XnPoint3D handPos;
 	bool startTracking = false;
 	
-	if (gest->getNumberofTrackedHands() == 0) {
+	if (found_hands == 0) {		// if we don't have any hands lets try to track
+		
 		startTracking = true;
+		
 	} else {
 		
 		startTracking = true; // do negative test by looking for the distance between each existing hand
 		
-		for (int i = 0; i < MAX_NUMBER_HANDS; i++) {
+		for (int i = 0; i < max_hands; i++) {
 			
 			// get raw position of this hand
-			XnPoint3D handPos = gest->tracked_hands[i]->rawPos;
+			handPos = tracked_hands[i]->rawPos;
 			
 			// calculate distance between End ID of gesture and this hand
-			float distanceToHand = sqrt(((int)pEndPosition->X-handPos.X)*((int)pEndPosition->X-handPos.X) +
-										((int)pEndPosition->Y-handPos.Y)*((int)pEndPosition->Y-handPos.Y) +
-										((int)pEndPosition->Z-handPos.Z)*((int)pEndPosition->Z-handPos.Z));
+			float distanceToHand = sqrt( pow( last_gesture.gesture_position.x-handPos.X, 2 ) +
+										 pow( last_gesture.gesture_position.y-handPos.Y, 2 ) +
+										 pow( last_gesture.gesture_position.z-handPos.Z, 2 ) );
 			
 			printf("Hand dist: %f pos: [%d, %d, %d]\n", distanceToHand, (int)handPos.X, (int)handPos.Y, (int)handPos.Z);
 			
 			// if the hand is within the min distance then don't track it
-			if (distanceToHand < MIN_DIST_BETWEEN_HANDS) {	
+			if (distanceToHand < min_distance) {	
 				startTracking = false;
 				continue;
 			}
@@ -48,23 +59,13 @@ Gesture_Recognized(
 	}
 	
 	if (startTracking) {
-		gest->startHandTracking(pEndPosition);
+		handPos.X = last_gesture.gesture_position.x;
+		handPos.Y = last_gesture.gesture_position.y;
+		handPos.Z = last_gesture.gesture_position.z;
+		
+		startHandTracking((const XnPoint3D*)&handPos);
 	}
-	
-	
 }
-
-// Callback: Gesture processing
-void XN_CALLBACK_TYPE
-Gesture_Process(
-	xn::GestureGenerator& generator,
-	const XnChar* strGesture,
-	const XnPoint3D* pPosition,
-	XnFloat fProgress,
-	void* pCookie)
-{
-}
-
 
 // HANDS CALLBACKS
 // =============================================================================
@@ -109,37 +110,23 @@ void XN_CALLBACK_TYPE HandDestroy(
 	gest->destroyHand(nID);
 }
 
-
-//--------------------------------------------------------------
-ofxHandGenerator::ofxHandGenerator(){
-}
-
 //--------------------------------------------------------------
 bool ofxHandGenerator::setup(ofxOpenNIContext* pContext) {
 	
-	pContext->getDepthGenerator(&depth_generator);
+	context = pContext;
+	context->getDepthGenerator(&depth_generator);
 	
 	XnStatus result = XN_STATUS_OK;	
 	
-	// Try to fetch gesture generator before creating one
-	if(pContext->getGestureGenerator(&gesture_generator)) {
-		// found the gesture generator - for do nothing		
-	} else {
-		result = gesture_generator.Create(pContext->getXnContext());
-		CHECK_RC(result, "Creating gesture generator");
-		gesture_generator.StartGenerating();
-	}
+	// setup a gesture generator using our ofxGestureGenerator wrapper
+	gesture_generator.setup(context);
+	ofAddListener(gesture_generator.gestureRecognized, this, &ofxHandGenerator::gestureRecognized); 
 	
-	XnCallbackHandle gesture_cb_handle;
-	gesture_generator.RegisterGestureCallbacks(Gesture_Recognized, Gesture_Process, this, gesture_cb_handle);
-	
-	printf("Gesture generator inited\n");
-
 	// Try to fetch hands generator before creating one
 	if(pContext->getHandsGenerator(&hands_generator)) {
 		// found the hands generator - for do nothing		
 	} else {
-		result = hands_generator.Create(pContext->getXnContext());
+		result = hands_generator.Create(context->getXnContext());
 		CHECK_RC(result, "Creating hand generator");
 		hands_generator.StartGenerating();
 	}
@@ -150,11 +137,13 @@ bool ofxHandGenerator::setup(ofxOpenNIContext* pContext) {
 	printf("Hands generator inited\n");
 	
 	// pre-generate the tracked users.
-	tracked_hands.reserve(MAX_NUMBER_HANDS);
-	for(int i = 0; i < MAX_NUMBER_HANDS; ++i) {
-		ofxTrackedHand* hand = new ofxTrackedHand(pContext);
+	tracked_hands.reserve(max_hands);
+	for(int i = 0; i < max_hands; ++i) {
+		printf("Creating hand: %d", i);
+		ofxTrackedHand* hand = new ofxTrackedHand(context);
 		tracked_hands.push_back(hand);
 	}
+	
 	found_hands = 0;
 	
 	isFiltering = false;
@@ -166,24 +155,85 @@ bool ofxHandGenerator::setup(ofxOpenNIContext* pContext) {
 }
 
 //--------------------------------------------------------------
-int ofxHandGenerator::getNumberofTrackedHands() {
-	return found_hands;
-}
-
-//--------------------------------------------------------------
 void ofxHandGenerator::addGestures() {
-	gesture_generator.AddGesture("Click", NULL);
-	gesture_generator.AddGesture("Wave", NULL);
-	gesture_generator.AddGesture("RaiseHand", NULL);
-
+	gesture_generator.addGesture("Click");
+	gesture_generator.addGesture("Wave");
+	gesture_generator.addGesture("RaiseHand");
 }
 
 //--------------------------------------------------------------
 void ofxHandGenerator::removeGestures() {
-	gesture_generator.RemoveGesture("Wave");
-	gesture_generator.RemoveGesture("Click");
-	gesture_generator.RemoveGesture("RaiseHand");
+	gesture_generator.removeGesture("Wave");
+	gesture_generator.removeGesture("Click");
+	gesture_generator.removeGesture("RaiseHand");
 
+}
+
+//--------------------------------------------------------------
+int ofxHandGenerator::getNumTrackedHands() {
+	return found_hands;
+}
+
+//--------------------------------------------------------------
+void ofxHandGenerator::setSmoothing(float smooth) {
+	if (smooth > 0.0f && smooth <= 1.0f) {
+		smoothing_factor = smooth;
+		if (hands_generator.IsValid()) {
+			hands_generator.SetSmoothing(smooth);
+		}
+	}
+}
+
+//--------------------------------------------------------------
+float ofxHandGenerator::getSmoothing() {
+	return smoothing_factor;
+}
+
+//--------------------------------------------------------------
+void ofxHandGenerator::setMaxNumHands(int number) {
+	if (number > 0) max_hands = number; // do we want a maximum?
+}
+
+//--------------------------------------------------------------
+int ofxHandGenerator::getMaxNumHands() {
+	return max_hands;
+}
+
+//--------------------------------------------------------------
+void ofxHandGenerator::setMinDistBetweenHands(int distance) {
+	if (distance > 0) min_distance = distance; // do we want a minimum?
+}
+
+//--------------------------------------------------------------
+int ofxHandGenerator::getMinDistBetweenHands() {
+	return min_distance;
+}
+
+//--------------------------------------------------------------
+void ofxHandGenerator::setMinTimeBetweenHands(int time) {
+	if (time > 0) {
+		min_time = time;
+		gesture_generator.setMinTimeBetweenGestures(min_time);
+	}
+}
+
+//--------------------------------------------------------------
+int ofxHandGenerator::getMinTimeBetweenHands() {
+	return min_time;
+}
+
+//--------------------------------------------------------------
+void ofxHandGenerator::setFilterFactors(float filter) {
+	// set all filter factors to the same number
+	for(int i = 0;  i < max_hands; ++i) 
+		setFilterFactor(filter, i);
+}
+
+//--------------------------------------------------------------
+void ofxHandGenerator::setFilterFactor(float filter, int thIndex) {
+	// set one filter factor to a number
+	ofxTrackedHand *hand = tracked_hands[thIndex];
+	hand->setFilterFactor(filter);
 }
 
 // Get hand at nID TODO: switch from vector to array & make the look up faster (ie., direct to ID rather than cycling through IDs)
@@ -201,7 +251,7 @@ ofxTrackedHand* ofxHandGenerator::getHand(int thIndex)
 // Draw all hands
 //--------------------------------------------------------------
 void ofxHandGenerator::drawHands() {
-	for(int i = 0;  i < MAX_NUMBER_HANDS; ++i)
+	for(int i = 0;  i < max_hands; ++i)
 		drawHand(i);
 }
 
@@ -220,7 +270,6 @@ void ofxHandGenerator::dropHands() {
 	hands_generator.StopTrackingAll();
 }
 
-
 //--------------------------------------------------------------
 // CALLBACK PIVATES
 //--------------------------------------------------------------
@@ -232,7 +281,7 @@ void ofxHandGenerator::startHandTracking(const XnPoint3D* pPosition) {
 void ofxHandGenerator::newHand(XnUserID nID, const XnPoint3D* pPosition)
 {
 	// Look for a free hand
-	for(int i = 0;  i < MAX_NUMBER_HANDS; ++i) {
+	for(int i = 0;  i < max_hands; ++i) {
 		ofxTrackedHand *hand = tracked_hands[i];
 		if (hand->isBeingTracked == false)
 		{
@@ -250,7 +299,7 @@ void ofxHandGenerator::newHand(XnUserID nID, const XnPoint3D* pPosition)
 //--------------------------------------------------------------
 void ofxHandGenerator::updateHand(XnUserID nID, const XnPoint3D* pPosition)
 {
-	for(int i = 0;  i < MAX_NUMBER_HANDS; ++i) {
+	for(int i = 0;  i < max_hands; ++i) {
 		ofxTrackedHand *hand = tracked_hands[i];
 		if (hand->nID == nID)
 		{
@@ -263,7 +312,7 @@ void ofxHandGenerator::updateHand(XnUserID nID, const XnPoint3D* pPosition)
 //--------------------------------------------------------------
 void ofxHandGenerator::destroyHand(XnUserID nID)
 {
-	for(int i = 0;  i < MAX_NUMBER_HANDS; ++i) {
+	for(int i = 0;  i < max_hands; ++i) {
 		ofxTrackedHand *hand = tracked_hands[i];
 		if (hand->nID == nID) 
 		{
@@ -279,11 +328,4 @@ void ofxHandGenerator::destroyHand(XnUserID nID)
 			return;
 		}
 	}
-}
-
-// Destructor
-//--------------------------------------------------------------
-ofxHandGenerator::~ofxHandGenerator()
-{
-	tracked_hands.clear();
 }

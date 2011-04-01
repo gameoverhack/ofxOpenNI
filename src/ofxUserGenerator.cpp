@@ -409,6 +409,21 @@ ofColor ofxUserGenerator::getWorldColorAt(int x, int y, int userID) {
 	
 }
 
+//--------------------------------------------------------------
+void ofxUserGenerator::setSmoothing(float smooth) {
+	if (smooth > 0.0f && smooth < 1.0f) {
+		smoothing_factor = smooth;
+		if (user_generator.IsValid()) {
+			user_generator.GetSkeletonCap().SetSmoothing(smooth);
+		}
+	}
+}
+
+//--------------------------------------------------------------
+float ofxUserGenerator::getSmoothing() {
+	return smoothing_factor;
+}
+
 //----------------------------------------
 int ofxUserGenerator::getWidth() {
 	return width;

@@ -30,6 +30,9 @@ public:
 	void				setUseMaskPixels(bool b);
 	void				setUseCloudPoints(bool b);
 	
+	void				setSmoothing(float smooth);
+	float				getSmoothing();
+	
 	xn::UserGenerator&	getXnUserGenerator();
 	
 	int					getNumberOfTrackedUsers();
@@ -64,6 +67,8 @@ private:
 	ofPoint		*		cloudPoints[MAX_NUMBER_USERS];
 	ofColor		*		cloudColors[MAX_NUMBER_USERS];
 	bool				useMaskPixels, useCloudPoints;
+	
+	float				smoothing_factor;
 	
 };
 

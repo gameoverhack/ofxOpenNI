@@ -17,6 +17,9 @@ class ofxTrackedHand {
 	
 public:
 	
+	ofxTrackedHand();
+	~ofxTrackedHand();
+	
 	void update(const XnPoint3D* pPosition, bool filter=false, bool force=false);
 	
 	void draw();
@@ -27,6 +30,9 @@ public:
 	ofPoint				projectPos;		// position on screen
 	ofPoint				progPos;		// position from 0.0 to 1.0
 	
+	void				setFilterFactor(float factor);
+	float				getFilterFactor();
+	
 private:
 	
 	ofxTrackedHand(ofxOpenNIContext* pContext);
@@ -34,6 +40,7 @@ private:
 	xn::DepthGenerator	depth_generator;
 	
 	float				xres, yres, zres;
+	float				filter_factor;
 	
 	friend class ofxHandGenerator;
 };		
