@@ -15,6 +15,8 @@ void testApp::setup() {
 	nearThreshold = 500;
 	farThreshold  = 1000;
 	
+	filterFactor = 0.1f;
+	
 	setupRecording();
 	
 	ofBackground(0, 0, 0);
@@ -27,11 +29,15 @@ void testApp::setupRecording(string _filename) {
 	//recordContext.setupUsingXMLFile();
 	recordDepth.setup(&recordContext);
 	recordImage.setup(&recordContext);
+	
 	recordUser.setup(&recordContext);
+	recordUser.setSmoothing(filterFactor);				// built in openni skeleton smoothing...
 	recordUser.setUseMaskPixels(isMasking);
 	recordUser.setUseCloudPoints(isCloud);
 	
 	recordHandTracker.setup(&recordContext);
+	recordHandTracker.setSmoothing(filterFactor);		// built in openni hand track smoothing...
+	recordHandTracker.setFilterFactors(filterFactor);	// custom smoothing/filtering (can also set per hand with setFilterFactor)...set them all to 0.1f to begin with
 	
 	recordContext.toggleRegisterViewport();
 	recordContext.toggleMirror();
@@ -48,11 +54,15 @@ void testApp::setupPlayback(string _filename) {
 	playContext.setupUsingRecording(ofToDataPath(_filename));
 	playDepth.setup(&playContext);
 	playImage.setup(&playContext);
-	playUser.setup(&playContext);
+	
+	playUser.setup(&recordContext);
+	playUser.setSmoothing(filterFactor);				// built in openni skeleton smoothing...
 	playUser.setUseMaskPixels(isMasking);
 	playUser.setUseCloudPoints(isCloud);
 	
-	playHandTracker.setup(&playContext);
+	playHandTracker.setup(&recordContext);
+	playHandTracker.setSmoothing(filterFactor);			// built in openni hand track smoothing...
+	playHandTracker.setFilterFactors(filterFactor);		// custom smoothing/filtering (can also set per hand with setFilterFactor)...set them all to 0.1f to begin with
 	
 	playContext.toggleRegisterViewport();
 	playContext.toggleMirror();
@@ -157,8 +167,11 @@ void testApp::draw(){
 	string statusPlay		= (string)(isLive ? "LIVE STREAM" : "PLAY STREAM");
 	string statusRec		= (string)(!isRecording ? "READY" : "RECORDING");
 	string statusSkeleton	= (string)(isTracking ? "TRACKING USERS: " + (string)(isLive ? ofToString(recordUser.getNumberOfTrackedUsers()) : ofToString(playUser.getNumberOfTrackedUsers())) + "" : "NOT TRACKING USERS");
-	string statusHands		= (string)(isTrackingHands ? "TRACKING HANDS: " + (string)(isLive ? ofToString(recordHandTracker.getNumberofTrackedHands()) : ofToString(playHandTracker.getNumberofTrackedHands())) + ""  : "NOT TRACKING");
-	string statusFilter		= (string)(isFiltering ? "SMOOTH HANDS" : "REAL-TIME HANDS");
+	string statusSmoothSkel = (string)(isLive ? ofToString(recordUser.getSmoothing()) : ofToString(playUser.getSmoothing()));
+	string statusHands		= (string)(isTrackingHands ? "TRACKING HANDS: " + (string)(isLive ? ofToString(recordHandTracker.getNumTrackedHands()) : ofToString(playHandTracker.getNumTrackedHands())) + ""  : "NOT TRACKING");
+	string statusFilter		= (string)(isFiltering ? "FILTERING" : "NOT FILTERING");
+	string statusFilterLvl	= ofToString(filterFactor);
+	string statusSmoothHand = (string)(isLive ? ofToString(recordHandTracker.getSmoothing()) : ofToString(playHandTracker.getSmoothing()));
 	string statusMask		= (string)(!isMasking ? "HIDE" : (isTracking ? "SHOW" : "YOU NEED TO TURN ON TRACKING!!"));
 	string statusCloud		= (string)(isCloud ? "ON" : "OFF");
 	string statusCloudData	= (string)(isCPBkgnd ? "SHOW BACKGROUND" : (isTracking ? "SHOW USER" : "YOU NEED TO TURN ON TRACKING!!"));
@@ -168,11 +181,14 @@ void testApp::draw(){
 	<< "    s : start/stop recording  : " << statusRec << endl
 	<< "    p : playback/live streams : " << statusPlay << endl
 	<< "    t : skeleton tracking     : " << statusSkeleton << endl
+	<< "( / ) : smooth skely (openni) : " << statusSmoothSkel << endl
 	<< "    h : hand tracking         : " << statusHands << endl
-	<< "    f : filter hands (smooth) : " << statusFilter << endl
-	<< "    m : drawing Masks         : " << statusMask << endl
-	<< "    c : draw Cloud points     : " << statusCloud << endl
-	<< "    b : Cloud User data       : " << statusCloudData << endl
+	<< "    f : filter hands (custom) : " << statusFilter << endl
+	<< "[ / ] : filter hands factor   : " << statusFilterLvl << endl
+	<< "; / ' : smooth hands (openni) : " << statusSmoothHand << endl
+	<< "    m : drawing masks         : " << statusMask << endl
+	<< "    c : draw cloud points     : " << statusCloud << endl
+	<< "    b : cloud user data       : " << statusCloudData << endl
 	<< "- / + : nearThreshold         : " << ofToString(nearThreshold) << endl
 	<< "< / > : farThreshold          : " << ofToString(farThreshold) << endl
 	<< endl
@@ -228,6 +244,9 @@ void testApp::drawPointCloud(ofxUserGenerator * user_generator, int userID) {
 
 //--------------------------------------------------------------
 void testApp::keyPressed(int key){
+	
+	float smooth;
+	
 	switch (key) {
 		case 's':
 		case 'S':
@@ -284,12 +303,59 @@ void testApp::keyPressed(int key){
 		case 'B':
 			isCPBkgnd = !isCPBkgnd;
 			break;
+		case '9':
+		case '(':
+			smooth = recordUser.getSmoothing();
+			if (smooth - 0.1f > 0.0f) {
+				recordUser.setSmoothing(smooth - 0.1f);
+				playUser.setSmoothing(smooth - 0.1f);
+			}
+			break;
+		case '0':
+		case ')':
+			smooth = recordUser.getSmoothing();
+			if (smooth + 0.1f <= 1.0f) {
+				recordUser.setSmoothing(smooth + 0.1f);
+				playUser.setSmoothing(smooth + 0.1f);
+			}
+			break;
+		case '[':
+		//case '{':
+			if (filterFactor - 0.1f > 0.0f) {
+				filterFactor = filterFactor - 0.1f;
+				recordHandTracker.setFilterFactors(filterFactor);
+				if (oniRecorder.getCurrentFileName() != "") playHandTracker.setFilterFactors(filterFactor);
+			}
+			break;
+		case ']':
+		//case '}':
+			if (filterFactor + 0.1f <= 1.0f) {
+				filterFactor = filterFactor + 0.1f;
+				recordHandTracker.setFilterFactors(filterFactor);
+				if (oniRecorder.getCurrentFileName() != "") playHandTracker.setFilterFactors(filterFactor);
+			}
+			break;
+		case ';':
+		case ':':
+			smooth = recordHandTracker.getSmoothing();
+			if (smooth - 0.1f > 0.0f) {
+				recordHandTracker.setSmoothing(smooth -  0.1f);
+				playHandTracker.setSmoothing(smooth -  0.1f);
+			}
+			break;
+		case '\'':
+		case '\"':
+			smooth = recordHandTracker.getSmoothing();
+			if (smooth + 0.1f <= 1.0f) {
+				recordHandTracker.setSmoothing(smooth +  0.1f);
+				playHandTracker.setSmoothing(smooth +  0.1f);
+			}
+			break;
 		case '>':
 		case '.':
 			farThreshold += 50;
 			if (farThreshold > recordDepth.getMaxDepth()) farThreshold = recordDepth.getMaxDepth();
 			break;
-			
 		case '<':		
 		case ',':		
 			farThreshold -= 50;

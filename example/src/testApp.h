@@ -51,6 +51,8 @@ public:
 	
 	ofImage				allUserMasks, user1Mask, user2Mask, depthRangeMask;
 	
+	float				filterFactor;
+	
 };
 
 #endif
