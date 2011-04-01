@@ -4,7 +4,8 @@
 #include "ofMain.h"
 #include <XnOpenNI.h>
 #include <XnCodecIDs.h>
-#include "XnCppWrapper.h"
+#include <XnCppWrapper.h>
+#include <XnLog.h>
 
 class ofxOpenNIContext {
 	

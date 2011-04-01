@@ -28,6 +28,8 @@
 		77CEF6F8134563D400BBDB40 /* libXnVFeatures.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 77CEF6EA134563D400BBDB40 /* libXnVFeatures.dylib */; };
 		77CEF6F9134563D400BBDB40 /* libXnVHandGenerator.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 77CEF6EB134563D400BBDB40 /* libXnVHandGenerator.dylib */; };
 		77CEF6FA134563D400BBDB40 /* libXnVNite.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 77CEF6EC134563D400BBDB40 /* libXnVNite.dylib */; };
+		77F8DADB1345CC7C0028CBAD /* ofxHandGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 77F8DAD91345CC7C0028CBAD /* ofxHandGenerator.cpp */; };
+		77F8DB2F1345D39E0028CBAD /* ofxTrackedHand.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 77F8DB2E1345D39E0028CBAD /* ofxTrackedHand.cpp */; };
 		E45BE0AA0E8CC67C009D7055 /* GLee.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E45BE0A90E8CC67C009D7055 /* GLee.a */; };
 		E45BE2E40E8CC69C009D7055 /* rtAudio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E45BE2E30E8CC69C009D7055 /* rtAudio.a */; };
 		E45BE97B0E8CC7DD009D7055 /* AGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E45BE9710E8CC7DD009D7055 /* AGL.framework */; };
@@ -240,6 +242,10 @@
 		77CEF6EA134563D400BBDB40 /* libXnVFeatures.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libXnVFeatures.dylib; sourceTree = "<group>"; };
 		77CEF6EB134563D400BBDB40 /* libXnVHandGenerator.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libXnVHandGenerator.dylib; sourceTree = "<group>"; };
 		77CEF6EC134563D400BBDB40 /* libXnVNite.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libXnVNite.dylib; sourceTree = "<group>"; };
+		77F8DAD91345CC7C0028CBAD /* ofxHandGenerator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxHandGenerator.cpp; sourceTree = "<group>"; };
+		77F8DADA1345CC7C0028CBAD /* ofxHandGenerator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxHandGenerator.h; sourceTree = "<group>"; };
+		77F8DB2D1345D39E0028CBAD /* ofxTrackedHand.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxTrackedHand.h; sourceTree = "<group>"; };
+		77F8DB2E1345D39E0028CBAD /* ofxTrackedHand.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxTrackedHand.cpp; sourceTree = "<group>"; };
 		E45BE0390E8CC647009D7055 /* FreeImage.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FreeImage.h; path = ../../../libs/freeimage/include/FreeImage.h; sourceTree = SOURCE_ROOT; };
 		E45BE03F0E8CC650009D7055 /* fmod.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = fmod.h; path = ../../../libs/fmodex/include/fmod.h; sourceTree = SOURCE_ROOT; };
 		E45BE0400E8CC650009D7055 /* fmod.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = fmod.hpp; path = ../../../libs/fmodex/include/fmod.hpp; sourceTree = SOURCE_ROOT; };
@@ -359,6 +365,10 @@
 				77C1BBE3132E0BDF00FBAB31 /* ofxTrackedUser.h */,
 				77C1BBE4132E0BDF00FBAB31 /* ofxUserGenerator.cpp */,
 				77C1BBE5132E0BDF00FBAB31 /* ofxUserGenerator.h */,
+				77F8DAD91345CC7C0028CBAD /* ofxHandGenerator.cpp */,
+				77F8DADA1345CC7C0028CBAD /* ofxHandGenerator.h */,
+				77F8DB2D1345D39E0028CBAD /* ofxTrackedHand.h */,
+				77F8DB2E1345D39E0028CBAD /* ofxTrackedHand.cpp */,
 			);
 			path = src;
 			sourceTree = "<group>";
@@ -944,6 +954,8 @@
 				77C1BC07132E0BDF00FBAB31 /* ofxOpenNIRecorder.cpp in Sources */,
 				77C1BC08132E0BDF00FBAB31 /* ofxTrackedUser.cpp in Sources */,
 				77C1BC09132E0BDF00FBAB31 /* ofxUserGenerator.cpp in Sources */,
+				77F8DADB1345CC7C0028CBAD /* ofxHandGenerator.cpp in Sources */,
+				77F8DB2F1345D39E0028CBAD /* ofxTrackedHand.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

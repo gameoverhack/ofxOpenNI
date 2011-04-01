@@ -16,8 +16,7 @@ printf("%s succeed: %s\n", what, xnGetStatusString(rc));			\
 return true;
 
 #define SHOW_RC(rc, what)											\
-	printf("%s status: %s\n", what, xnGetStatusString(rc));			\
-																	\
+	printf("%s status: %s\n", what, xnGetStatusString(rc));
 
 
 #define CHECK_RC_ERR(rc, what, error)								\

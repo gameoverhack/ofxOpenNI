@@ -3,6 +3,17 @@
 
 #include "ofxOpenNIContext.h"
 
+enum enumDepthColoring {
+	COLORING_PSYCHEDELIC_SHADES = 0,
+	COLORING_PSYCHEDELIC,
+	COLORING_RAINBOW,
+	COLORING_CYCLIC_RAINBOW,
+	COLORING_BLUES,
+	COLORING_GREY,
+	COLORING_STATUS,
+	COLORING_COUNT
+};
+
 class ofxDepthGenerator {
 	
 public:
@@ -18,22 +29,28 @@ public:
 	
 	xn::DepthGenerator&	getXnDepthGenerator();
 	
+	void				setDepthColoring(enumDepthColoring c);
+	
 	int					getMaxDepth();
 	int					getWidth();
 	int					getHeight();
-	
+
+	ofColor				getPixelColor(int x, int y);
+	ofColor				getPixelColor(const ofPoint & p);
+	int					getPixelDepth(int x, int y);
+
 private:
 	
 	void				generateTexture();
-	
+
 	xn::DepthGenerator	depth_generator;
+	xn::DepthMetaData	dmd;
+
 	ofTexture			depth_texture;
 	unsigned char *		depth_pixels;
 	int					depth_coloring;
-	
 	int					width, height;
-	int					max_depth;
-	
+	float				max_depth;
 	unsigned char*		maskPixels;
 };
 

@@ -1,7 +1,6 @@
 #include "ofxOpenNIContext.h"
 #include "ofxDepthGenerator.h"
 #include "ofxOpenNIMacros.h"
-#include <XnLog.h>
 
 // Startup
 //----------------------------------------

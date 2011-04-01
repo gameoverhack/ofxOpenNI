@@ -3,12 +3,14 @@
 //--------------------------------------------------------------
 void testApp::setup() {
 	
-	isLive		= true;
-	isTracking	= false;
-	isRecording = false;
-	isCloud		= false;
-	isCPBkgnd	= true;
-	isMasking   = true;
+	isLive			= true;
+	isTracking		= false;
+	isTrackingHands	= true;
+	isFiltering		= false;
+	isRecording		= false;
+	isCloud			= false;
+	isCPBkgnd		= true;
+	isMasking		= true;
 	
 	nearThreshold = 500;
 	farThreshold  = 1000;
@@ -20,13 +22,17 @@ void testApp::setup() {
 }
 
 void testApp::setupRecording(string _filename) {
-		
+	
 	recordContext.setup();	// all nodes created by code -> NOT using the xml config file at all
+	//recordContext.setupUsingXMLFile();
 	recordDepth.setup(&recordContext);
 	recordImage.setup(&recordContext);
 	recordUser.setup(&recordContext);
 	recordUser.setUseMaskPixels(isMasking);
 	recordUser.setUseCloudPoints(isCloud);
+	
+	recordHandTracker.setup(&recordContext);
+	
 	recordContext.toggleRegisterViewport();
 	recordContext.toggleMirror();
 	
@@ -45,6 +51,9 @@ void testApp::setupPlayback(string _filename) {
 	playUser.setup(&playContext);
 	playUser.setUseMaskPixels(isMasking);
 	playUser.setUseCloudPoints(isCloud);
+	
+	playHandTracker.setup(&playContext);
+	
 	playContext.toggleRegisterViewport();
 	playContext.toggleMirror();
 	
@@ -52,7 +61,7 @@ void testApp::setupPlayback(string _filename) {
 
 //--------------------------------------------------------------
 void testApp::update(){
-
+	
 	if (isLive) {
 		
 		// update all nodes
@@ -114,13 +123,14 @@ void testApp::draw(){
 		depthRangeMask.draw(0, 480, 320, 240);	// can use this with openCV to make masks, find contours etc when not dealing with openNI 'User' like objects
 		
 		if (isTracking) {
-			
 			recordUser.draw();
-			
+
 			if (isMasking) drawMasks();
 			if (isCloud) drawPointCloud(&recordUser, 1);	// 0 gives you all point clouds; use userID to see point clouds for specific users
 			
 		}
+		if (isTrackingHands)
+			recordHandTracker.drawHands();
 		
 	} else {
 		
@@ -128,45 +138,48 @@ void testApp::draw(){
 		playImage.draw(640, 0, 640, 480);
 		
 		depthRangeMask.draw(0, 480, 320, 240);	// can use this with openCV to make masks, find contours etc when not dealing with openNI 'User' like objects
-
+		
 		if (isTracking) {
-			
 			playUser.draw();
 			
 			if (isMasking) drawMasks();
 			if (isCloud) drawPointCloud(&playUser, 0);	// 0 gives you all point clouds; use userID to see point clouds for specific users
 
 		}
-
+		if (isTrackingHands)
+			playHandTracker.drawHands();
 	}
 	
 	glPopMatrix();
 	
 	ofSetColor(255, 255, 0);
 	
-	string msg1, msg2, msg3;	//drawBitmapString is limited to some numebr of characters -> is this a bug in 007 or always the case?
+	string statusPlay		= (string)(isLive ? "LIVE STREAM" : "PLAY STREAM");
+	string statusRec		= (string)(!isRecording ? "READY" : "RECORDING");
+	string statusSkeleton	= (string)(isTracking ? "TRACKING USERS: " + (string)(isLive ? ofToString(recordUser.getNumberOfTrackedUsers()) : ofToString(playUser.getNumberOfTrackedUsers())) + "" : "NOT TRACKING USERS");
+	string statusHands		= (string)(isTrackingHands ? "TRACKING HANDS: " + (string)(isLive ? ofToString(recordHandTracker.getNumberofTrackedHands()) : ofToString(playHandTracker.getNumberofTrackedHands())) + ""  : "NOT TRACKING");
+	string statusFilter		= (string)(isFiltering ? "SMOOTH HANDS" : "REAL-TIME HANDS");
+	string statusMask		= (string)(!isMasking ? "HIDE" : (isTracking ? "SHOW" : "YOU NEED TO TURN ON TRACKING!!"));
+	string statusCloud		= (string)(isCloud ? "ON" : "OFF");
+	string statusCloudData	= (string)(isCPBkgnd ? "SHOW BACKGROUND" : (isTracking ? "SHOW USER" : "YOU NEED TO TURN ON TRACKING!!"));
 	
-	msg1 += "Press 's' to start/stop recording\n";
-	msg1 += "Press 'p' to toggle playback/live streams\n";
-	msg1 += "Press 't' to toggle tracking\n";
-	msg2 += "Press 'm' to toggle drawing Masks\n";
-	msg2 += "Press 'c' to toggle draw Cloud points\n";
-	msg2 += "Press 'b' to toggle Cloud User data (ie., background removal)\n\n";
+	stringstream msg;
+	msg
+	<< "    s : start/stop recording  : " << statusRec << endl
+	<< "    p : playback/live streams : " << statusPlay << endl
+	<< "    t : skeleton tracking     : " << statusSkeleton << endl
+	<< "    h : hand tracking         : " << statusHands << endl
+	<< "    f : filter hands (smooth) : " << statusFilter << endl
+	<< "    m : drawing Masks         : " << statusMask << endl
+	<< "    c : draw Cloud points     : " << statusCloud << endl
+	<< "    b : Cloud User data       : " << statusCloudData << endl
+	<< "- / + : nearThreshold         : " << ofToString(nearThreshold) << endl
+	<< "< / > : farThreshold          : " << ofToString(farThreshold) << endl
+	<< endl
+	<< "File  : " << oniRecorder.getCurrentFileName() << endl
+	<< "FPS   : " << ofToString(ofGetFrameRate());
 	
-	msg3 += (string)(isTracking ? "TRACKING USERS: " + (string)(isLive ? ofToString(recordUser.getNumberOfTrackedUsers()) : ofToString(playUser.getNumberOfTrackedUsers())) + "\n" : "NOT TRACKING USERS\n");
-	msg3 += (string)(isLive ? "LIVE STREAM\n" : "PLAY STREAM\n");
-	msg3 += (string)(!isRecording ? "READY\n" : "RECORDING\n");
-	msg3 += "MASK DRAWING: " + (string)(!isMasking ? "HIDE\n" : (string)(isTracking ? "SHOW\n" : "YOU NEED TO TURN ON TRACKING!!\n"));
-	msg3 += "CLOUD DRAWING: " + (string)(isCloud ? "ON\n" : "OFF\n");
-	msg3 += "CLOUD USERDATA/BACKGROUND: " + (string)(isCPBkgnd ? "SHOW BACKGROUND\n" : (string)(isTracking ? "SHOW USER\n" : "YOU NEED TO TURN ON TRACKING!!\n"));
-	msg3 += "nearThreshold: " + ofToString(nearThreshold) + " farThreshold: " + ofToString(farThreshold) + "\n";
-	msg3 += "FPS: " + ofToString(ofGetFrameRate()) + "\n";
-	
-	ofDrawBitmapString(msg1, 20, 600);
-	ofDrawBitmapString(msg2, 20, 650);
-	ofDrawBitmapString(msg3, 20, 700);
-	ofDrawBitmapString(oniRecorder.getCurrentFileName(), 20, 720);
-
+	ofDrawBitmapString(msg.str(), 20, 560);
 	
 }
 
@@ -194,7 +207,7 @@ void testApp::drawPointCloud(ofxUserGenerator * user_generator, int userID) {
 	glBegin(GL_POINTS);
 	
 	int step = 1;
-
+	
 	for(int y = 0; y < h; y += step) {
 		for(int x = 0; x < w; x += step) {
 			ofPoint pos = user_generator->getWorldCoordinateAt(x, y, userID);
@@ -217,6 +230,7 @@ void testApp::drawPointCloud(ofxUserGenerator * user_generator, int userID) {
 void testApp::keyPressed(int key){
 	switch (key) {
 		case 's':
+		case 'S':
 			if (isRecording) {
 				oniRecorder.stopRecord();
 				isRecording = false;
@@ -228,6 +242,7 @@ void testApp::keyPressed(int key){
 			}
 			break;
 		case 'p':
+		case 'P':
 			if (oniRecorder.getCurrentFileName() != "" && !isRecording && isLive) {
 				setupPlayback(oniRecorder.getCurrentFileName());
 				isLive = false;
@@ -236,19 +251,37 @@ void testApp::keyPressed(int key){
 			}
 			break;
 		case 't':
+		case 'T':
 			isTracking = !isTracking;
 			break;
+		case 'h':
+		case 'H':
+			isTrackingHands = !isTrackingHands;
+			if (!isTrackingHands) {
+				recordHandTracker.dropHands();
+				playHandTracker.dropHands();
+			}
+			break;
+		case 'f':
+		case 'F':
+			isFiltering = !isFiltering;
+			recordHandTracker.isFiltering = isFiltering;
+			playHandTracker.isFiltering = isFiltering;
+			break;
 		case 'm':
+		case 'M':
 			isMasking = !isMasking;
 			recordUser.setUseMaskPixels(isMasking);
 			playUser.setUseMaskPixels(isMasking);
 			break;
 		case 'c':
+		case 'C':
 			isCloud = !isCloud;
 			recordUser.setUseCloudPoints(isCloud);
 			playUser.setUseCloudPoints(isCloud);
 			break;
 		case 'b':
+		case 'B':
 			isCPBkgnd = !isCPBkgnd;
 			break;
 		case '>':
@@ -269,7 +302,8 @@ void testApp::keyPressed(int key){
 			if (nearThreshold > recordDepth.getMaxDepth()) nearThreshold = recordDepth.getMaxDepth();
 			break;
 			
-		case '-':		
+		case '-':
+		case '_':
 			nearThreshold -= 50;
 			if (nearThreshold < 0) nearThreshold = 0;
 			break;
@@ -286,11 +320,11 @@ string testApp::generateFileName() {
 	string _root = "kinectRecord";
 	
 	string _timestamp = ofToString(ofGetDay()) + 
-						ofToString(ofGetMonth()) +
-						ofToString(ofGetYear()) +
-						ofToString(ofGetHours()) +
-						ofToString(ofGetMinutes()) +
-						ofToString(ofGetSeconds());
+	ofToString(ofGetMonth()) +
+	ofToString(ofGetYear()) +
+	ofToString(ofGetHours()) +
+	ofToString(ofGetMinutes()) +
+	ofToString(ofGetSeconds());
 	
 	string _filename = (_root + _timestamp + ".oni");
 	
@@ -307,26 +341,26 @@ void testApp::keyReleased(int key){
 void testApp::mouseMoved(int x, int y ){
 	
 	if (isCloud) pointCloudRotationY = x;
-
+	
 }
 
 //--------------------------------------------------------------
 void testApp::mouseDragged(int x, int y, int button){
-
+	
 }
 
 //--------------------------------------------------------------
 void testApp::mousePressed(int x, int y, int button){
-
+	
 }
 
 //--------------------------------------------------------------
 void testApp::mouseReleased(int x, int y, int button){
-
+	
 }
 
 //--------------------------------------------------------------
 void testApp::windowResized(int w, int h){
-
+	
 }
 

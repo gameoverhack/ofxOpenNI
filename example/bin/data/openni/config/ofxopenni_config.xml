@@ -4,7 +4,7 @@
 	</Licenses>
 	<Log writeToConsole="true" writeToFile="true">
 		<!-- 0 - Verbose, 1 - Info, 2 - Warning, 3 - Error (default) -->
-		<LogLevel value="1"/>
+		<LogLevel value="3"/>
 		<Masks>
 			<Mask name="ALL" on="true"/>
 		</Masks>
@@ -29,5 +29,9 @@
 		
 		<!-- ofxUserGenerator -->
 		<Node type="User" />
+        
+        <!-- ofxGestureGenerator -->
+		<Node type="Gesture" />
+		<Node type="Hands" />
 	</ProductionNodes>
 </OpenNI>

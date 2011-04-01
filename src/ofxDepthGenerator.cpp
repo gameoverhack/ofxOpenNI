@@ -41,7 +41,7 @@ void CreateRainbowPallet() {
 
 ofxDepthGenerator::ofxDepthGenerator(){
 	CreateRainbowPallet();	
-	depth_coloring = 2;
+	depth_coloring = COLORING_RAINBOW;
 }
 
 bool ofxDepthGenerator::setup(ofxOpenNIContext* pContext) {
@@ -65,9 +65,10 @@ bool ofxDepthGenerator::setup(ofxOpenNIContext* pContext) {
 		depth_generator.SetMapOutputMode(map_mode);
 	}	
 
+	// Default max depth is on GlobalDefaults.ini: MaxDepthValue=10000
+	max_depth	= depth_generator.GetDeviceMaxDepth();		
 	width		= map_mode.nXRes;
 	height		= map_mode.nYRes;
-	max_depth	= depth_generator.GetDeviceMaxDepth();		
 	
 	// TODO: add capability for b+w depth maps (more efficient for draw)
 	depth_texture.allocate(map_mode.nXRes, map_mode.nYRes, GL_RGBA);		
@@ -82,10 +83,11 @@ bool ofxDepthGenerator::setup(ofxOpenNIContext* pContext) {
 	printf("Depth camera inited\n");
 	
 	return true;
-	
 }
 void ofxDepthGenerator::update() {
-	generateTexture();
+	// get meta-data
+	depth_generator.GetMetaData(dmd);
+	this->generateTexture();
 }
 
 void ofxDepthGenerator::draw(float x, float y, float w, float h) {
@@ -93,11 +95,14 @@ void ofxDepthGenerator::draw(float x, float y, float w, float h) {
 	depth_texture.draw(x, y, w, h);	
 }
 
+void ofxDepthGenerator::setDepthColoring(enumDepthColoring c) {
+	depth_coloring = c;
+}
+
+
 // returns mask pixels in a range TODO: make do multiple ranges
 unsigned char* ofxDepthGenerator::getDepthPixels(int nearThreshold, int farThreshold) {
 	
-	xn::DepthMetaData dmd;
-	depth_generator.GetMetaData(dmd);
 	const XnDepthPixel* depth = dmd.Data();
 	
 	int numPixels = dmd.XRes() * dmd.YRes();
@@ -127,12 +132,28 @@ xn::DepthGenerator& ofxDepthGenerator::getXnDepthGenerator() {
 	return depth_generator;
 }
 
+// Get a pixel from the depth map
+ofColor ofxDepthGenerator::getPixelColor ( const ofPoint & p ) {
+	return this->getPixelColor( (int)p.x, (int)p.y );
+}
+
+ofColor ofxDepthGenerator::getPixelColor ( int x, int y ) {
+	int i = ( y * width + x ) * 4;
+	ofColor color;
+	color.r = depth_pixels[i+0];
+	color.b = depth_pixels[i+1];
+	color.g = depth_pixels[i+2];
+	color.a = depth_pixels[i+3];
+	return color;
+}
+
+int ofxDepthGenerator::getPixelDepth ( int x, int y ) {
+	const XnDepthPixel* depth = dmd.Data();
+	return (int)depth[y * width + x];
+}
+
 // TODO: add capability for b+w depth maps (more efficient for draw)
 void ofxDepthGenerator::generateTexture(){
-	
-	// get meta-data
-	xn::DepthMetaData dmd;
-	depth_generator.GetMetaData(dmd);	
 	
 	// get the pixels
 	const XnDepthPixel* depth = dmd.Data();
@@ -141,6 +162,7 @@ void ofxDepthGenerator::generateTexture(){
 	if (dmd.FrameID() == 0) return;
 
 	// copy depth into texture-map
+	float max;
 	for (XnUInt16 y = dmd.YOffset(); y < dmd.YRes() + dmd.YOffset(); y++) {
 		unsigned char * texture = (unsigned char*)depth_pixels + y * dmd.XRes() * 4 + dmd.XOffset() * 4;
 		for (XnUInt16 x = 0; x < dmd.XRes(); x++, depth++, texture += 4) {
@@ -152,9 +174,9 @@ void ofxDepthGenerator::generateTexture(){
 			XnUInt16 col_index;
 			
 			switch (depth_coloring){
-				case 0: //PSYCHEDELIC_SHADES
+				case COLORING_PSYCHEDELIC_SHADES:
 					alpha *= (((XnFloat)(*depth % 10) / 20) + 0.5);
-				case 1: //PSYCHEDELIC					
+				case COLORING_PSYCHEDELIC:
 					switch ((*depth/10) % 10){
 						case 0:
 							red = 255;
@@ -196,20 +218,76 @@ void ofxDepthGenerator::generateTexture(){
 							break;
 					}
 					break;
-				case 2: //RAINBOW
+				case COLORING_RAINBOW:
 					col_index = (XnUInt16)(((*depth) / (max_depth / 256)));
 					red = PalletIntsR[col_index];
 					green = PalletIntsG[col_index];
 					blue = PalletIntsB[col_index];
 					break;
-				case 3: //CYCLIC_RAINBOW
+				case COLORING_CYCLIC_RAINBOW:
 					col_index = (*depth % 256);
 					red = PalletIntsR[col_index];
 					green = PalletIntsG[col_index];
 					blue = PalletIntsB[col_index];
 					break;
+				case COLORING_BLUES:
+					// 3 bytes of depth: black (R0G0B0) >> blue (001) >> cyan (011) >> white (111)
+					max = 256+255+255;
+					col_index = (XnUInt16)(((*depth) / ( max_depth / max)));
+					if ( col_index < 256 )
+					{
+						blue	= col_index;
+						green	= 0;
+						red		= 0;
+					}
+					else if ( col_index < (256+255) )
+					{
+						blue	= 255;
+						green	= (col_index % 256) + 1;
+						red		= 0;
+					}
+					else if ( col_index < (256+255+255) )
+					{
+						blue	= 255;
+						green	= 255;
+						red		= (col_index % 256) + 1;
+					}
+					else
+					{
+						blue	= 255;
+						green	= 255;
+						red		= 255;
+					}
+					break;
+				case COLORING_GREY:
+					max = 255;	// half depth
+					{
+						XnUInt8 a = (XnUInt8)(((*depth) / ( max_depth / max)));
+						red		= a;
+						green	= a;
+						blue	= a;
+					}
+					break;
+				case COLORING_STATUS:
+					// This is something to use on installations
+					// when the end user needs to know if the camera is tracking or not
+					// The scene will be painted GREEN if status == true
+					// The scene will be painted RED if status == false
+					// Usage: declare a global bool status and that's it!
+					// I'll keep it commented so you dont have to have a status on every project
+#if 0
+					{
+						extern bool status;
+						max = 255;	// half depth
+						XnUInt8 a = 255 - (XnUInt8)(((*depth) / ( max_depth / max)));
+						red		= ( status ? 0 : a);
+						green	= ( status ? a : 0);
+						blue	= 0;
+					}
+#endif
+					break;
 			}
-			
+
 			texture[0] = red;
 			texture[1] = green;
 			texture[2] = blue;
@@ -223,3 +301,6 @@ void ofxDepthGenerator::generateTexture(){
 	
 	depth_texture.loadData((unsigned char *)depth_pixels, dmd.XRes(), dmd.YRes(), GL_RGBA);	
 }
+
+
+

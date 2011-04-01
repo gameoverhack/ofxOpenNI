@@ -1,5 +1,4 @@
 #include "ofxTrackedUser.h"
-#include "ofxOpenNIContext.h"
 
 ofxTrackedUser::ofxTrackedUser(ofxOpenNIContext* pContext) 
 :neck(XN_SKEL_HEAD, XN_SKEL_NECK)

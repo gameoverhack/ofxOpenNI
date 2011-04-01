@@ -5,8 +5,6 @@
 #include "ofxDepthGenerator.h"
 #include "ofxImageGenerator.h"
 
-#include <vector>
-
 #define MAX_NUMBER_USERS 8
 
 class ofxTrackedUser;
@@ -16,6 +14,7 @@ class ofxUserGenerator {
 public:
 	
 	ofxUserGenerator();
+	~ofxUserGenerator(){};
 	
 	bool				setup(ofxOpenNIContext* pContext);
 	

@@ -7,6 +7,9 @@
 #include "ofxDepthGenerator.h"
 #include "ofxUserGenerator.h"
 #include "ofxTrackedUser.h"
+#include "ofxImageGenerator.h"
+#include "ofxHandGenerator.h"
+#include "ofxTrackedHand.h"
 #include "ofxOpenNIRecorder.h"
 
 #endif

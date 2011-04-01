@@ -4,6 +4,7 @@
 #include "ofMain.h"
 #include <XnOpenNI.h>
 #include <XnCppWrapper.h>
+#include "ofxOpenNIContext.h"
 
 struct ofxLimb {
 	ofxLimb(XnSkeletonJoint nStartJoint, XnSkeletonJoint nEndJoint) 
@@ -76,6 +77,7 @@ public:
 	
 	
 private:
+	
 	ofxTrackedUser(ofxOpenNIContext* pContext);
 	
 	void updateBonePositions();
