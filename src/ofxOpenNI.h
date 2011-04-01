@@ -11,5 +11,6 @@
 #include "ofxHandGenerator.h"
 #include "ofxTrackedHand.h"
 #include "ofxOpenNIRecorder.h"
+#include "ofxHardwareDriver.h"
 
 #endif
