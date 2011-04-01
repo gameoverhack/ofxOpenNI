@@ -25,6 +25,9 @@ void testApp::setup() {
 
 void testApp::setupRecording(string _filename) {
 	
+	hardware.setup();				// libusb direct control of motor, LED and accelerometers
+	hardware.setLedOption(LED_OFF); // turn off the led just for yacks (or for live installation/performances ;-)
+	
 	recordContext.setup();	// all nodes created by code -> NOT using the xml config file at all
 	//recordContext.setupUsingXMLFile();
 	recordDepth.setup(&recordContext);
@@ -71,6 +74,8 @@ void testApp::setupPlayback(string _filename) {
 
 //--------------------------------------------------------------
 void testApp::update(){
+	
+	hardware.update();
 	
 	if (isLive) {
 		
@@ -176,7 +181,20 @@ void testApp::draw(){
 	string statusCloud		= (string)(isCloud ? "ON" : "OFF");
 	string statusCloudData	= (string)(isCPBkgnd ? "SHOW BACKGROUND" : (isTracking ? "SHOW USER" : "YOU NEED TO TURN ON TRACKING!!"));
 	
+	ofPoint statusAccelerometers = hardware.getAccelerometers();
+	stringstream	statusHardwareStream;
+	
+	statusHardwareStream 
+	<< "ACCELEROMETERS:"
+	<< " TILT: " << hardware.getTiltAngle() << "/" << hardware.tilt_angle
+	<< " x - " << statusAccelerometers.x
+	<< " y - " << statusAccelerometers.y
+	<< " z - " << statusAccelerometers.z;
+	
+	string statusHardware = statusHardwareStream.str();
+	
 	stringstream msg;
+	
 	msg
 	<< "    s : start/stop recording  : " << statusRec << endl
 	<< "    p : playback/live streams : " << statusPlay << endl
@@ -193,7 +211,7 @@ void testApp::draw(){
 	<< "< / > : farThreshold          : " << ofToString(farThreshold) << endl
 	<< endl
 	<< "File  : " << oniRecorder.getCurrentFileName() << endl
-	<< "FPS   : " << ofToString(ofGetFrameRate());
+	<< "FPS   : " << ofToString(ofGetFrameRate()) << "  " << statusHardware << endl;
 	
 	ofDrawBitmapString(msg.str(), 20, 560);
 	
@@ -248,6 +266,13 @@ void testApp::keyPressed(int key){
 	float smooth;
 	
 	switch (key) {
+		case 357: // up key
+			hardware.setTiltAngle(hardware.tilt_angle++);
+			break;
+		case 359: // down key
+			hardware.setTiltAngle(hardware.tilt_angle--);
+			break;
+			
 		case 's':
 		case 'S':
 			if (isRecording) {

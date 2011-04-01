@@ -31,6 +31,7 @@
 		77F8DADB1345CC7C0028CBAD /* ofxHandGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 77F8DAD91345CC7C0028CBAD /* ofxHandGenerator.cpp */; };
 		77F8DB2F1345D39E0028CBAD /* ofxTrackedHand.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 77F8DB2E1345D39E0028CBAD /* ofxTrackedHand.cpp */; };
 		77F8DCC41345FBA70028CBAD /* ofxGestureGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 77F8DCC21345FBA70028CBAD /* ofxGestureGenerator.cpp */; };
+		77F8DE9113463C530028CBAD /* ofxHardwareDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 77F8DE9013463C530028CBAD /* ofxHardwareDriver.cpp */; };
 		E45BE0AA0E8CC67C009D7055 /* GLee.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E45BE0A90E8CC67C009D7055 /* GLee.a */; };
 		E45BE2E40E8CC69C009D7055 /* rtAudio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E45BE2E30E8CC69C009D7055 /* rtAudio.a */; };
 		E45BE97B0E8CC7DD009D7055 /* AGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E45BE9710E8CC7DD009D7055 /* AGL.framework */; };
@@ -249,6 +250,8 @@
 		77F8DB2E1345D39E0028CBAD /* ofxTrackedHand.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxTrackedHand.cpp; sourceTree = "<group>"; };
 		77F8DCC21345FBA70028CBAD /* ofxGestureGenerator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxGestureGenerator.cpp; sourceTree = "<group>"; };
 		77F8DCC31345FBA70028CBAD /* ofxGestureGenerator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxGestureGenerator.h; sourceTree = "<group>"; };
+		77F8DE8F13463C530028CBAD /* ofxHardwareDriver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxHardwareDriver.h; sourceTree = "<group>"; };
+		77F8DE9013463C530028CBAD /* ofxHardwareDriver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxHardwareDriver.cpp; sourceTree = "<group>"; };
 		E45BE0390E8CC647009D7055 /* FreeImage.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FreeImage.h; path = ../../../libs/freeimage/include/FreeImage.h; sourceTree = SOURCE_ROOT; };
 		E45BE03F0E8CC650009D7055 /* fmod.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = fmod.h; path = ../../../libs/fmodex/include/fmod.h; sourceTree = SOURCE_ROOT; };
 		E45BE0400E8CC650009D7055 /* fmod.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = fmod.hpp; path = ../../../libs/fmodex/include/fmod.hpp; sourceTree = SOURCE_ROOT; };
@@ -374,6 +377,8 @@
 				77F8DB2E1345D39E0028CBAD /* ofxTrackedHand.cpp */,
 				77F8DCC21345FBA70028CBAD /* ofxGestureGenerator.cpp */,
 				77F8DCC31345FBA70028CBAD /* ofxGestureGenerator.h */,
+				77F8DE8F13463C530028CBAD /* ofxHardwareDriver.h */,
+				77F8DE9013463C530028CBAD /* ofxHardwareDriver.cpp */,
 			);
 			path = src;
 			sourceTree = "<group>";
@@ -962,6 +967,7 @@
 				77F8DADB1345CC7C0028CBAD /* ofxHandGenerator.cpp in Sources */,
 				77F8DB2F1345D39E0028CBAD /* ofxTrackedHand.cpp in Sources */,
 				77F8DCC41345FBA70028CBAD /* ofxGestureGenerator.cpp in Sources */,
+				77F8DE9113463C530028CBAD /* ofxHardwareDriver.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

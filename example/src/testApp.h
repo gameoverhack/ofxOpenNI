@@ -43,6 +43,8 @@ public:
 	ofxUserGenerator	recordUser, playUser;
 	ofxOpenNIRecorder	oniRecorder;
 	
+	ofxHardwareDriver	hardware;
+	
 	void				drawMasks();
 	void				drawPointCloud(ofxUserGenerator * user_generator, int userID);
 	
@@ -52,7 +54,7 @@ public:
 	ofImage				allUserMasks, user1Mask, user2Mask, depthRangeMask;
 	
 	float				filterFactor;
-	
+
 };
 
 #endif
