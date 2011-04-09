@@ -14,7 +14,7 @@ public:
 	ofxHandGenerator();
 	~ofxHandGenerator();
 	
-	bool				setup(ofxOpenNIContext* pContext);
+	bool				setup(ofxOpenNIContext* pContext, int number_of_hands = 1);
 	
 	void				dropHands();
 	

@@ -42,9 +42,9 @@ public:
 	
 	ofxUserGenerator	recordUser, playUser;
 	ofxOpenNIRecorder	oniRecorder;
-	
+#ifdef TARGET_OSX // only working on Mac at the moment
 	ofxHardwareDriver	hardware;
-	
+#endif
 	void				drawMasks();
 	void				drawPointCloud(ofxUserGenerator * user_generator, int userID);
 	

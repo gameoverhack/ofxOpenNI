@@ -11,6 +11,9 @@
 #include "ofxHandGenerator.h"
 #include "ofxTrackedHand.h"
 #include "ofxOpenNIRecorder.h"
+
+#ifdef TARGET_OSX // only working on Mac at the moment
 #include "ofxHardwareDriver.h"
+#endif
 
 #endif
