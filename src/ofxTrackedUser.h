@@ -1,10 +1,11 @@
 #ifndef _H_OFXTRACKEDUSER
 #define _H_OFXTRACKEDUSER
 
-#include "ofMain.h"
+
 #include <XnOpenNI.h>
 #include <XnCppWrapper.h>
 #include "ofxOpenNIContext.h"
+#include "ofMain.h"
 
 struct ofxLimb {
 	ofxLimb(XnSkeletonJoint nStartJoint, XnSkeletonJoint nEndJoint) 
