@@ -57,13 +57,13 @@ typedef enum
 // Types
 //---------------------------------------------------------------------------
 
-typedef struct XnDump 
+typedef struct XnDump
 {
 	XN_FILE_HANDLE hFile;
 } XnDump;
 
 const XnDump XN_DUMP_CLOSED = { XN_INVALID_FILE_HANDLE };
- 
+
 //---------------------------------------------------------------------------
 // Exported Function Declaration
 //---------------------------------------------------------------------------
@@ -75,7 +75,7 @@ XN_C_API XnStatus xnLogInitSystem();
 
 /**
 * This function initializes the log from an INI file.
-* 
+*
 * @param	csINIFile		[in]	The name of the INI file.
 * @param	csSectionName	[in]	The name of the section to read values from.
 */
@@ -83,7 +83,7 @@ XN_C_API XnStatus xnLogInitFromINIFile(const XnChar* csINIFile, const XnChar* cs
 
 /**
 * This function initializes the log from an XML file.
-* 
+*
 * @param	strFileName		[in]	The name of the XML file.
 */
 XN_C_API XnStatus xnLogInitFromXmlFile(const XnChar* strFileName);
@@ -144,9 +144,9 @@ XN_C_API XnStatus xnLogSetLineInfo(XnBool bLineInfo);
 
 /**
  * Configures the folder under which logs will be written.
- * 
+ *
  * @param	strOutputFolder	[in]	Folder to write to
- */ 
+ */
 XN_C_API XnStatus xnLogSetOutputFolder(const XnChar* strOutputFolder);
 
 /**
@@ -159,7 +159,7 @@ XN_C_API XnBool xnLogIsEnabled(const XnChar* csLogMask, XnLogSeverity nSeverity)
 
 /**
 * This function writes a formatted string to the log (only if the mask is turned on)
-* 
+*
 * @param	csLogMask	[in]	The mask under which this log should be written.
 * @param	nSeverity	[in]	The severity of this log.
 * @param	csFile		[in]	The name of the file writing this log entry.
@@ -172,7 +172,7 @@ XN_C_API void xnLogWrite(const XnChar* csLogMask, XnLogSeverity nSeverity, const
 * This function writes a formatted string to the log (only if the mask is turned on), but without
 * marking the timestamp, and without placing the end-of-line marker.
 * It is used for writing complex data to the log file.
-* 
+*
 * @param	csLogMask	[in]	The mask under which this log should be written.
 * @param	nSeverity	[in]	The severity of this log.
 * @param	csFormat	[in]	A format string.
@@ -181,7 +181,7 @@ XN_C_API void xnLogWriteNoEntry(const XnChar* csLogMask, XnLogSeverity nSeverity
 
 /**
 * This function writes binary data as hex bytes (only if the mask is turned on).
-* 
+*
 * @param	csLogMask	[in]	The mask under which this log should be written.
 * @param	nSeverity	[in]	The severity of this log.
 * @param	csFile		[in]	The name of the file writing this log entry.
@@ -208,7 +208,7 @@ XN_C_API XnBool xnLogIsDumpMaskEnabled(const XnChar* csDumpMask);
 * @param	csHeader			[in]	A header line to be written to the file. When this param is NULL, file will
 *										be opened as a binary file. When param is not NULL, the string will be written
 *										to the file once it is open.
-* @param	csFileNameFormat	[in]	Format of the name to give the file. 
+* @param	csFileNameFormat	[in]	Format of the name to give the file.
 * @param	...					[in]	Arguments for the file name format string.
 */
 XN_C_API void xnDumpInit(XnDump* pDump, const XnChar* csDumpMask, const XnChar* csHeader, const XnChar* csFileNameFormat, ...);
@@ -221,7 +221,7 @@ XN_C_API void xnDumpInit(XnDump* pDump, const XnChar* csDumpMask, const XnChar* 
 * @param	csHeader			[in]	A header line to be written to the file. When this param is NULL, file will
 *										be opened as a binary file. When param is not NULL, the string will be written
 *										to the file once it is open.
-* @param	csFileNameFormat	[in]	Format of the name to give the file. 
+* @param	csFileNameFormat	[in]	Format of the name to give the file.
 * @param	...					[in]	Arguments for the file name format string.
 */
 XN_C_API void xnDumpForceInit(XnDump* pDump, const XnChar* csHeader, const XnChar* csFileNameFormat, ...);
@@ -236,7 +236,7 @@ XN_C_API void xnDumpClose(XnDump* pDump);
 
 /**
 * Writes a buffer to the dump.
-* 
+*
 * @param	dump		[in]	The dump to write to.
 * @param	pBuffer		[in]	A pointer to the buffer to write.
 * @param	nBufferSize	[in]	The number of bytes to write from the buffer.
@@ -253,7 +253,7 @@ inline void xnDumpWriteBuffer(XnDump dump, const void* pBuffer, XnUInt32 nBuffer
 
 /**
 * Writes a formatted string to the dump.
-* 
+*
 * @param	dump		[in]	The dump to write to.
 * @param	csFormat	[in]	A format string.
 * @param	...			[in]	Arguments to the format string.
@@ -297,7 +297,7 @@ XN_C_API void xnDumpWriteStringImpl(XnDump dump, const XnChar* csFormat, ...);
 
 /**
 * Flushes a dump to the disk.
-* 
+*
 * @param	dump		[in]	The dump to flush.
 */
 XN_C_API void xnDumpFlush(XnDump dump);
@@ -371,7 +371,7 @@ XN_C_API void xnDumpFlush(XnDump dump);
 		if (nRetVal != XN_STATUS_OK)														\
 	{																						\
 		XN_LOG_RETURN(nRetVal, nSeverity, csLogMask, csFormat)						\
-	}																						
+	}
 
 	/* If nRetVal is not ok, logs a warning and returns nRetVal */
 	#define XN_IS_STATUS_OK_WARNING(nRetVal, csLogMask, csFormat...) \
