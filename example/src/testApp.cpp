@@ -24,10 +24,12 @@ void testApp::setup() {
 }
 
 void testApp::setupRecording(string _filename) {
-	
+
+#ifdef TARGET_OSX // only working on Mac at the moment
 	hardware.setup();				// libusb direct control of motor, LED and accelerometers
 	hardware.setLedOption(LED_OFF); // turn off the led just for yacks (or for live installation/performances ;-)
-	
+#endif
+
 	recordContext.setup();	// all nodes created by code -> NOT using the xml config file at all
 	//recordContext.setupUsingXMLFile();
 	recordDepth.setup(&recordContext);
@@ -38,7 +40,7 @@ void testApp::setupRecording(string _filename) {
 	recordUser.setUseMaskPixels(isMasking);
 	recordUser.setUseCloudPoints(isCloud);
 	
-	recordHandTracker.setup(&recordContext);
+	recordHandTracker.setup(&recordContext, 4);
 	recordHandTracker.setSmoothing(filterFactor);		// built in openni hand track smoothing...
 	recordHandTracker.setFilterFactors(filterFactor);	// custom smoothing/filtering (can also set per hand with setFilterFactor)...set them all to 0.1f to begin with
 	
@@ -58,12 +60,12 @@ void testApp::setupPlayback(string _filename) {
 	playDepth.setup(&playContext);
 	playImage.setup(&playContext);
 	
-	playUser.setup(&recordContext);
+	playUser.setup(&playContext);
 	playUser.setSmoothing(filterFactor);				// built in openni skeleton smoothing...
 	playUser.setUseMaskPixels(isMasking);
 	playUser.setUseCloudPoints(isCloud);
 	
-	playHandTracker.setup(&recordContext);
+	playHandTracker.setup(&playContext, 4);
 	playHandTracker.setSmoothing(filterFactor);			// built in openni hand track smoothing...
 	playHandTracker.setFilterFactors(filterFactor);		// custom smoothing/filtering (can also set per hand with setFilterFactor)...set them all to 0.1f to begin with
 	
@@ -74,9 +76,11 @@ void testApp::setupPlayback(string _filename) {
 
 //--------------------------------------------------------------
 void testApp::update(){
-	
+
+#ifdef TARGET_OSX // only working on Mac at the moment
 	hardware.update();
-	
+#endif
+
 	if (isLive) {
 		
 		// update all nodes
@@ -180,7 +184,10 @@ void testApp::draw(){
 	string statusMask		= (string)(!isMasking ? "HIDE" : (isTracking ? "SHOW" : "YOU NEED TO TURN ON TRACKING!!"));
 	string statusCloud		= (string)(isCloud ? "ON" : "OFF");
 	string statusCloudData	= (string)(isCPBkgnd ? "SHOW BACKGROUND" : (isTracking ? "SHOW USER" : "YOU NEED TO TURN ON TRACKING!!"));
-	
+
+	string statusHardware;
+
+#ifdef TARGET_OSX // only working on Mac at the moment
 	ofPoint statusAccelerometers = hardware.getAccelerometers();
 	stringstream	statusHardwareStream;
 	
@@ -191,8 +198,9 @@ void testApp::draw(){
 	<< " y - " << statusAccelerometers.y
 	<< " z - " << statusAccelerometers.z;
 	
-	string statusHardware = statusHardwareStream.str();
-	
+	statusHardware = statusHardwareStream.str();
+#endif
+
 	stringstream msg;
 	
 	msg
@@ -266,13 +274,14 @@ void testApp::keyPressed(int key){
 	float smooth;
 	
 	switch (key) {
+#ifdef TARGET_OSX // only working on Mac at the moment
 		case 357: // up key
 			hardware.setTiltAngle(hardware.tilt_angle++);
 			break;
 		case 359: // down key
 			hardware.setTiltAngle(hardware.tilt_angle--);
 			break;
-			
+#endif
 		case 's':
 		case 'S':
 			if (isRecording) {
@@ -301,10 +310,8 @@ void testApp::keyPressed(int key){
 		case 'h':
 		case 'H':
 			isTrackingHands = !isTrackingHands;
-			if (!isTrackingHands) {
-				recordHandTracker.dropHands();
-				playHandTracker.dropHands();
-			}
+			if(isLive) recordHandTracker.toggleTrackHands();
+			if(!isLive) playHandTracker.toggleTrackHands();
 			break;
 		case 'f':
 		case 'F':

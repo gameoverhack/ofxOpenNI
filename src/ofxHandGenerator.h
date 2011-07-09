@@ -14,9 +14,12 @@ public:
 	ofxHandGenerator();
 	~ofxHandGenerator();
 	
-	bool				setup(ofxOpenNIContext* pContext);
+	bool				setup(ofxOpenNIContext* pContext, int number_of_hands = 1);
 	
 	void				dropHands();
+	void				toggleTrackHands();
+	void				startTrackHands();
+	void				stopTrackHands();
 	
 	void				drawHands();
 	void				drawHand(int thIndex);
@@ -72,7 +75,10 @@ private:
 	int							max_hands;
 	int							min_distance;
 	
+	XnCallbackHandle			hand_cb_handle;
 	
+	bool						bIsTracking;
+
 };
 
 #endif

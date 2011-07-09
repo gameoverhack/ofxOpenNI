@@ -7,7 +7,6 @@
 ofxHandGenerator::ofxHandGenerator(){
 	// set defaults
 	setMinDistBetweenHands(100);
-	setMaxNumHands(2);
 	setSmoothing(1);
 	setMinTimeBetweenHands(1000);
 }
@@ -111,7 +110,7 @@ void XN_CALLBACK_TYPE HandDestroy(
 }
 
 //--------------------------------------------------------------
-bool ofxHandGenerator::setup(ofxOpenNIContext* pContext) {
+bool ofxHandGenerator::setup(ofxOpenNIContext* pContext, int number_of_hands) {
 	
 	context = pContext;
 	context->getDepthGenerator(&depth_generator);
@@ -131,26 +130,17 @@ bool ofxHandGenerator::setup(ofxOpenNIContext* pContext) {
 		hands_generator.StartGenerating();
 	}
 	
-	XnCallbackHandle hand_cb_handle;
-	hands_generator.RegisterHandCallbacks(HandCreate, HandUpdate, HandDestroy, this, hand_cb_handle);
-	
-	printf("Hands generator inited\n");
-	
 	// pre-generate the tracked users.
-	tracked_hands.reserve(max_hands);
-	for(int i = 0; i < max_hands; ++i) {
-		printf("Creating hand: %d", i);
-		ofxTrackedHand* hand = new ofxTrackedHand(context);
-		tracked_hands.push_back(hand);
-	}
+	setMaxNumHands(number_of_hands);
 	
 	found_hands = 0;
 	
 	isFiltering = false;
-
-	// Start looking for gestures
-	this->addGestures();
-
+	
+	printf("Hands generator inited\n");
+	
+	startTrackHands();
+	
 	return true;
 }
 
@@ -190,8 +180,26 @@ float ofxHandGenerator::getSmoothing() {
 }
 
 //--------------------------------------------------------------
-void ofxHandGenerator::setMaxNumHands(int number) {
-	if (number > 0) max_hands = number; // do we want a maximum?
+void ofxHandGenerator::setMaxNumHands(int number_of_hands) {
+	
+	if (number_of_hands > 0) {
+
+		max_hands = number_of_hands; // do we want a maximum?
+		cout << max_hands - tracked_hands.size() << endl;
+		// check if we have enough hand trackers
+		if (tracked_hands.size() < max_hands) {
+			// if not add them
+
+			int totalHandsToAdd = max_hands - tracked_hands.size();
+
+			for(int i = 0; i < totalHandsToAdd; ++i) {
+			printf("Creating hand: %d", i);
+			ofxTrackedHand* hand = new ofxTrackedHand(context);
+			tracked_hands.push_back(hand);
+			}
+		} // TODO: handle for subtracking total number of hands....
+	}
+
 }
 
 //--------------------------------------------------------------
@@ -268,6 +276,48 @@ void ofxHandGenerator::drawHand(int thIndex) {
 //--------------------------------------------------------------
 void ofxHandGenerator::dropHands() {
 	hands_generator.StopTrackingAll();
+}
+
+// Stop/Start hand tracking
+//--------------------------------------------------------------
+void ofxHandGenerator::toggleTrackHands() {
+	if (!bIsTracking) {
+		startTrackHands();
+	} else stopTrackHands();
+}
+
+// Start hand tracking
+//--------------------------------------------------------------
+void ofxHandGenerator::startTrackHands() {
+	
+	dropHands();
+
+	hands_generator.RegisterHandCallbacks(HandCreate, HandUpdate, HandDestroy, this, hand_cb_handle);
+	
+	// Start looking for gestures
+	this->addGestures();
+	
+	printf("Hands generator started\n");
+	
+	bIsTracking = true;
+	
+}
+
+// Stop hand tracking
+//--------------------------------------------------------------
+void ofxHandGenerator::stopTrackHands() {
+	
+	dropHands();
+	
+	hands_generator.UnregisterHandCallbacks(hand_cb_handle);
+	
+	printf("Hands generator stopped\n");
+	
+	// Start looking for gestures
+	this->removeGestures();
+	
+	bIsTracking = false;
+	
 }
 
 //--------------------------------------------------------------
