@@ -24,6 +24,7 @@ XN_DECLARE_EVENT_1ARG(XnVUintSpecificEvent, XnVUintEvent, XnUInt32, nValue);
 XN_DECLARE_EVENT_1ARG(XnVFloatSpecificEvent, XnVFloatEvent, XnFloat, fValue);
 XN_DECLARE_EVENT_1ARG(XnVDirectionSpecificEvent, XnVDirectionEvent, XnVDirection, eValue);
 
+XN_DECLARE_EVENT_2ARG(XnVUintFloatSpecificEvent, XnVUIntFloatEvent, XnUInt32, id, XnFloat, fVal);
 XN_DECLARE_EVENT_2ARG(XnVFloatFloatSpecificEvent, XnVFloatFloatEvent, XnFloat, fVal1, XnFloat, fVal2);
 XN_DECLARE_EVENT_2ARG(XnVIntIntSpecificEvent, XnVIntIntEvent, XnInt32, nVal1, XnInt32, nVal2);
 XN_DECLARE_EVENT_2ARG(XnVUintPointSpecificEvent, XnVUintPointEvent, XnUInt32, nValue, const XnPoint3D&, ptPos);

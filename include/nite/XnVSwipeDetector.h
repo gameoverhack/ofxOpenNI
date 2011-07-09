@@ -60,7 +60,20 @@ public:
 	* @param	[in]	pContext	The hand context of the updated primary point
 	*/
 	void OnPrimaryPointUpdate(const XnVHandPointContext* pContext);
-
+	/**
+	* Called when the primary point is replaced.
+	* This will cause the algorithm to look for swipes on a different hand - the new primary
+	*
+	* @param	[in]	nOldId		The ID of the hand that was the primary until now
+	* @param	[in]	pContext	The hand context of the new primary point
+	*/
+	void OnPrimaryPointReplace(XnUInt32 nOldId, const XnVHandPointContext* pContext);
+	/**
+	* Called when the primary point is destroyed.
+	*
+	* @param	[in]	nID	The ID of the destroyed hand
+	*/
+	void OnPrimaryPointDestroy(XnUInt32 nID);
 	/**
 	* Start looking for swipes, forgetting the preexisting state.
 	*/
@@ -177,12 +190,12 @@ public:
 	XnFloat GetYAngleThreshold() const;
 
 	/**
-	 * Change internal Steady Detector's maximum velocity
+	 * Change internal Steady Detector's maximum standard deviation to consider steady
 	 *
-	 * @param	[in]	fVelocity	Maximum velocity to consider steady state
+	 * @param	[in]	fStdDev	Maximum standard deviation to consider steady state
 	 */
-	void SetSteadyMaxVelocity(XnFloat fVelocity);
-	XnFloat GetSteadyMaxVelocity() const;
+	void SetSteadyMaxStdDev(XnFloat fStdDev);
+	XnFloat GetSteadyMaxStdDev() const;
 
 	/**
 	 * Change internal Steady Detector's steady detection duration
@@ -199,7 +212,7 @@ protected:
 
 	XnStatus AddPoint(const XnPoint3D& pt, XnFloat fTime);
 
-	static void XN_CALLBACK_TYPE Steady_Steady(XnFloat fVelocity, void* cxt);
+	static void XN_CALLBACK_TYPE Steady_Steady(XnUInt32 nId, XnFloat fVelocity, void* cxt);
 
 	XnVPointBuffer* m_pMovementDetectionBuffer;
 
