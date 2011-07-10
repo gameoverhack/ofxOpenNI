@@ -8,7 +8,7 @@ ofxHandGenerator::ofxHandGenerator(){
 	// set defaults
 	setMinDistBetweenHands(100);
 	setSmoothing(1);
-	setMinTimeBetweenHands(1000);
+	setMinTimeBetweenHands(500);
 }
 
 // dtor
