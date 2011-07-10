@@ -3,9 +3,9 @@
 
 //#define USE_IR // Uncomment this to use infra red instead of RGB cam...
 
-#include "ofMain.h"
-#include "ofxOpenNI.h"
 
+#include "ofxOpenNI.h"
+#include "ofMain.h"
 
 class testApp : public ofBaseApp{
 	

@@ -1,3 +1,5 @@
 /example/bin/
+/example/obj/
 /example/build/
+example/*.layout
 .DS_Store
