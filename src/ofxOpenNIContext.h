@@ -1,11 +1,12 @@
 #ifndef _H_OFXOPENNICONTEXT
 #define _H_OFXOPENNICONTEXT
 
-#include "ofMain.h"
+
 #include <XnOpenNI.h>
 #include <XnCodecIDs.h>
 #include <XnCppWrapper.h>
 #include <XnLog.h>
+#include "ofMain.h"
 
 class ofxOpenNIContext {
 	
