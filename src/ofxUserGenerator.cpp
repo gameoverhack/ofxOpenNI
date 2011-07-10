@@ -257,6 +257,7 @@ ofxTrackedUser* ofxUserGenerator::getTrackedUser(int nUserNum) {
 }
 
 void ofxUserGenerator::setMaxNumberOfUsers(int nUsers) {
+	// TODO: make this truly dynamic by replacing the define and writing dynamic allocation/deletion functions for the arrays! Lazy method below ;-)
 	if (nUsers <= MAX_NUMBER_USERS) {
 		max_num_users = nUsers;
 	} else printf("Attempting to set number of tracked users higher than MAX_NUMBER_USERS - change the define in ofxUserGenerator.h first!");
