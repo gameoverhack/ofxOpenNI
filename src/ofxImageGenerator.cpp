@@ -56,7 +56,7 @@ bool ofxImageGenerator::setup(ofxOpenNIContext* pContext) {
 	}
 
 	// TODO: add capability for b+w depth maps (more efficient for draw)
-	image_texture.allocate(map_mode.nXRes, map_mode.nYRes, GL_RGBA);		
+	image_texture.allocate(map_mode.nXRes, map_mode.nYRes, GL_RGB);		
 	image_pixels = new unsigned char[map_mode.nXRes * map_mode.nYRes * 3];
 	memset(image_pixels, 0, map_mode.nXRes * map_mode.nYRes * 3 * sizeof(unsigned char));
 	

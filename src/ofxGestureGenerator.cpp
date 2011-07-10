@@ -29,15 +29,15 @@ OpenNI_Gesture_Recognized(xn::GestureGenerator& generator,
 	ofxGestureGenerator* ofx_gesture_generator = static_cast<ofxGestureGenerator*>(pCookie);
 	
 	
-	printf("Gesture RECOGNIZED: %s  posID [%d, %d, %d]  posEND [%d, %d, %d]\n", strGesture,
-		   (int)pIDPosition->X, (int)pIDPosition->Y, (int)pIDPosition->Z,
-		   (int)pEndPosition->X, (int)pEndPosition->Y, (int)pEndPosition->Z);	
+	ofLog(OF_LOG_VERBOSE, "Gesture RECOGNIZED: %s  posID [%d, %d, %d]  posEND [%d, %d, %d]\n", strGesture,
+							(int)pIDPosition->X, (int)pIDPosition->Y, (int)pIDPosition->Z,
+							(int)pEndPosition->X, (int)pEndPosition->Y, (int)pEndPosition->Z);	
 	
 	gesture * last_gesture = ofx_gesture_generator->getLastGesture();
 	
-	if (ofGetElapsedTimeMillis() > last_gesture->gesture_timestamp + ofx_gesture_generator->getMinTimeBetweenGestures()) { // Filter by a minimum time between firing gestures
+	if (last_gesture->gesture_timestamp == 0 || ofGetElapsedTimeMillis() > last_gesture->gesture_timestamp + ofx_gesture_generator->getMinTimeBetweenGestures()) { // Filter by a minimum time between firing gestures
 		
-		printf("Gesture EVENT triggered!\n");
+		ofLog(OF_LOG_VERBOSE, "Gesture EVENT triggered!\n");
 		
 		last_gesture->gesture_name = strGesture;
 		last_gesture->gesture_type = GESTURE_RECOGNIZED;
@@ -49,7 +49,7 @@ OpenNI_Gesture_Recognized(xn::GestureGenerator& generator,
 		
 		ofNotifyEvent(ofx_gesture_generator->gestureRecognized, *last_gesture);
 	} else {
-		printf("Gesture FILTERED by time: %d < %d\n", ofGetElapsedTimeMillis(), last_gesture->gesture_timestamp + ofx_gesture_generator->getMinTimeBetweenGestures());
+		ofLog(OF_LOG_VERBOSE, "Gesture FILTERED by time: %d < %d\n", ofGetElapsedTimeMillis(), last_gesture->gesture_timestamp + ofx_gesture_generator->getMinTimeBetweenGestures());
 	}
 
 }
@@ -67,8 +67,8 @@ OpenNI_Gesture_Process(xn::GestureGenerator& generator,
 	
 	if (ofx_gesture_generator->getUseProgress()) {
 		
-		printf("Gesture RECOGNIZED: %s  posID [%d, %d, %d]  progress [%f]\n", strGesture,
-			   (int)pIDPosition->X, (int)pIDPosition->Y, (int)pIDPosition->Z, (float)fProgress);
+		ofLog(OF_LOG_VERBOSE, "Gesture RECOGNIZED: %s  posID [%d, %d, %d]  progress [%f]\n", strGesture,
+								(int)pIDPosition->X, (int)pIDPosition->Y, (int)pIDPosition->Z, (float)fProgress);
 		
 		gesture * last_gesture = ofx_gesture_generator->getLastGesture();
 		

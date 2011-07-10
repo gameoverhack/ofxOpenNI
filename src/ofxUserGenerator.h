@@ -35,6 +35,7 @@ public:
 	
 	xn::UserGenerator&	getXnUserGenerator();
 	
+	void				setMaxNumberOfUsers(int nUsers);
 	int					getNumberOfTrackedUsers();
 	ofxTrackedUser*		getTrackedUser(int nUserNum);
 	unsigned char *		getUserPixels(int userID = 0);
@@ -60,6 +61,7 @@ private:
 	XnChar							calibration_pose[20];
 	ofxTrackedUser *				tracked_users[MAX_NUMBER_USERS];
 	XnUInt16						found_users;
+	int								max_num_users;
 	
 	// vars for cloud point and masking
 	XnUInt16			width, height;

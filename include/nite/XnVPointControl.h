@@ -292,7 +292,7 @@ private:
 	XnVMultipleHandsSpecificEvent m_HandsUpdateCBs;
 
 	XnUInt32 m_nPrimaryID;
-
+protected:
 	XnUInt32 m_nOverridePrimary;
 };
 

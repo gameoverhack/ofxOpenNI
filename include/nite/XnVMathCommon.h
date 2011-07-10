@@ -83,8 +83,8 @@ inline XnUInt16 ArgMin(XnFloat a, XnFloat b, XnFloat c)
 	return ArgMax(-a, -b, -c);
 }
 
-//const XnFloat PI=3.14159265f;
-//const XnFloat HALF_PI=(PI/2);
+const XnFloat PI=3.14159265f;
+const XnFloat HALF_PI=(PI/2);
 
 inline XnBool IsZero(XnFloat f, XnFloat fTolerance)
 {

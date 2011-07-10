@@ -11,7 +11,6 @@
 
 #include "XnVNiteDefs.h"
 #include "XnVPointControl.h"
-
 class XnVPointBuffer;
 
 /**
@@ -26,38 +25,23 @@ public:
 	/**
 	* Type for the steady event callback
 	*/
-	typedef void (XN_CALLBACK_TYPE *SteadyCB)(XnFloat fVelocity, void* pUserCxt);
+	typedef void (XN_CALLBACK_TYPE *SteadyCB)(XnUInt32 nId, XnFloat fStdDev, void* pUserCxt);
+	typedef void (XN_CALLBACK_TYPE *NotSteadyCB)(XnUInt32 nId, XnFloat fStdDev, void* pUserCxt);
 
 	/**
 	* Constructor
 	*
 	* @param	[in]	nCooldownFrames			Minimal number of frames after input start that steady is valid
 	* @param	[in]	nDetectionDuration		Minimal number of frames to constitute steady
-	* @param	[in]	fMaximumAllowedVelocity	Velocity that is considered 'steady'
+	* @param	[in]	fMaximumStdDevForSteady	Standard deviation of points that is considered 'steady'
 	* @param	[in]	strName					Name of the control, for log purposes.
 	*/
 	XnVSteadyDetector(XnUInt32 nCooldownFrames = ms_nDefaultInitialCooldown,
 		XnUInt32 nDetectionDuration = ms_nDefaultDetectionDuration,
-		XnFloat fMaximumAllowedVelocity = ms_fDefaultMaximumAllowedVelocity,
+		XnFloat fMaximumStdDevForSteady = ms_fDefaultMaximumStdDevForSteady,
 		const XnChar* strName = "XnVSteadyDetector");
 
 	~XnVSteadyDetector();
-
-	/**
-	* Called when the primary point is created.
-	*
-	* @param	[in]	cxt			The hand context of the newly created primary point
-	* @param	[in]	ptFocus		The point in which the session has started.
-	*/
-	void OnPrimaryPointCreate(const XnVHandPointContext* cxt, const XnPoint3D& ptFocus);
-	/**
-	* Called when the primary point is updated.
-	* This will cause the algorithm to look for steady condition.
-	*
-	* @param	[in]	cxt	The hand context of the updated primary point
-	*/
-	void OnPrimaryPointUpdate(const XnVHandPointContext* cxt);
-
 	/**
 	* Register for the steady event
 	* 
@@ -68,12 +52,27 @@ public:
 	*/
 	XnCallbackHandle RegisterSteady(void* cxt, SteadyCB CB);
 	/**
-	* Unregister from the selection event
+	* Unregister from the steady event
 	*
 	* @param	[in]	hCB	The handle provided on registration.
 	*/
 	void UnregisterSteady(XnCallbackHandle hCB);
 
+	/**
+	 * Register for the not-steady event
+	 *
+	 * @param	[in]	cxt	User's context
+	 * @param	[in]	CB	The callback to call when the event is invoked.
+	 *
+	 * @return	A handle, to allow unregistration
+	 */
+	XnCallbackHandle RegisterNotSteady(void* cxt, NotSteadyCB CB);
+	/**
+	 * Unregister from the not-steady event
+	 *
+	 * @param	[in]	hCB	The handle provided on registration.
+	 */
+	void UnregisterNotSteady(XnCallbackHandle hCB);
 	/**
 	* Forget the existing state, and start looking for steady state all over again.
 	*/
@@ -86,11 +85,17 @@ public:
 	 */
 	XnUInt32 GetDetectionDuration() const;
 	/**
-	 * Get the maximum velocity in the time span to define as steady, in m/s
+	 * Get the maximum standard deviation in the time span to define as steady, in m/s
 	 *
-	 * @return the velocity
+	 * @return the standard deviation
 	 */
-	XnFloat GetMaximumVelocity() const;
+	XnFloat GetMaximumStdDevForSteady() const;
+	/**
+	* Get the inximum standard deviation in the time span to define as not steady, in m/s
+	*
+	* @return the standard deviation
+	*/
+	XnFloat GetMinimumStdDevForNotSteady() const;
 
 	/**
 	 * Change the time it takes to detect steady state.
@@ -99,33 +104,64 @@ public:
 	 */
 	void SetDetectionDuration(XnUInt32 nDuration);
 	/**
-	 * Change the velocity that is considered steady state
+	 * Change the standard deviation that is considered steady state
 	 *
-	 * @param	[in]	fVelocity	The maximum velocity considered as steady state, in m/s (default is 0.01 m/s)
+	 * @param	[in]	fStdDev	The maximum standard deviation considered as steady state, in m/s (default is 0.01 m/s)
 	 */
-	void SetMaximumVelocity(XnFloat fVelocity);
+	void SetMaximumStdDevForSteady(XnFloat fStdDev);
+	/**
+	* Change the standard deviation that is considered not steady state
+	*
+	* @param	[in]	fStdDev	The minimum standard deviation considered as not steady state, in m/s (default is 0.02 m/s)
+	*/
+	void SetMinimumStdDevForNotSteady(XnFloat fStdDev);
 
 	static const XnUInt32 ms_nDefaultDetectionDuration;		// = 200 ms
 	static const XnUInt32 ms_nDefaultInitialCooldown;		// = 0
-	static const XnFloat ms_fDefaultMaximumAllowedVelocity; // = 0.01 m/s
+	static const XnFloat ms_fDefaultMaximumStdDevForSteady;	// 0.01 m/s
+	static const XnFloat ms_fDefaultMinimumStdDevForNotSteady;	// 0.02 m/s
+
+	/**
+	* Called when a point is created.
+	*
+	* @param	[in]	cxt			The hand context of the newly created point
+	*/
+	void OnPointCreate(const XnVHandPointContext* cxt);
+	/**
+	* Called when a point is updated.
+	* This will cause the algorithm to look for steady condition for this hand
+	*
+	* @param	[in]	cxt	The hand context of the updated point
+	*/
+	void OnPointUpdate(const XnVHandPointContext* cxt);
 protected:
+	void Reset(XnUInt32 id);
 	// called whenever we have a new point
-	XnStatus DetectSteady(const XnPoint3D& pt, XnFloat fTime);
+	XnStatus DetectSteady(XnUInt32 nId, const XnPoint3D& pt, XnFloat fTime);
 
 	// broadcasts the event to all listeners
-	virtual void OnSteadyDetected(XnFloat fVelocity);
+	virtual void OnSteadyDetected(XnUInt32 nId, XnFloat fStdDev);
+	virtual void OnNotSteadyDetected(XnUInt32 nId, XnFloat fStdDev);
 
 	XnUInt32 m_nDetectionDuration;
-	XnFloat m_fMaximumAllowedVelocity;
-	XnFloat m_fMaximumAllowedVelocity2;
+	XnFloat m_fMaximumStdDevForSteady;
+	XnFloat m_fMaximumVarianceForSteady;
+	XnFloat m_fMinimumStdDevForNotSteady;
+	XnFloat m_fMinimumVarianceForNotSteady;
 
-	XnUInt32 m_nCurrentCooldownFrames;
 	XnUInt32 m_nInitialCooldownFrames;
 
-	XnVPointBuffer* m_pPoints;
-
+	struct SteadyState
+	{
+		XnUInt32 nCurrentCooldownFrames;
+		XnBool bCurrentSteady;
+		XnVPointBuffer* pPoints;
+	};
+	XN_DECLARE_DEFAULT_HASH(XnUInt32, SteadyState*, SteadyStates);
+	SteadyStates m_SteadyStates;
 private:
-	XnVFloatSpecificEvent m_SteadyCBs;
+	XnVUintFloatSpecificEvent m_SteadyCBs;
+	XnVUintFloatSpecificEvent m_NotSteadyCBs;
 }; // XnVSteadyDetector
 
 #endif // _XNV_STEADY_DETECTOR_H_

@@ -1,7 +1,6 @@
 #ifndef _H_OFXTRACKEDHAND
 #define _H_OFXTRACKEDHAND
 
-
 #include <XnOpenNI.h>
 #include <XnCppWrapper.h>
 #include "ofxOpenNIContext.h"
@@ -15,35 +14,35 @@
 
 class ofxOpenNIContext;
 class ofxTrackedHand {
-	
+
 public:
-	
+
 	ofxTrackedHand();
 	~ofxTrackedHand();
-	
+
 	void update(const XnPoint3D* pPosition, bool filter=false, bool force=false);
-	
+
 	void draw();
-	
+
 	bool				isBeingTracked;
 	XnUserID			nID;
 	XnPoint3D			rawPos;
 	ofPoint				projectPos;		// position on screen
 	ofPoint				progPos;		// position from 0.0 to 1.0
-	
+
 	void				setFilterFactor(float factor);
 	float				getFilterFactor();
-	
+
 private:
-	
+
 	ofxTrackedHand(ofxOpenNIContext* pContext);
-	
+
 	xn::DepthGenerator	depth_generator;
-	
+
 	float				xres, yres, zres;
 	float				filter_factor;
-	
+
 	friend class ofxHandGenerator;
-};		
+};
 
 #endif

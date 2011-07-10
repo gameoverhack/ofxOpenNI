@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="openNISample" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Option virtualFolders="addons/;src/;" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/$(PROJECT_NAME)_debug" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="bin" />
+				<Option object_output="obj/Debug/" />
+				<Option external_deps="../../../libs/openFrameworksCompiled/lib/linux64/libopenFrameworksDebug.a;" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Option projectLinkerOptionsRelation="2" />
+				<Compiler>
+					<Add option="-g" />
+					<Add option="-MMD" />
+				</Compiler>
+				<Linker>
+					<Add option="-Wl,-rpath=./libs" />
+					<Add library="openFrameworksDebug" />
+				</Linker>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/$(PROJECT_NAME)" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="bin" />
+				<Option object_output="obj/Release/" />
+				<Option external_deps="../../../libs/openFrameworksCompiled/lib/linux64/libopenFrameworks.a;" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Option projectLinkerOptionsRelation="2" />
+				<Compiler>
+					<Add option="-march=native" />
+					<Add option="-O3" />
+					<Add option="-MMD" />
+				</Compiler>
+				<Linker>
+					<Add option="-Wl,-rpath=./libs" />
+					<Add option="-s" />
+					<Add library="openFrameworks" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+			<Add option="-fexceptions" />
+			<Add directory="../../../addons/" />
+			<Add directory="../../../libs/openFrameworks/" />
+			<Add directory="../../../libs/openFrameworks/events" />
+			<Add directory="../../../libs/openFrameworks/app" />
+			<Add directory="../../../libs/openFrameworks/communication" />
+			<Add directory="../../../libs/openFrameworks/graphics" />
+			<Add directory="../../../libs/openFrameworks/video" />
+			<Add directory="../../../libs/openFrameworks/utils" />
+			<Add directory="../../../libs/openFrameworks/sound" />
+			<Add directory="../../../libs/rtAudio/include" />
+			<Add directory="../../../libs/fmodex/include" />
+			<Add directory="../../../libs/glee/include" />
+			<Add directory="../../../libs/glee/" />
+			<Add directory="../../../libs/FreeImage/include" />
+			<Add directory="../../../libs/freetype/include" />
+			<Add directory="../../../libs/freetype/include/freetype2" />
+			<Add directory="../../../libs/gstappsink/include" />
+			<Add directory="../../../addons" />
+			<Add directory="../../../libs/poco/include" />
+			<Add directory="../../../addons/ofxOpenNI/include/libusb" />
+			<Add directory="../../../addons/ofxOpenNI/include/nite" />
+			<Add directory="../../../addons/ofxOpenNI/include/openni" />
+			<Add directory="../../../addons/ofxOpenNI/include/openni/Linux-x86" />
+			<Add directory="../../../addons/ofxOpenNI/src" />
+		</Compiler>
+		<Linker>
+			<Add library="fmodex" />
+			<Add library="glut" />
+			<Add library="GL" />
+			<Add library="GLU" />
+			<Add library="Xxf86vm" />
+			<Add library="asound" />
+			<Add library="PocoFoundation" />
+			<Add library="freetype" />
+			<Add library="freeimage" />
+			<Add library="RtAudio" />
+			<Add library="GLee" />
+			<Add library="oFappsink" />
+			<Add library="OpenNI" />
+			<Add directory="../../../libs/freetype/lib/linux64" />
+			<Add directory="../../../libs/FreeImage/lib/linux64" />
+			<Add directory="../../../libs/rtAudio/lib/linux64" />
+			<Add directory="../../../libs/glee/lib/linux64" />
+			<Add directory="../../../libs/gstappsink/lib/linux64" />
+			<Add directory="../../../libs/fmodex/lib/linux64" />
+			<Add directory="../../../libs/poco/lib/linux64" />
+			<Add directory="../../../libs/openFrameworksCompiled/lib/linux64" />
+		</Linker>
+		<ExtraCommands>
+			<Add after="#" />
+			<Add after="#      copy libs and shell script to bin directory:" />
+			<Add after="#" />
+			<Add after="cp -r ../../../export/linux64/libs $(PROJECT_DIR)bin/" />
+		</ExtraCommands>
+		<Unit filename="../../../addons/ofxOpenNI/include/libusb/libusb.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnCommon.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnV3DVector.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVActivationMessage.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVBroadcaster.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVCCMessage.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVCircle.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVCircleDetector.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVClickableVirtualPlane.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVComplexMessage.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVDepthControl.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVDepthGenerator.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVDepthMessage.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVDeviceControl.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVDeviceFilter.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVDeviceGenerator.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVDeviceMessage.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVDirection.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVFilter.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVFlowRouter.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVGesture.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVHandPointContext.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVHandle.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVImageGenerator.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVImageMessage.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVMathCommon.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVMessage.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVMessageGenerator.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVMessageListener.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVMessageMux.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVMultiItemHysteresis1D.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVMultiItemHysteresis2D.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVMultiProcessFlowClient.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVMultiProcessFlowServer.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVMultipleHands.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVNite.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVNiteControls.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVNiteDefs.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVNiteEvents.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVNiteFramework.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVNiteLog.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVNiteStatus.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVNiteVersion.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVPointArea.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVPointControl.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVPointDenoiser.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVPointFilter.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVPointMessage.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVPointTracker.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVPushDetector.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVSelectableSlider1D.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVSelectableSlider2D.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVSessionGenerator.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVSessionListener.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVSessionManager.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVSessionMessage.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVSlider1D.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVSlider2D.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVSlider3D.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVSteadyDetector.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVSwipeDetector.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVVirtualCoordinates.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/nite/XnVWaveDetector.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/ARC/XnOSARC.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/ARC/XnPlatformARC.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/IXnNodeAllocator.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/Linux-Arm/XnPlatformLinux-Arm.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/Linux-x86/XnOSLinux-x86.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/Linux-x86/XnPlatformLinux-x86.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/MacOSX/XnPlatformMacOSX.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/Win32/XnOSWin32.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/Win32/XnPlatformWin32.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnAlgorithms.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnArray.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnBaseNode.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnBitSet.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnCallback.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnCodecIDs.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnContext.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnCppWrapper.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnDataTypes.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnEnumerationErrors.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnEvent.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnFPSCalculator.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnGeneralBuffer.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnHash.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnInternalDefs.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnLicensing.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnList.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnLog.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnMacros.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnModuleCFunctions.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnModuleCppInterface.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnModuleCppRegistratration.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnModuleInterface.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnNode.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnNodeAllocator.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnOS.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnOSCpp.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnOSMemory.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnOSStrings.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnOpenNI.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnPlatform.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnPrdNode.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnPrdNodeInfo.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnPrdNodeInfoList.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnProfiling.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnPropNames.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnQueries.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnQueue.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnScheduler.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnStack.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnStatus.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnStatusCodes.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnStatusRegister.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnStringsHash.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnThreadSafeQueue.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnTypes.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnUSB.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnUtils.h" />
+		<Unit filename="../../../addons/ofxOpenNI/include/openni/XnVersion.h" />
+		<Unit filename="../../../addons/ofxOpenNI/src/ofxDepthGenerator.cpp" />
+		<Unit filename="../../../addons/ofxOpenNI/src/ofxDepthGenerator.h" />
+		<Unit filename="../../../addons/ofxOpenNI/src/ofxGestureGenerator.cpp" />
+		<Unit filename="../../../addons/ofxOpenNI/src/ofxGestureGenerator.h" />
+		<Unit filename="../../../addons/ofxOpenNI/src/ofxHandGenerator.cpp" />
+		<Unit filename="../../../addons/ofxOpenNI/src/ofxHandGenerator.h" />
+		<Unit filename="../../../addons/ofxOpenNI/src/ofxHardwareDriver.cpp" />
+		<Unit filename="../../../addons/ofxOpenNI/src/ofxHardwareDriver.h" />
+		<Unit filename="../../../addons/ofxOpenNI/src/ofxIRGenerator.cpp" />
+		<Unit filename="../../../addons/ofxOpenNI/src/ofxIRGenerator.h" />
+		<Unit filename="../../../addons/ofxOpenNI/src/ofxImageGenerator.cpp" />
+		<Unit filename="../../../addons/ofxOpenNI/src/ofxImageGenerator.h" />
+		<Unit filename="../../../addons/ofxOpenNI/src/ofxOpenNI.h" />
+		<Unit filename="../../../addons/ofxOpenNI/src/ofxOpenNIContext.cpp" />
+		<Unit filename="../../../addons/ofxOpenNI/src/ofxOpenNIContext.h" />
+		<Unit filename="../../../addons/ofxOpenNI/src/ofxOpenNIMacros.h" />
+		<Unit filename="../../../addons/ofxOpenNI/src/ofxOpenNIRecorder.cpp" />
+		<Unit filename="../../../addons/ofxOpenNI/src/ofxOpenNIRecorder.h" />
+		<Unit filename="../../../addons/ofxOpenNI/src/ofxTrackedHand.cpp" />
+		<Unit filename="../../../addons/ofxOpenNI/src/ofxTrackedHand.h" />
+		<Unit filename="../../../addons/ofxOpenNI/src/ofxTrackedUser.cpp" />
+		<Unit filename="../../../addons/ofxOpenNI/src/ofxTrackedUser.h" />
+		<Unit filename="../../../addons/ofxOpenNI/src/ofxUserGenerator.cpp" />
+		<Unit filename="../../../addons/ofxOpenNI/src/ofxUserGenerator.h" />
+		<Unit filename="src/main.cpp">
+			<Option virtualFolder="src/" />
+		</Unit>
+		<Unit filename="src/testApp.cpp">
+			<Option virtualFolder="src/" />
+		</Unit>
+		<Unit filename="src/testApp.h">
+			<Option virtualFolder="src/" />
+		</Unit>
+		<Extensions>
+			<lib_finder>
+				<lib name="gstreamer-0.10" />
+				<lib name="gstreamer-video-0.10" />
+				<lib name="gstreamer-base-0.10" />
+				<lib name="libudev" />
+			</lib_finder>
+			<code_completion />
+			<envvars />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

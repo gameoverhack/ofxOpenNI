@@ -17,6 +17,7 @@
 #include "XnVPointMessage.h"
 #include "XnVSessionGenerator.h"
 #include "XnV3DVector.h"
+#include "XnVSteadyDetector.h"
 
 /**
 * A XnVSessionManager manages the session state
@@ -58,16 +59,6 @@ public:
 						xn::GestureGenerator* pQuickRefocusGenerator = NULL);
 
 	/**
-	 * Initialize the Session.
-	 *
-	 * @param	[in]	pFocusGesture	The gesture to use as the main focus gesture
-	 * @param	[in]	pQuickRefocusGesture	the gesture to use as the quick refocus gesture
-	 * @param	[in]	pTracker		The tracker to use for tracking
-	 */
-
-	XnStatus Initialize(XnVGesture* pFocusGesture, XnVGesture* pQuickRefocusGesture, XnVPointTracker* pTracker);
-
-	/**
 	* Handle incoming Messages.
 	* Depth Messages are dealt with by the other Update method
 	* Point Messages (from Point Tracker) are dealt with by ProcessPoints
@@ -86,22 +77,8 @@ public:
 	*
 	* @param	[in]	pHands	Points summary
 	*/
-	void ProcessPoints(const XnVMultipleHands* pHands);
+	void ProcessPoints(XnVMultipleHands* pHands);
 
-	/**
-	* Replace gesture used
-	*
-	* @param	[in]	pGesture	new gesture
-	*/
-	void SetGesture(XnVGesture* pGesture);
-	void SetGesture(xn::GestureGenerator gestureGenerator, const XnChar* strGestures);
-	/**
-	* Replace Quick refocus used
-	*
-	* @param	[in]	pGesture	new Quick refocus gesture
-	*/
-	void SetQRGesture(XnVGesture* pGesture);
-	void SetQRGesture(xn::GestureGenerator gestureGenerator, const XnChar* strGestures);
 	/**
 	* Replace Tracker used
 	*
@@ -174,12 +151,131 @@ public:
 	 * @param	[in]	nForcedTimeout	Timeout in ms in which to look for quick refocus. This overrides but doesn't overwrite the regular Quick refocus timeout.
 	 */
 	void ForceQuickRefocus(XnBoundingBox3D* pbbForcedArea, XnUInt32 nForcedTimeout);
+
+	/**
+	 * Add user-defined gesture to be used as a focus gesture
+	 *
+	 * @param	[in]	pGesture	User-defined gesture
+	 *
+	 * @return	ID to allow removal
+	 */
+	XnUInt32 AddGesture(XnVGesture* pGesture);
+	/**
+	* Add gesture to be used as a focus gesture, by gesture generator (OpenNI) and name
+	*
+	* @param	[in]	generator	Generator with the wanted gesture
+	* @param	[in]	strName		Name of the wanted gesture in the generator
+	*
+	* @return	ID to allow removal
+	*/
+	XnUInt32 AddGesture(xn::GestureGenerator& generator, const XnChar* strName);
+	/**
+	* Add user-defined gesture to be used as a focus gesture, by OpenNI context and name
+	*
+	* @param	[in]	context		OpenNI context
+	* @param	[in]	strName		Name of gesture, to be searched in all gesture generators
+	*
+	* @return	ID to allow removal
+	*/
+	XnUInt32 AddGesture(xn::Context& context, const XnChar* strName);
+	/**
+	 * Remove a gesture from being a focus gesture
+	 *
+	 * @param	[in]	nId		ID of the gesture to be removed, as received when adding it.
+	 */
+	void RemoveGesture(XnUInt32 nId);
+
+	/**
+	* Add user-defined gesture to be used as a quick refocus gesture
+	*
+	* @param	[in]	pGesture	User-defined gesture
+	*
+	* @return	ID to allow removal
+	*/
+	XnUInt32 AddQuickRefocus(XnVGesture* pGesture);
+	/**
+	* Add gesture to be used as a quick refocus gesture, by gesture generator (OpenNI) and name
+	*
+	* @param	[in]	generator	Generator with the wanted gesture
+	* @param	[in]	strName		Name of the wanted gesture in the generator
+	*
+	* @return	ID to allow removal
+	*/
+	XnUInt32 AddQuickRefocus(xn::GestureGenerator& generator, const XnChar* strName);
+	/**
+	* Add user-defined gesture to be used as a quick refocus gesture, by OpenNI context and name
+	*
+	* @param	[in]	context		OpenNI context
+	* @param	[in]	strName		Name of gesture, to be searched in all gesture generators
+	*
+	* @return	ID to allow removal
+	*/
+	XnUInt32 AddQuickRefocus(xn::Context& context, const XnChar* strName);
+	/**
+	* Remove a gesture from being a quick refocus gesture
+	*
+	* @param	[in]	nId		ID of the gesture to be removed, as received when adding it.
+	*/
+	void RemoveQuickRefocus(XnUInt32 nId);
+
+	/**
+	 * Turn on looking for gestures when the primary hand is static
+	 */
+	void StartPrimaryStatic();
+	/**
+	 * Turn off looking for gestures when the primary hand is static
+	 */
+	void StopPrimaryStatic();
+	/**
+	 * Set the timeout of the primary hand being static to allow gestures
+	 *
+	 * @param	[in]	fTimeout	Time in seconds
+	 */
+	void SetPrimaryStaticTimeout(XnFloat fTimeout);
+	/**
+	 * Get the timeout of the primary hand being static to allow gestures
+	 *
+	 * @return Time in seconds
+	 */
+	XnFloat GetPrimarySteadyTimeout() const;
+
+	/**
+	 * Set the box in which to look for the gesture as a result of the primary hand being static.
+	 * The box will be around the last focus point, with the focus point being its center.
+	 *
+	 * @param	[in]	fX	Length (in mm) on the X-axis
+	 * @param	[in]	fY	Length (in mm) on the Y-axis
+	 * @param	[in]	fZ	Length (in mm) on the Z-axis
+	 */
+	void SetPrimaryStaticBoundingBox(XnFloat fX, XnFloat fY, XnFloat fZ);
+	/**
+	 * Get the box dimensions in which a gesture is looked for when the primary hand is static
+	 *
+	 * @param	[out]	fX	Length (in mm) in the X-axis
+	 * @param	[out]	fY	Length (in mm) in the Y-axis
+	 * @param	[out]	fZ	Length (in mm) in the Z-axis
+	 */
+	void GetPrimaryStaticBoundingBox(XnFloat& fX, XnFloat& fY, XnFloat& fZ);
+
+	XnStatus XN_API_DEPRECATED("Please use Initialize() instead.")
+		Initialize(XnVGesture* pFocusGesture, XnVGesture* pQuickRefocusGesture, XnVPointTracker* pTracker);
+
+	void XN_API_DEPRECATED("Please use AddGesture() instead.")
+		SetGesture(XnVGesture* pGesture);
+	void XN_API_DEPRECATED("Please use AddGesture() instead.")
+		SetGesture(xn::GestureGenerator gestureGenerator, const XnChar* strGestures);
+
+	void XN_API_DEPRECATED("Please use AddQuickRefocus() instead.")
+		SetQRGesture(XnVGesture* pGesture);
+	void XN_API_DEPRECATED("Please use AddQuickRefocus() instead.")
+		SetQRGesture(xn::GestureGenerator gestureGenerator, const XnChar* strGestures);
+
 protected:
+
 	void SessionStop();
 	void StartQuickRefocus(XnBoundingBox3D* pbbROI, XnUInt32 nTimeout);
 
 	XnStatus FindTracker(xn::Context* pContext, xn::HandsGenerator* pTracker, xn::HandsGenerator& tracker);
-	XnStatus FindFocusGesture(xn::Context* pContext, xn::GestureGenerator* pFocusGenerator, const XnChar* strUseAsFocus, xn::GestureGenerator& focusGesture);
 
 	static void XN_CALLBACK_TYPE Gesture_Recognized(const XnChar* strGesture, const XnPoint3D& ptIDPosition, const XnPoint3D& ptEndPosition, void* cxt);
 	static void XN_CALLBACK_TYPE Gesture_StartRecognized(const XnChar* strGesture, const XnPoint3D& pos, XnFloat fProgress, void* cxt);
@@ -188,12 +284,38 @@ protected:
 
 	XnUInt64 GetTime();
 
-	XnVGesture* m_pGesture;
-	XnVGesture* m_pQRGesture;
-	XnVPointTracker* m_pTracker;
+	void EnableGestures(XnBoundingBox3D* pROI = NULL);
+	void EnableQuickRefocusGestures(XnBoundingBox3D* pROI = NULL);
+	void DisableGestures();
+	void DisableQuickRefocusGestures();
+	void UpdateGestures(const xn::Context* pContext);
+	void UpdateQuickRefocusGestures(const xn::Context* pContext);
 
-	XnBool m_bAutoGesture;
-	XnBool m_bAutoQuickRefocus;
+	XnBool m_bGesturesEnabled;
+	XnBool m_bQuickRefocusEnabled;
+
+	struct GestureDescription
+	{
+		XnUInt32 nID;
+		XnVGesture* pGesture;
+		XnBool bAuto;
+		XnCallbackHandle hFocus;
+		XnCallbackHandle hMidFocus;
+	};
+	XN_DECLARE_DEFAULT_HASH(XnUInt32, GestureDescription*, GestureHash);
+	void ClearGestureHash(GestureHash& hash);
+	GestureHash m_MainGestures;
+	GestureHash m_QuickRefocusGestures;
+	XnUInt32 m_nNextGestureID;
+
+	XnUInt32 AddGesture(XnVGesture* pGesture, XnBool bAuto, XnUInt32 nHintID, XnBool bFocus);
+
+	XnUInt32 AddGesture(xn::Context& context, const XnChar* strName, const XnStringsHash& hash, XnBool bFocus);
+	XnUInt32 AddGesture(xn::GestureGenerator& generator, const XnChar* strName, const XnStringsHash& hash, XnBool bFocus);
+
+	void RemoveGesture(XnUInt32 nId, GestureHash& hash);
+
+	XnVPointTracker* m_pTracker;
 	XnBool m_bAutoTracker;
 
 	enum
@@ -224,6 +346,23 @@ protected:
 
 	XnBoundingBox3D m_bbQuickRefocusArea;
 	const xn::Context* m_pContext;
+
+	XnBool m_bCheckPrimaryForStatic;
+	XnBool m_bPrimaryIsStatic;
+	XnVSteadyDetector* m_pSteadyDetector;
+
+	static void XN_CALLBACK_TYPE PrimaryIsSteady(XnUInt32 id, XnFloat dummy, void* cxt);
+	static void XN_CALLBACK_TYPE PrimaryIsNotSteady(XnUInt32 id, XnFloat dummy, void* cxt);
+
+	XnFloat m_fLastSteadyTime;
+	XnFloat m_fLastPrimaryTime;
+	XnFloat m_fSteadyTimeout;
+
+	XnUInt32 m_nLastPrimaryID;
+	XnPoint3D m_GestureWhileTrackingThreshold;
+
+	void InitializeStatic();
+	void FinalizeStatic();
 };
 
 #endif

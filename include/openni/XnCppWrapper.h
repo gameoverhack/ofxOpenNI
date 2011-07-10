@@ -1,28 +1,24 @@
-/*****************************************************************************
-*                                                                            *
-*  OpenNI 1.0 Alpha                                                          *
-*  Copyright (C) 2010 PrimeSense Ltd.                                        *
-*                                                                            *
-*  This file is part of OpenNI.                                              *
-*                                                                            *
-*  OpenNI is free software: you can redistribute it and/or modify            *
-*  it under the terms of the GNU Lesser General Public License as published  *
-*  by the Free Software Foundation, either version 3 of the License, or      *
-*  (at your option) any later version.                                       *
-*                                                                            *
-*  OpenNI is distributed in the hope that it will be useful,                 *
-*  but WITHOUT ANY WARRANTY; without even the implied warranty of            *
-*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the              *
-*  GNU Lesser General Public License for more details.                       *
-*                                                                            *
-*  You should have received a copy of the GNU Lesser General Public License  *
-*  along with OpenNI. If not, see <http://www.gnu.org/licenses/>.            *
-*                                                                            *
-*****************************************************************************/
-
-
-
-
+/****************************************************************************
+*                                                                           *
+*  OpenNI 1.1 Alpha                                                         *
+*  Copyright (C) 2011 PrimeSense Ltd.                                       *
+*                                                                           *
+*  This file is part of OpenNI.                                             *
+*                                                                           *
+*  OpenNI is free software: you can redistribute it and/or modify           *
+*  it under the terms of the GNU Lesser General Public License as published *
+*  by the Free Software Foundation, either version 3 of the License, or     *
+*  (at your option) any later version.                                      *
+*                                                                           *
+*  OpenNI is distributed in the hope that it will be useful,                *
+*  but WITHOUT ANY WARRANTY; without even the implied warranty of           *
+*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the             *
+*  GNU Lesser General Public License for more details.                      *
+*                                                                           *
+*  You should have received a copy of the GNU Lesser General Public License *
+*  along with OpenNI. If not, see <http://www.gnu.org/licenses/>.           *
+*                                                                           *
+****************************************************************************/
 #ifndef __XN_CPP_WRAPPER_H__
 #define __XN_CPP_WRAPPER_H__
 
@@ -73,6 +69,49 @@ namespace xn
 
 	static XnStatus _RegisterToStateChange(_XnRegisterStateChangeFuncPtr xnFunc, XnNodeHandle hNode, StateChangedHandler handler, void* pCookie, XnCallbackHandle& hCallback);
 	static void _UnregisterFromStateChange(_XnUnregisterStateChangeFuncPtr xnFunc, XnNodeHandle hNode, XnCallbackHandle hCallback);
+
+	//---------------------------------------------------------------------------
+	// Some Utilities
+	//---------------------------------------------------------------------------
+	class Version
+	{
+	public:
+		Version(const XnVersion& version) : m_version(version) {}
+		Version(XnUInt8 nMajor, XnUInt8 nMinor, XnUInt16 nMaintenance, XnUInt32 nBuild)
+		{
+			m_version.nMajor = nMajor;
+			m_version.nMinor = nMinor;
+			m_version.nMaintenance = nMaintenance;
+			m_version.nBuild = nBuild;
+		}
+
+		bool operator==(const Version& other) const
+		{
+			return (xnVersionCompare(&m_version, &other.m_version) == 0);
+		}
+		bool operator!=(const Version& other) const
+		{
+			return (xnVersionCompare(&m_version, &other.m_version) != 0);
+		}
+		bool operator<(const Version& other) const
+		{
+			return (xnVersionCompare(&m_version, &other.m_version) < 0);
+		}
+		bool operator<=(const Version& other) const
+		{
+			return (xnVersionCompare(&m_version, &other.m_version) <= 0);
+		}
+		bool operator>(const Version& other) const
+		{
+			return (xnVersionCompare(&m_version, &other.m_version) > 0);
+		}
+		bool operator>=(const Version& other) const
+		{
+			return (xnVersionCompare(&m_version, &other.m_version) >= 0);
+		}
+	private:
+		XnVersion m_version;
+	};
 
 	//---------------------------------------------------------------------------
 	// Meta Data
@@ -290,6 +329,8 @@ namespace xn
 					return sizeof(XnGrayscale8Pixel);
 				case XN_PIXEL_FORMAT_GRAYSCALE_16_BIT:
 					return sizeof(XnGrayscale16Pixel);
+				case XN_PIXEL_FORMAT_MJPEG:
+					return 2;
 				default:
 					XN_ASSERT(FALSE);
 					return 0;
@@ -305,7 +346,7 @@ namespace xn
 		XnStatus AllocateData(XnUInt32 nXRes, XnUInt32 nYRes)
 		{
 			XnStatus nRetVal = XN_STATUS_OK;
-			
+
 			XnUInt32 nSize = nXRes * nYRes * BytesPerPixel();
 			nRetVal = OutputMetaData::AllocateData(nSize);
 			XN_IS_STATUS_OK(nRetVal);
@@ -313,7 +354,7 @@ namespace xn
 			FullXRes() = XRes() = nXRes;
 			FullYRes() = YRes() = nYRes;
 			XOffset() = YOffset() = 0;
-			
+
 			return (XN_STATUS_OK);
 		}
 
@@ -399,7 +440,7 @@ namespace xn
 		_pixelType*& m_pData;													\
 		XnUInt32& m_nXRes;														\
 		XnUInt32& m_nYRes;														\
-	};																		
+	};
 
 	_XN_DECLARE_MAP_DATA_CLASS(DepthMap, XnDepthPixel);
 	_XN_DECLARE_MAP_DATA_CLASS(ImageMap, XnUInt8);
@@ -419,7 +460,7 @@ namespace xn
 		/**
 		 * Ctor.
 		 */
-		inline DepthMetaData() : 
+		inline DepthMetaData() :
 			MapMetaData(XN_PIXEL_FORMAT_GRAYSCALE_16_BIT, (const XnUInt8**)&m_depth.pData),
 			m_depthMap(const_cast<XnDepthPixel*&>(m_depth.pData), MapMetaData::GetUnderlying()->Res.X, MapMetaData::GetUnderlying()->Res.Y),
 			m_writableDepthMap((XnDepthPixel*&)m_pAllocatedData, MapMetaData::GetUnderlying()->Res.X, MapMetaData::GetUnderlying()->Res.Y)
@@ -487,10 +528,10 @@ namespace xn
 		/// Gets a light object wrapping the depth-map
 		inline const xn::DepthMap& DepthMap() const { return m_depthMap; }
 		/// Gets a light object wrapping the writable depth-map
-		inline xn::DepthMap& WritableDepthMap() 
-		{ 
+		inline xn::DepthMap& WritableDepthMap()
+		{
 			MakeDataWritable();
-			return m_writableDepthMap; 
+			return m_writableDepthMap;
 		}
 
 		/**
@@ -498,10 +539,10 @@ namespace xn
 		 *
 		 * @param	nIndex		[in]	The index of the pixel in the buffer.
 		 */
-		inline const XnDepthPixel& operator[](XnUInt32 nIndex) const 
-		{ 
+		inline const XnDepthPixel& operator[](XnUInt32 nIndex) const
+		{
 			XN_ASSERT(nIndex < (XRes()*YRes()));
-			return Data()[nIndex]; 
+			return Data()[nIndex];
 		}
 
 		/**
@@ -510,10 +551,10 @@ namespace xn
 		 * @param	x		[in]	X-coordinate of the pixel in the map
 		 * @param	y		[in]	Y-coordinate of the pixel in the map
 		 */
-		inline const XnDepthPixel& operator()(XnUInt32 x, XnUInt32 y) const 
+		inline const XnDepthPixel& operator()(XnUInt32 x, XnUInt32 y) const
 		{
 			XN_ASSERT(x < XRes() && y < YRes());
-			return Data()[y*XRes() + x]; 
+			return Data()[y*XRes() + x];
 		}
 
 		/// @copydoc xn::OutputMetaData::GetUnderlying
@@ -539,7 +580,7 @@ namespace xn
 	{
 	public:
 		/// Ctor
-		inline ImageMetaData() : 
+		inline ImageMetaData() :
 			MapMetaData(XN_PIXEL_FORMAT_RGB24, &m_image.pData),
 			m_imageMap(const_cast<XnUInt8*&>(m_image.pData), MapMetaData::GetUnderlying()->Res.X, MapMetaData::GetUnderlying()->Res.Y),
 			m_writableImageMap((XnUInt8*&)m_pAllocatedData, MapMetaData::GetUnderlying()->Res.X, MapMetaData::GetUnderlying()->Res.Y),
@@ -721,7 +762,7 @@ namespace xn
 	{
 	public:
 		/// Ctor
-		inline IRMetaData() : 
+		inline IRMetaData() :
 			MapMetaData(XN_PIXEL_FORMAT_GRAYSCALE_16_BIT, (const XnUInt8**)&m_ir.pData),
 			m_irMap(const_cast<XnIRPixel*&>(m_ir.pData), MapMetaData::GetUnderlying()->Res.X, MapMetaData::GetUnderlying()->Res.Y),
 			m_writableIRMap((XnIRPixel*&)m_pAllocatedData, MapMetaData::GetUnderlying()->Res.X, MapMetaData::GetUnderlying()->Res.Y)
@@ -850,7 +891,7 @@ namespace xn
 	{
 	public:
 		/// Ctor
-		inline SceneMetaData() : 
+		inline SceneMetaData() :
 			MapMetaData(XN_PIXEL_FORMAT_GRAYSCALE_16_BIT, (const XnUInt8**)&m_scene.pData),
 			m_labelMap(const_cast<XnLabel*&>(m_scene.pData), MapMetaData::GetUnderlying()->Res.X, MapMetaData::GetUnderlying()->Res.Y),
 			m_writableLabelMap((XnLabel*&)m_pAllocatedData, MapMetaData::GetUnderlying()->Res.X, MapMetaData::GetUnderlying()->Res.Y)
@@ -993,7 +1034,7 @@ namespace xn
 
 		/// TRUE if the object points to an actual node, FALSE otherwise.
 		inline XnBool IsValid() const { return (m_hNode != NULL); }
-		
+
 		/** @copybrief xnGetNodeName()
 		 * For full details and usage, see @ref xnGetNodeName()
 		 */
@@ -1007,7 +1048,7 @@ namespace xn
 		/** @copybrief xnProductionNodeRelease
 		 * For full details and usage, see @ref xnProductionNodeRelease
 		 */
-		inline void Release() 
+		inline void Release()
 		{
 			xnProductionNodeRelease(m_hNode);
 			m_hNode = NULL;
@@ -1117,10 +1158,18 @@ namespace xn
 		 * Gets the node instance represented by this info object.
 		 *
 		 * @param	node		[in]	A production node to be pointing to the node.
-		 * 
+		 *
 		 * @returns an error if this node info object does not point to an actual node.
 		 */
 		inline XnStatus GetInstance(ProductionNode& node) const;
+
+		/** @copybrief xnNodeInfoGetAdditionalData
+		 * For full details and usage, see @ref xnNodeInfoGetAdditionalData
+		 */
+		inline const void* GetAdditionalData() const
+		{
+			return xnNodeInfoGetAdditionalData(m_pInfo);
+		}
 
 	private:
 		inline void SetUnderlyingObject(XnNodeInfo* pInfo);
@@ -1167,7 +1216,7 @@ namespace xn
 
 		/** @copybrief xnNodeQuerySetName()
 		 * For full details and usage, see @ref xnNodeQuerySetName()
-		 */		
+		 */
 		inline XnStatus SetName(const XnChar* strName)
 		{
 			return xnNodeQuerySetName(m_pQuery, strName);
@@ -1175,7 +1224,7 @@ namespace xn
 
 		/** @copybrief xnNodeQuerySetMinVersion
 		 * For full details and usage, see @ref xnNodeQuerySetMinVersion
-		 */		
+		 */
 		inline XnStatus SetMinVersion(const XnVersion& minVersion)
 		{
 			return xnNodeQuerySetMinVersion(m_pQuery, &minVersion);
@@ -1231,7 +1280,7 @@ namespace xn
 
 		/** @copybrief xnNodeQuerySetCreationInfo
 		 * For full details and usage, see @ref xnNodeQuerySetCreationInfo
-		 */		
+		 */
 		inline XnStatus SetCreationInfo(const XnChar* strCreationInfo)
 		{
 			return xnNodeQuerySetCreationInfo(m_pQuery, strCreationInfo);
@@ -1351,7 +1400,7 @@ namespace xn
 		/**
 		 * Creates a new @ref NodeInfoList object.
 		 */
-		inline NodeInfoList() 
+		inline NodeInfoList()
 		{
 			xnNodeInfoListAllocate(&m_pList);
 			m_bAllocated = TRUE;
@@ -1380,7 +1429,7 @@ namespace xn
 		 *
 		 * @param	pList		[in]	The list to wrap.
 		 */
-		inline void ReplaceUnderlyingObject(XnNodeInfoList* pList) 
+		inline void ReplaceUnderlyingObject(XnNodeInfoList* pList)
 		{
 			FreeImpl();
 			m_pList = pList;
@@ -1390,11 +1439,19 @@ namespace xn
 		/** @copybrief xnNodeInfoListAdd
 		 * For full details and usage, see @ref xnNodeInfoListAdd
 		 */
-
 		inline XnStatus Add(XnProductionNodeDescription& description, const XnChar* strCreationInfo, NodeInfoList* pNeededNodes)
 		{
 			XnNodeInfoList* pList = (pNeededNodes == NULL) ? NULL : pNeededNodes->GetUnderlyingObject();
 			return xnNodeInfoListAdd(m_pList, &description, strCreationInfo, pList);
+		}
+
+		/** @copybrief xnNodeInfoListAddEx
+		 * For full details and usage, see @ref xnNodeInfoListAddEx
+		 */
+		inline XnStatus AddEx(XnProductionNodeDescription& description, const XnChar* strCreationInfo, NodeInfoList* pNeededNodes, const void* pAdditionalData, XnFreeHandler pFreeHandler)
+		{
+			XnNodeInfoList* pList = (pNeededNodes == NULL) ? NULL : pNeededNodes->GetUnderlyingObject();
+			return xnNodeInfoListAddEx(m_pList, &description, strCreationInfo, pList, pAdditionalData, pFreeHandler);
 		}
 
 		/** @copybrief xnNodeInfoListAddNode
@@ -1540,7 +1597,7 @@ namespace xn
 		/** @copybrief xnGetNodeErrorState
 		 * For full details and usage, see @ref xnGetNodeErrorState
 		 */
-		inline XnStatus GetErrorState()
+		inline XnStatus GetErrorState() const
 		{
 			return xnGetNodeErrorState(m_hNode);
 		}
@@ -1560,6 +1617,61 @@ namespace xn
 		{
 			_UnregisterFromStateChange(xnUnregisterFromNodeErrorStateChange, m_hNode, hCallback);
 		}
+	};
+
+	/**
+	 * @ingroup cppref
+	 * Allows access to general integer capabilities functions. see @ref general_int for additional details.
+	 */
+	class GeneralIntCapability : public Capability
+	{
+	public:
+		/**
+		 * Ctor
+		 *
+		 * @param	hNode		[in]	Node handle
+		 * @param	strCap		[in]	Name of the capability
+		 */
+		GeneralIntCapability(XnNodeHandle hNode, const XnChar* strCap) : Capability(hNode), m_strCap(strCap) {}
+
+		/** @copybrief xnGetGeneralIntRange
+		 * For full details and usage, see @ref xnGetGeneralIntRange
+		 */
+		inline void GetRange(XnInt32& nMin, XnInt32& nMax, XnInt32& nStep, XnInt32& nDefault, XnBool& bIsAutoSupported) const
+		{
+			xnGetGeneralIntRange(m_hNode, m_strCap, &nMin, &nMax, &nStep, &nDefault, &bIsAutoSupported);
+		}
+
+		/** @copybrief xnGetGeneralIntValue
+		 * For full details and usage, see @ref xnGetGeneralIntValue
+		 */
+		inline XnInt32 Get()
+		{
+			XnInt32 nValue;
+			xnGetGeneralIntValue(m_hNode, m_strCap, &nValue);
+			return nValue;
+		}
+
+		/** @copybrief xnSetGeneralIntValue
+		 * For full details and usage, see @ref xnSetGeneralIntValue
+		 */
+		inline XnStatus Set(XnInt32 nValue)
+		{
+			return xnSetGeneralIntValue(m_hNode, m_strCap, nValue);
+		}
+
+		/** @copybrief xnRegisterToGeneralIntValueChange
+		 * For full details and usage, see @ref xnRegisterToGeneralIntValueChange
+		 */
+		XnStatus RegisterToValueChange(StateChangedHandler handler, void* pCookie, XnCallbackHandle& hCallback);
+
+		/** @copybrief xnUnregisterFromGeneralIntValueChange
+		 * For full details and usage, see @ref xnUnregisterFromGeneralIntValueChange
+		 */
+		void UnregisterFromValueChange(XnCallbackHandle hCallback);
+
+	private:
+		const XnChar* m_strCap;
 	};
 
 	/**
@@ -1600,7 +1712,7 @@ namespace xn
 		/** @copybrief xnGetContextFromNodeHandle
 		 * For full details and usage, see @ref xnGetContextFromNodeHandle
 		 */
-		inline void GetContext(Context& context);
+		inline void GetContext(Context& context) const;
 
 		/** @copybrief xnIsCapabilitySupported
 		 * For full details and usage, see @ref xnIsCapabilitySupported
@@ -1711,9 +1823,70 @@ namespace xn
 		 * It is the application responsibility to check first if @ref XN_CAPABILITY_ERROR_STATE is supported
 		 * by calling @ref IsCapabilitySupported().
 		 */
+		inline const ErrorStateCapability GetErrorStateCap() const
+		{
+			return ErrorStateCapability(m_hNode);
+		}
+
+		/**
+		 * Gets an @ref ErrorStateCapability object for accessing Error State functionality.
+		 * It is the application responsibility to check first if @ref XN_CAPABILITY_ERROR_STATE is supported
+		 * by calling @ref IsCapabilitySupported().
+		 */
 		inline ErrorStateCapability GetErrorStateCap()
 		{
 			return ErrorStateCapability(m_hNode);
+		}
+
+		/**
+		 * Gets an @ref GeneralIntCapability object for accessing the capability functionality.
+		 * It is the application responsibility to check first if the capability is supported
+		 * by calling @ref IsCapabilitySupported().
+		 *
+		 * @param	strCapability	[in]	Name of the capability to get
+		 */
+		inline GeneralIntCapability GetGeneralIntCap(const XnChar* strCapability)
+		{
+			return GeneralIntCapability(m_hNode, strCapability);
+		}
+	};
+
+	/**
+	 * @ingroup cppref
+	 * Allows access to <b>Device Identification</b> capability functions. see @ref device_id for additional details.
+	 */
+	class DeviceIdentificationCapability : public Capability
+	{
+	public:
+		/**
+		 * Ctor
+		 *
+		 * @param	hNode		[in]	Node handle
+		 */
+		DeviceIdentificationCapability(XnNodeHandle hNode) : Capability(hNode) {}
+
+		/** @copybrief xnGetDeviceName
+		 * For full details and usage, see @ref xnGetDeviceName
+		 */
+		inline XnStatus GetDeviceName(XnChar* strBuffer, XnUInt32 nBufferSize)
+		{
+			return xnGetDeviceName(m_hNode, strBuffer, &nBufferSize);
+		}
+
+		/** @copybrief xnGetVendorSpecificData
+		 * For full details and usage, see @ref xnGetVendorSpecificData
+		 */
+		inline XnStatus GetVendorSpecificData(XnChar* strBuffer, XnUInt32 nBufferSize)
+		{
+			return xnGetVendorSpecificData(m_hNode, strBuffer, &nBufferSize);
+		}
+
+		/** @copybrief xnGetSerialNumber
+		 * For full details and usage, see @ref xnGetSerialNumber
+		 */
+		inline XnStatus GetSerialNumber(XnChar* strBuffer, XnUInt32 nBufferSize)
+		{
+			return xnGetSerialNumber(m_hNode, strBuffer, &nBufferSize);
 		}
 	};
 
@@ -1730,6 +1903,21 @@ namespace xn
 		 * @param	hNode		[in]	Node handle
 		 */
 		inline Device(XnNodeHandle hNode = NULL) : ProductionNode(hNode) {}
+
+		/** @copybrief xnCreateDevice
+		 * For full details and usage, see @ref xnCreateDevice
+		 */
+		inline XnStatus Create(Context& context, Query* pQuery = NULL, EnumerationErrors* pErrors = NULL);
+
+		/**
+		 * Gets a @ref DeviceIdentificationCapability object for accessing device identification functionality.
+		 * It is the application responsibility to check first if @ref XN_CAPABILITY_DEVICE_IDENTIFICATION is supported
+		 * by calling @ref IsCapabilitySupported().
+		 */
+		inline DeviceIdentificationCapability GetIdentificationCap()
+		{
+			return DeviceIdentificationCapability(m_hNode);
+		}
 	};
 
 	/**
@@ -1859,7 +2047,7 @@ namespace xn
 		/** @copybrief xnCanFrameSyncWith
 		 * For full details and usage, see @ref xnCanFrameSyncWith
 		 */
-		inline XnBool CanFrameSyncWith(Generator& other);
+		inline XnBool CanFrameSyncWith(Generator& other) const;
 
 		/** @copybrief xnFrameSyncWith
 		 * For full details and usage, see @ref xnFrameSyncWith
@@ -1874,7 +2062,7 @@ namespace xn
 		/** @copybrief xnIsFrameSyncedWith
 		 * For full details and usage, see @ref xnIsFrameSyncedWith
 		 */
-		inline XnBool IsFrameSyncedWith(Generator& other);
+		inline XnBool IsFrameSyncedWith(Generator& other) const;
 
 		/** @copybrief xnRegisterToFrameSyncChange
 		 * For full details and usage, see @ref xnRegisterToFrameSyncChange
@@ -1966,7 +2154,7 @@ namespace xn
 		/** @copybrief xnIsNewDataAvailable
 		 * For full details and usage, see @ref xnIsNewDataAvailable
 		 */
-		inline XnBool IsNewDataAvailable(XnUInt64* pnTimestamp = NULL)
+		inline XnBool IsNewDataAvailable(XnUInt64* pnTimestamp = NULL) const
 		{
 			return xnIsNewDataAvailable(m_hNode, pnTimestamp);
 		}
@@ -1985,6 +2173,14 @@ namespace xn
 		inline XnBool IsDataNew() const
 		{
 			return xnIsDataNew(m_hNode);
+		}
+
+		/** @copybrief xnGetData
+		 * For full details and usage, see @ref xnGetData
+		 */
+		inline const void* GetData()
+		{
+			return xnGetData(m_hNode);
 		}
 
 		/** @copybrief xnGetDataSize
@@ -2016,9 +2212,19 @@ namespace xn
 		 * It is the application responsibility to check first if @ref XN_CAPABILITY_MIRROR is supported
 		 * by calling @ref IsCapabilitySupported().
 		 */
+		inline const MirrorCapability GetMirrorCap() const
+		{
+			return MirrorCapability(m_hNode);
+		}
+
+		/**
+		 * Gets an @ref MirrorCapability object for accessing Mirror functionality.
+		 * It is the application responsibility to check first if @ref XN_CAPABILITY_MIRROR is supported
+		 * by calling @ref IsCapabilitySupported().
+		 */
 		inline MirrorCapability GetMirrorCap()
-		{ 
-			return MirrorCapability(m_hNode); 
+		{
+			return MirrorCapability(m_hNode);
 		}
 
 		/**
@@ -2026,9 +2232,29 @@ namespace xn
 		 * It is the application responsibility to check first if @ref XN_CAPABILITY_ALTERNATIVE_VIEW_POINT is supported
 		 * by calling @ref IsCapabilitySupported().
 		 */
-		inline AlternativeViewPointCapability GetAlternativeViewPointCap() 
-		{ 
-			return AlternativeViewPointCapability(m_hNode); 
+		inline const AlternativeViewPointCapability GetAlternativeViewPointCap() const
+		{
+			return AlternativeViewPointCapability(m_hNode);
+		}
+
+		/**
+		 * Gets an @ref AlternativeViewPointCapability object for accessing Alternative View Point functionality.
+		 * It is the application responsibility to check first if @ref XN_CAPABILITY_ALTERNATIVE_VIEW_POINT is supported
+		 * by calling @ref IsCapabilitySupported().
+		 */
+		inline AlternativeViewPointCapability GetAlternativeViewPointCap()
+		{
+			return AlternativeViewPointCapability(m_hNode);
+		}
+
+		/**
+		 * Gets an @ref FrameSyncCapability object for accessing Frame Sync functionality.
+		 * It is the application responsibility to check first if @ref XN_CAPABILITY_FRAME_SYNC is supported
+		 * by calling @ref IsCapabilitySupported().
+		 */
+		inline const FrameSyncCapability GetFrameSyncCap() const
+		{
+			return FrameSyncCapability(m_hNode);
 		}
 
 		/**
@@ -2059,7 +2285,7 @@ namespace xn
 		/** @copybrief xnCreateRecorder
 		 * For full details and usage, see @ref xnCreateRecorder
 		 */
-		inline XnStatus Create(Context& context, const XnChar* strFormatName);
+		inline XnStatus Create(Context& context, const XnChar* strFormatName = NULL);
 
 		/** @copybrief xnSetRecorderDestination
 		 * For full details and usage, see @ref xnSetRecorderDestination
@@ -2132,7 +2358,7 @@ namespace xn
 		/** @copybrief xnGetPlayerSource
 		 * For full details and usage, see @ref xnGetPlayerSource
 		 */
-		inline XnStatus GetSource(XnRecordMedium &sourceType, XnChar* strSource, XnUInt32 nBufSize)
+		inline XnStatus GetSource(XnRecordMedium &sourceType, XnChar* strSource, XnUInt32 nBufSize) const
 		{
 			return xnGetPlayerSource(m_hNode, &sourceType, strSource, nBufSize);
 		}
@@ -2164,7 +2390,7 @@ namespace xn
 		/** @copybrief xnTellPlayerTimestamp
 		 * For full details and usage, see @ref xnTellPlayerTimestamp
 		 */
-		inline XnStatus TellTimestamp(XnUInt64& nTimestamp)
+		inline XnStatus TellTimestamp(XnUInt64& nTimestamp) const
 		{
 			return xnTellPlayerTimestamp(m_hNode, &nTimestamp);
 		}
@@ -2172,7 +2398,7 @@ namespace xn
 		/** @copybrief xnTellPlayerFrame
 		 * For full details and usage, see @ref xnTellPlayerFrame
 		 */
-		inline XnStatus TellFrame(const XnChar* strNodeName, XnUInt32& nFrame)
+		inline XnStatus TellFrame(const XnChar* strNodeName, XnUInt32& nFrame) const
 		{
 			return xnTellPlayerFrame(m_hNode, strNodeName, &nFrame);
 		}
@@ -2180,7 +2406,7 @@ namespace xn
 		/** @copybrief xnGetPlayerNumFrames
 		 * For full details and usage, see @ref xnGetPlayerNumFrames
 		 */
-		inline XnStatus GetNumFrames(const XnChar* strNodeName, XnUInt32& nFrames)
+		inline XnStatus GetNumFrames(const XnChar* strNodeName, XnUInt32& nFrames) const
 		{
 			return xnGetPlayerNumFrames(m_hNode, strNodeName, &nFrames);
 		}
@@ -2188,7 +2414,7 @@ namespace xn
 		/** @copybrief xnGetPlayerSupportedFormat
 		 * For full details and usage, see @ref xnGetPlayerSupportedFormat
 		 */
-		inline const XnChar* GetSupportedFormat()
+		inline const XnChar* GetSupportedFormat() const
 		{
 			return xnGetPlayerSupportedFormat(m_hNode);
 		}
@@ -2196,7 +2422,7 @@ namespace xn
 		/** @copybrief xnEnumeratePlayerNodes
 		 * For full details and usage, see @ref xnEnumeratePlayerNodes
 		 */
-		inline XnStatus EnumerateNodes(NodeInfoList& list)
+		inline XnStatus EnumerateNodes(NodeInfoList& list) const
 		{
 			XnNodeInfoList* pList;
 			XnStatus nRetVal = xnEnumeratePlayerNodes(m_hNode, &pList);
@@ -2210,7 +2436,7 @@ namespace xn
 		/** @copybrief xnIsPlayerAtEOF
 		 * For full details and usage, see @ref xnIsPlayerAtEOF
 		 */
-		inline XnBool IsEOF()
+		inline XnBool IsEOF() const
 		{
 			return xnIsPlayerAtEOF(m_hNode);
 		}
@@ -2242,7 +2468,7 @@ namespace xn
 		/** @copybrief xnGetPlaybackSpeed
 		 * For full details and usage, see @ref xnGetPlaybackSpeed
 		 */
-		inline XnDouble GetPlaybackSpeed()
+		inline XnDouble GetPlaybackSpeed() const
 		{
 			return xnGetPlaybackSpeed(m_hNode);
 		}
@@ -2297,6 +2523,53 @@ namespace xn
 
 	/**
 	 * @ingroup cppref
+	 * Allows access to <b>Anti Flicker</b> capability functions. see @ref anti_flicker for additional details.
+	 */
+	class AntiFlickerCapability : public Capability
+	{
+	public:
+		/**
+		 * Ctor
+		 *
+		 * @param	hNode		[in]	Node handle
+		 */
+		inline AntiFlickerCapability(XnNodeHandle hNode) : Capability(hNode) {}
+
+		/** @copybrief xnSetPowerLineFrequency
+		 * For full details and usage, see @ref xnSetPowerLineFrequency
+		 */
+		inline XnStatus SetPowerLineFrequency(XnPowerLineFrequency nFrequency)
+		{
+			return xnSetPowerLineFrequency(m_hNode, nFrequency);
+		}
+
+		/** @copybrief xnGetPowerLineFrequency
+		 * For full details and usage, see @ref xnGetPowerLineFrequency
+		 */
+		inline XnPowerLineFrequency GetPowerLineFrequency()
+		{
+			return xnGetPowerLineFrequency(m_hNode);
+		}
+
+		/** @copybrief xnRegisterToPowerLineFrequencyChange
+		 * For full details and usage, see @ref xnRegisterToPowerLineFrequencyChange
+		 */
+		inline XnStatus RegisterToPowerLineFrequencyChange(StateChangedHandler handler, void* pCookie, XnCallbackHandle& hCallback)
+		{
+			return _RegisterToStateChange(xnRegisterToPowerLineFrequencyChange, m_hNode, handler, pCookie, hCallback);
+		}
+
+		/** @copybrief xnUnregisterFromPowerLineFrequencyChange
+		 * For full details and usage, see @ref xnUnregisterFromPowerLineFrequencyChange
+		 */
+		inline void UnregisterFromPowerLineFrequencyChange(XnCallbackHandle hCallback)
+		{
+			_UnregisterFromStateChange(xnUnregisterFromPowerLineFrequencyChange, m_hNode, hCallback);
+		}
+	};
+
+	/**
+	 * @ingroup cppref
 	 * Base class for Map Generators
 	 */
 	class MapGenerator : public Generator
@@ -2341,6 +2614,14 @@ namespace xn
 			return xnGetMapOutputMode(m_hNode, &OutputMode);
 		}
 
+		/** @copybrief xnGetBytesPerPixel
+		 * For full details and usage, see @ref xnGetBytesPerPixel
+		 */
+		inline XnUInt32 GetBytesPerPixel() const
+		{
+			return xnGetBytesPerPixel(m_hNode);
+		}
+
 		/** @copybrief xnRegisterToMapOutputModeChange
 		 * For full details and usage, see @ref xnRegisterToMapOutputModeChange
 		 */
@@ -2362,9 +2643,199 @@ namespace xn
 		 * It is the application responsibility to check first if @ref XN_CAPABILITY_CROPPING is supported
 		 * by calling @ref IsCapabilitySupported().
 		 */
+		inline const CroppingCapability GetCroppingCap() const
+		{
+			return CroppingCapability(m_hNode);
+		}
+
+		/**
+		 * Gets an @ref CroppingCapability object for accessing Cropping functionality.
+		 * It is the application responsibility to check first if @ref XN_CAPABILITY_CROPPING is supported
+		 * by calling @ref IsCapabilitySupported().
+		 */
 		inline CroppingCapability GetCroppingCap()
 		{
 			return CroppingCapability(m_hNode);
+		}
+
+		/**
+		 * Gets an @ref GeneralIntCapability object for accessing Brightness functionality.
+		 * It is the application responsibility to check first if @ref XN_CAPABILITY_BRIGHTNESS is supported
+		 * by calling @ref IsCapabilitySupported().
+		 */
+		inline GeneralIntCapability GetBrightnessCap()
+		{
+			return GeneralIntCapability(m_hNode, XN_CAPABILITY_BRIGHTNESS);
+		}
+
+		/**
+		 * Gets an @ref GeneralIntCapability object for accessing Contrast functionality.
+		 * It is the application responsibility to check first if @ref XN_CAPABILITY_CONTRAST is supported
+		 * by calling @ref IsCapabilitySupported().
+		 */
+		inline GeneralIntCapability GetContrastCap()
+		{
+			return GeneralIntCapability(m_hNode, XN_CAPABILITY_CONTRAST);
+		}
+
+		/**
+		 * Gets an @ref GeneralIntCapability object for accessing Hue functionality.
+		 * It is the application responsibility to check first if @ref XN_CAPABILITY_HUE is supported
+		 * by calling @ref IsCapabilitySupported().
+		 */
+		inline GeneralIntCapability GetHueCap()
+		{
+			return GeneralIntCapability(m_hNode, XN_CAPABILITY_HUE);
+		}
+
+		/**
+		 * Gets an @ref GeneralIntCapability object for accessing Saturation functionality.
+		 * It is the application responsibility to check first if @ref XN_CAPABILITY_SATURATION is supported
+		 * by calling @ref IsCapabilitySupported().
+		 */
+		inline GeneralIntCapability GetSaturationCap()
+		{
+			return GeneralIntCapability(m_hNode, XN_CAPABILITY_SATURATION);
+		}
+
+		/**
+		 * Gets an @ref GeneralIntCapability object for accessing Sharpness functionality.
+		 * It is the application responsibility to check first if @ref XN_CAPABILITY_SHARPNESS is supported
+		 * by calling @ref IsCapabilitySupported().
+		 */
+		inline GeneralIntCapability GetSharpnessCap()
+		{
+			return GeneralIntCapability(m_hNode, XN_CAPABILITY_SHARPNESS);
+		}
+
+		/**
+		 * Gets an @ref GeneralIntCapability object for accessing Gamma functionality.
+		 * It is the application responsibility to check first if @ref XN_CAPABILITY_GAMMA is supported
+		 * by calling @ref IsCapabilitySupported().
+		 */
+		inline GeneralIntCapability GetGammaCap()
+		{
+			return GeneralIntCapability(m_hNode, XN_CAPABILITY_GAMMA);
+		}
+
+		/**
+		 * Gets an @ref GeneralIntCapability object for accessing WhiteBalance functionality.
+		 * It is the application responsibility to check first if @ref XN_CAPABILITY_COLOR_TEMPERATURE is supported
+		 * by calling @ref IsCapabilitySupported().
+		 */
+		inline GeneralIntCapability GetWhiteBalanceCap()
+		{
+			return GeneralIntCapability(m_hNode, XN_CAPABILITY_COLOR_TEMPERATURE);
+		}
+
+		/**
+		 * Gets an @ref GeneralIntCapability object for accessing BacklightCompensation functionality.
+		 * It is the application responsibility to check first if @ref XN_CAPABILITY_BACKLIGHT_COMPENSATION is supported
+		 * by calling @ref IsCapabilitySupported().
+		 */
+		inline GeneralIntCapability GetBacklightCompensationCap()
+		{
+			return GeneralIntCapability(m_hNode, XN_CAPABILITY_BACKLIGHT_COMPENSATION);
+		}
+
+		/**
+		 * Gets an @ref GeneralIntCapability object for accessing Gain functionality.
+		 * It is the application responsibility to check first if @ref XN_CAPABILITY_GAIN is supported
+		 * by calling @ref IsCapabilitySupported().
+		 */
+		inline GeneralIntCapability GetGainCap()
+		{
+			return GeneralIntCapability(m_hNode, XN_CAPABILITY_GAIN);
+		}
+
+		/**
+		 * Gets an @ref GeneralIntCapability object for accessing Pan functionality.
+		 * It is the application responsibility to check first if @ref XN_CAPABILITY_PAN is supported
+		 * by calling @ref IsCapabilitySupported().
+		 */
+		inline GeneralIntCapability GetPanCap()
+		{
+			return GeneralIntCapability(m_hNode, XN_CAPABILITY_PAN);
+		}
+
+		/**
+		 * Gets an @ref GeneralIntCapability object for accessing Tilt functionality.
+		 * It is the application responsibility to check first if @ref XN_CAPABILITY_TILT is supported
+		 * by calling @ref IsCapabilitySupported().
+		 */
+		inline GeneralIntCapability GetTiltCap()
+		{
+			return GeneralIntCapability(m_hNode, XN_CAPABILITY_TILT);
+		}
+
+		/**
+		 * Gets an @ref GeneralIntCapability object for accessing Roll functionality.
+		 * It is the application responsibility to check first if @ref XN_CAPABILITY_ROLL is supported
+		 * by calling @ref IsCapabilitySupported().
+		 */
+		inline GeneralIntCapability GetRollCap()
+		{
+			return GeneralIntCapability(m_hNode, XN_CAPABILITY_ROLL);
+		}
+
+		/**
+		 * Gets an @ref GeneralIntCapability object for accessing Zoom functionality.
+		 * It is the application responsibility to check first if @ref XN_CAPABILITY_ZOOM is supported
+		 * by calling @ref IsCapabilitySupported().
+		 */
+		inline GeneralIntCapability GetZoomCap()
+		{
+			return GeneralIntCapability(m_hNode, XN_CAPABILITY_ZOOM);
+		}
+
+		/**
+		 * Gets an @ref GeneralIntCapability object for accessing Exposure functionality.
+		 * It is the application responsibility to check first if @ref XN_CAPABILITY_EXPOSURE is supported
+		 * by calling @ref IsCapabilitySupported().
+		 */
+		inline GeneralIntCapability GetExposureCap()
+		{
+			return GeneralIntCapability(m_hNode, XN_CAPABILITY_EXPOSURE);
+		}
+
+		/**
+		 * Gets an @ref GeneralIntCapability object for accessing Iris functionality.
+		 * It is the application responsibility to check first if @ref XN_CAPABILITY_IRIS is supported
+		 * by calling @ref IsCapabilitySupported().
+		 */
+		inline GeneralIntCapability GetIrisCap()
+		{
+			return GeneralIntCapability(m_hNode, XN_CAPABILITY_IRIS);
+		}
+
+		/**
+		 * Gets an @ref GeneralIntCapability object for accessing Focus functionality.
+		 * It is the application responsibility to check first if @ref XN_CAPABILITY_FOCUS is supported
+		 * by calling @ref IsCapabilitySupported().
+		 */
+		inline GeneralIntCapability GetFocusCap()
+		{
+			return GeneralIntCapability(m_hNode, XN_CAPABILITY_FOCUS);
+		}
+
+		/**
+		 * Gets an @ref GeneralIntCapability object for accessing Low Light Compensation functionality.
+		 * It is the application responsibility to check first if @ref XN_CAPABILITY_LOW_LIGHT_COMPENSATION is supported
+		 * by calling @ref IsCapabilitySupported().
+		 */
+		inline GeneralIntCapability GetLowLightCompensationCap()
+		{
+			return GeneralIntCapability(m_hNode, XN_CAPABILITY_LOW_LIGHT_COMPENSATION);
+		}
+
+		/**
+		 * Gets an @ref AntiFlickerCapability object for accessing Anti Flicker functionality.
+		 * It is the application responsibility to check first if @ref XN_CAPABILITY_ANTI_FLICKER is supported
+		 * by calling @ref IsCapabilitySupported().
+		 */
+		inline AntiFlickerCapability GetAntiFlickerCap()
+		{
+			return AntiFlickerCapability(m_hNode);
 		}
 	};
 
@@ -2445,9 +2916,9 @@ namespace xn
 		/** @copybrief xnGetDepthMetaData
 		 * For full details and usage, see @ref xnGetDepthMetaData
 		 */
-		inline void GetMetaData(DepthMetaData& metaData) const 
+		inline void GetMetaData(DepthMetaData& metaData) const
 		{
-			return xnGetDepthMetaData(m_hNode, metaData.GetUnderlying());
+			xnGetDepthMetaData(m_hNode, metaData.GetUnderlying());
 		}
 
 		/** @copybrief xnGetDepthMap
@@ -2511,7 +2982,17 @@ namespace xn
 		 * It is the application responsibility to check first if @ref XN_CAPABILITY_USER_POSITION is supported
 		 * by calling @ref IsCapabilitySupported().
 		 */
-		inline UserPositionCapability GetUserPositionCap() 
+		inline const UserPositionCapability GetUserPositionCap() const
+		{
+			return UserPositionCapability(m_hNode);
+		}
+
+		/**
+		 * Gets an @ref UserPositionCapability object for accessing User Position functionality.
+		 * It is the application responsibility to check first if @ref XN_CAPABILITY_USER_POSITION is supported
+		 * by calling @ref IsCapabilitySupported().
+		 */
+		inline UserPositionCapability GetUserPositionCap()
 		{
 			return UserPositionCapability(m_hNode);
 		}
@@ -2562,7 +3043,7 @@ namespace xn
 		 * @param	nFrameID		[in]	Frame ID
 		 * @param	nTimestamp		[in]	Timestamp
 		 */
-		inline XnStatus SetData(DepthMetaData& depthMD, XnUInt32 nFrameID, XnUInt64 nTimestamp)
+		inline XnStatus SetData(const DepthMetaData& depthMD, XnUInt32 nFrameID, XnUInt64 nTimestamp)
 		{
 			return SetData(nFrameID, nTimestamp, depthMD.DataSize(), depthMD.Data());
 		}
@@ -2572,7 +3053,7 @@ namespace xn
 		 *
 		 * @param	depthMD			[in]	Object to take data from
 		 */
-		inline XnStatus SetData(DepthMetaData& depthMD)
+		inline XnStatus SetData(const DepthMetaData& depthMD)
 		{
 			return SetData(depthMD, depthMD.FrameID(), depthMD.Timestamp());
 		}
@@ -2600,9 +3081,9 @@ namespace xn
 		/** @copybrief xnGetImageMetaData
 		 * For full details and usage, see @ref xnGetImageMetaData
 		 */
-		inline void GetMetaData(ImageMetaData& metaData) const 
+		inline void GetMetaData(ImageMetaData& metaData) const
 		{
-			return xnGetImageMetaData(m_hNode, metaData.GetUnderlying());
+			xnGetImageMetaData(m_hNode, metaData.GetUnderlying());
 		}
 
 		/** @copybrief xnGetRGB24ImageMap
@@ -2637,7 +3118,7 @@ namespace xn
 			return xnGetGrayscale16ImageMap(m_hNode);
 		}
 
-		/** @copybrief xnGetImageMap() 
+		/** @copybrief xnGetImageMap()
 		 * For full details, see @ref xnGetImageMap().
 		 */
 		inline const XnUInt8* GetImageMap() const
@@ -2731,7 +3212,7 @@ namespace xn
 		 * @param	nFrameID		[in]	Frame ID
 		 * @param	nTimestamp		[in]	Timestamp
 		 */
-		inline XnStatus SetData(ImageMetaData& imageMD, XnUInt32 nFrameID, XnUInt64 nTimestamp)
+		inline XnStatus SetData(const ImageMetaData& imageMD, XnUInt32 nFrameID, XnUInt64 nTimestamp)
 		{
 			return SetData(nFrameID, nTimestamp, imageMD.DataSize(), imageMD.Data());
 		}
@@ -2741,7 +3222,7 @@ namespace xn
 		 *
 		 * @param	imageMD			[in]	Object to take data from
 		 */
-		inline XnStatus SetData(ImageMetaData& imageMD)
+		inline XnStatus SetData(const ImageMetaData& imageMD)
 		{
 			return SetData(imageMD, imageMD.FrameID(), imageMD.Timestamp());
 		}
@@ -2769,8 +3250,8 @@ namespace xn
 		/** @copybrief xnGetIRMetaData
 		 * For full details and usage, see @ref xnGetIRMetaData
 		 */
-		inline void GetMetaData(IRMetaData& metaData) const 
-		{ 
+		inline void GetMetaData(IRMetaData& metaData) const
+		{
 			xnGetIRMetaData(m_hNode, metaData.GetUnderlying());
 		}
 
@@ -2827,7 +3308,7 @@ namespace xn
 		 * @param	nFrameID		[in]	Frame ID
 		 * @param	nTimestamp		[in]	Timestamp
 		 */
-		inline XnStatus SetData(IRMetaData& irMD, XnUInt32 nFrameID, XnUInt64 nTimestamp)
+		inline XnStatus SetData(const IRMetaData& irMD, XnUInt32 nFrameID, XnUInt64 nTimestamp)
 		{
 			return SetData(nFrameID, nTimestamp, irMD.DataSize(), irMD.Data());
 		}
@@ -2837,7 +3318,7 @@ namespace xn
 		 *
 		 * @param	irMD			[in]	Object to take data from
 		 */
-		inline XnStatus SetData(IRMetaData& irMD)
+		inline XnStatus SetData(const IRMetaData& irMD)
 		{
 			return SetData(irMD, irMD.FrameID(), irMD.Timestamp());
 		}
@@ -2855,7 +3336,7 @@ namespace xn
 		 *
 		 * @param	hNode		[in]	Node handle
 		 */
-		inline GestureGenerator(XnNodeHandle hNode = NULL) : Generator(hNode) {} 
+		inline GestureGenerator(XnNodeHandle hNode = NULL) : Generator(hNode) {}
 
 		/** @copybrief xnCreateGestureGenerator
 		 * For full details and usage, see @ref xnCreateGestureGenerator
@@ -2897,14 +3378,14 @@ namespace xn
 		/** @copybrief xnEnumerateGestures
 		 * For full details and usage, see @ref xnEnumerateGestures
 		 */
-		inline XnStatus EnumerateGestures(XnChar*& astrGestures, XnUInt16& nGestures)
+		inline XnStatus EnumerateGestures(XnChar*& astrGestures, XnUInt16& nGestures) const
 		{
 			return xnEnumerateGestures(m_hNode, &astrGestures, &nGestures);
 		}
-		/** @copybrief xnEnumerateGestures
-		 * For full details and usage, see @ref xnEnumerateGestures
+		/** @copybrief xnEnumerateAllGestures
+		 * For full details and usage, see @ref xnEnumerateAllGestures
 		 */
-		inline XnStatus EnumerateAllGestures(XnChar** astrGestures, XnUInt32 nNameLength, XnUInt16& nGestures)
+		inline XnStatus EnumerateAllGestures(XnChar** astrGestures, XnUInt32 nNameLength, XnUInt16& nGestures) const
 		{
 			return xnEnumerateAllGestures(m_hNode, astrGestures, nNameLength, &nGestures);
 		}
@@ -2912,7 +3393,7 @@ namespace xn
 		/** @copybrief xnIsGestureAvailable
 		 * For full details and usage, see @ref xnIsGestureAvailable
 		 */
-		inline XnBool IsGestureAvailable(const XnChar* strGesture)
+		inline XnBool IsGestureAvailable(const XnChar* strGesture) const
 		{
 			return xnIsGestureAvailable(m_hNode, strGesture);
 		}
@@ -2920,14 +3401,14 @@ namespace xn
 		/** @copybrief xnIsGestureProgressSupported
 		 * For full details and usage, see @ref xnIsGestureProgressSupported
 		 */
-		inline XnBool IsGestureProgressSupported(const XnChar* strGesture)
+		inline XnBool IsGestureProgressSupported(const XnChar* strGesture) const
 		{
 			return xnIsGestureProgressSupported(m_hNode, strGesture);
 		}
 
 		/**
 		 * Callback for the recognition of a gesture
-		 * 
+		 *
 		 * @param	generator		[in]	The node that raised the event.
 		 * @param	strGesture		[in]	The gesture that was recognized.
 		 * @param	pIDPosition		[in]	The position in which the gesture was identified.
@@ -2952,7 +3433,7 @@ namespace xn
 		XnStatus RegisterGestureCallbacks(GestureRecognized RecognizedCB, GestureProgress ProgressCB, void* pCookie, XnCallbackHandle& hCallback)
 		{
 			XnStatus nRetVal = XN_STATUS_OK;
-			
+
 			GestureCookie* pGestureCookie;
 			XN_VALIDATE_ALLOC(pGestureCookie, GestureCookie);
 			pGestureCookie->recognizedHandler = RecognizedCB;
@@ -3276,7 +3757,16 @@ namespace xn
 		/** @copybrief xnIsJointActive
 		 * For full details and usage, see @ref xnIsJointActive
 		 */
-		inline XnBool IsJointActive(XnSkeletonJoint eJoint, XnBool bState)
+		XN_API_DEPRECATED("Use the version with one argument")
+		inline XnBool IsJointActive(XnSkeletonJoint eJoint, XnBool /*bState*/) const
+		{
+			return xnIsJointActive(m_hNode, eJoint);
+		}
+
+		/** @copybrief xnIsJointActive
+		 * For full details and usage, see @ref xnIsJointActive
+		 */
+		inline XnBool IsJointActive(XnSkeletonJoint eJoint) const
 		{
 			return xnIsJointActive(m_hNode, eJoint);
 		}
@@ -3300,7 +3790,7 @@ namespace xn
 		/** @copybrief xnEnumerateActiveJoints
 		 * For full details and usage, see @ref xnEnumerateActiveJoints
 		 */
-		inline XnStatus EnumerateActiveJoints(XnSkeletonJoint* pJoints, XnUInt16& nJoints)
+		inline XnStatus EnumerateActiveJoints(XnSkeletonJoint* pJoints, XnUInt16& nJoints) const
 		{
 			return xnEnumerateActiveJoints(m_hNode, pJoints, &nJoints);
 		}
@@ -3332,7 +3822,7 @@ namespace xn
 		/** @copybrief xnIsSkeletonTracking
 		 * For full details and usage, see @ref xnIsSkeletonTracking
 		 */
-		inline XnBool IsTracking(XnUserID user)
+		inline XnBool IsTracking(XnUserID user) const
 		{
 			return xnIsSkeletonTracking(m_hNode, user);
 		}
@@ -3340,7 +3830,7 @@ namespace xn
 		/** @copybrief xnIsSkeletonCalibrated
 		 * For full details and usage, see @ref xnIsSkeletonCalibrated
 		 */
-		inline XnBool IsCalibrated(XnUserID user)
+		inline XnBool IsCalibrated(XnUserID user) const
 		{
 			return xnIsSkeletonCalibrated(m_hNode, user);
 		}
@@ -3348,7 +3838,7 @@ namespace xn
 		/** @copybrief xnIsSkeletonCalibrating
 		 * For full details and usage, see @ref xnIsSkeletonCalibrating
 		 */
-		inline XnBool IsCalibrating(XnUserID user)
+		inline XnBool IsCalibrating(XnUserID user) const
 		{
 			return xnIsSkeletonCalibrating(m_hNode, user);
 		}
@@ -3367,6 +3857,22 @@ namespace xn
 		inline XnStatus AbortCalibration(XnUserID user)
 		{
 			return xnAbortSkeletonCalibration(m_hNode, user);
+		}
+
+		/** @copybrief xnSaveSkeletonCalibrationDataToFile
+		* For full details and usage, see @ref xnSaveSkeletonCalibrationDataToFile
+		*/
+		inline XnStatus SaveCalibrationDataToFile(XnUserID user, const XnChar* strFileName)
+		{
+			return xnSaveSkeletonCalibrationDataToFile(m_hNode, user, strFileName);
+		}
+
+		/** @copybrief xnLoadSkeletonCalibrationDataFromFile
+		* For full details and usage, see @ref xnLoadSkeletonCalibrationDataFromFile
+		*/
+		inline XnStatus LoadCalibrationDataFromFile(XnUserID user, const XnChar* strFileName)
+		{
+			return xnLoadSkeletonCalibrationDataFromFile(m_hNode, user, strFileName);
 		}
 
 		/** @copybrief xnSaveSkeletonCalibrationData
@@ -3396,7 +3902,7 @@ namespace xn
 		/** @copybrief xnIsSkeletonCalibrationData
 		 * For full details and usage, see @ref xnIsSkeletonCalibrationData
 		 */
-		inline XnBool IsCalibrationData(XnUInt32 nSlot)
+		inline XnBool IsCalibrationData(XnUInt32 nSlot) const
 		{
 			return xnIsSkeletonCalibrationData(m_hNode, nSlot);
 		}
@@ -3428,7 +3934,7 @@ namespace xn
 		/** @copybrief xnNeedPoseForSkeletonCalibration
 		 * For full details and usage, see @ref xnNeedPoseForSkeletonCalibration
 		 */
-		inline XnBool NeedPoseForCalibration()
+		inline XnBool NeedPoseForCalibration() const
 		{
 			return xnNeedPoseForSkeletonCalibration(m_hNode);
 		}
@@ -3436,7 +3942,7 @@ namespace xn
 		/** @copybrief xnGetSkeletonCalibrationPose
 		 * For full details and usage, see @ref xnGetSkeletonCalibrationPose
 		 */
-		inline XnStatus GetCalibrationPose(XnChar* strPose)
+		inline XnStatus GetCalibrationPose(XnChar* strPose) const
 		{
 			return xnGetSkeletonCalibrationPose(m_hNode, strPose);
 		}
@@ -3451,7 +3957,7 @@ namespace xn
 
 		/**
 		 * Callback for indication that a specific user's skeleton is now starting the calibration process
-		 * 
+		 *
 		 * @param	skeleton	[in]	The node that raised the event.
 		 * @param	user		[in]	The id of the user that's being calibrated.
 		 * @param	pCookie		[in]	A user-provided cookie that was given when registering to this event.
@@ -3459,7 +3965,7 @@ namespace xn
 		typedef void (XN_CALLBACK_TYPE* CalibrationStart)(SkeletonCapability& skeleton, XnUserID user, void* pCookie);
 		/**
 		 * Callback for indication that a specific user's skeleton has now completed the calibration process
-		 * 
+		 *
 		 * @param	hNode		[in]	The node that raised the event.
 		 * @param	user		[in]	The id of the user for which calibration was attempted.
 		 * @param	bSuccess	[in]	An indication of whether or not the calibration attempt succeeded.
@@ -3559,7 +4065,7 @@ namespace xn
 		/** @copybrief xnGetNumberOfPoses
 		 * For full details and usage, see @ref xnGetNumberOfPoses
 		 */
-		inline XnUInt32 GetNumberOfPoses()
+		inline XnUInt32 GetNumberOfPoses() const
 		{
 			return xnGetNumberOfPoses(m_hNode);
 		}
@@ -3567,14 +4073,14 @@ namespace xn
 		/** @copybrief xnGetAvailablePoses
 		 * For full details and usage, see @ref xnGetAvailablePoses
 		 */
-		inline XnStatus GetAvailablePoses(XnChar** pstrPoses, XnUInt32& nPoses)
+		inline XnStatus GetAvailablePoses(XnChar** pstrPoses, XnUInt32& nPoses) const
 		{
 			return xnGetAvailablePoses(m_hNode, pstrPoses, &nPoses);
 		}
 		/** @copybrief xnGetAvailablePoses
 		* For full details and usage, see @ref xnGetAvailablePoses
 		*/
-		inline XnStatus GetAllAvailablePoses(XnChar** pstrPoses, XnUInt32 nNameLength, XnUInt32& nPoses)
+		inline XnStatus GetAllAvailablePoses(XnChar** pstrPoses, XnUInt32 nNameLength, XnUInt32& nPoses) const
 		{
 			return xnGetAllAvailablePoses(m_hNode, pstrPoses, nNameLength, &nPoses);
 		}
@@ -3707,11 +4213,11 @@ namespace xn
 		/** @copybrief xnGetUserPixels
 		 * For full details and usage, see @ref xnGetUserPixels
 		 */
-		inline XnStatus GetUserPixels(XnUserID user, SceneMetaData& smd)
+		inline XnStatus GetUserPixels(XnUserID user, SceneMetaData& smd) const
 		{
 			return xnGetUserPixels(m_hNode, user, smd.GetUnderlying());
 		}
-		
+
 		/** @copybrief xnRegisterUserCallbacks
 		 * For full details and usage, see @ref xnRegisterUserCallbacks
 		 */
@@ -3752,9 +4258,29 @@ namespace xn
 		 * It is the application responsibility to check first if @ref XN_CAPABILITY_SKELETON is supported
 		 * by calling @ref IsCapabilitySupported().
 		 */
+		inline const SkeletonCapability GetSkeletonCap() const
+		{
+			return SkeletonCapability(m_hNode);
+		}
+
+		/**
+		 * Gets an @ref SkeletonCapability object for accessing Skeleton functionality.
+		 * It is the application responsibility to check first if @ref XN_CAPABILITY_SKELETON is supported
+		 * by calling @ref IsCapabilitySupported().
+		 */
 		inline SkeletonCapability GetSkeletonCap()
 		{
 			return SkeletonCapability(m_hNode);
+		}
+
+		/**
+		 * Gets an @ref PoseDetectionCapability object for accessing Pose-Detection functionality.
+		 * It is the application responsibility to check first if @ref XN_CAPABILITY_POSE_DETECTION is supported
+		 * by calling @ref IsCapabilitySupported().
+		 */
+		inline const PoseDetectionCapability GetPoseDetectionCap() const
+		{
+			return PoseDetectionCapability(m_hNode);
 		}
 
 		/**
@@ -3926,7 +4452,7 @@ namespace xn
 		 * @param	nFrameID		[in]	Frame ID
 		 * @param	nTimestamp		[in]	Timestamp
 		 */
-		inline XnStatus SetData(AudioMetaData& audioMD, XnUInt32 nFrameID, XnUInt64 nTimestamp)
+		inline XnStatus SetData(const AudioMetaData& audioMD, XnUInt32 nFrameID, XnUInt64 nTimestamp)
 		{
 			return SetData(nFrameID, nTimestamp, audioMD.DataSize(), audioMD.Data());
 		}
@@ -3936,10 +4462,24 @@ namespace xn
 		 *
 		 * @param	audioMD			[in]	Object to take data from
 		 */
-		inline XnStatus SetData(AudioMetaData& audioMD)
+		inline XnStatus SetData(const AudioMetaData& audioMD)
 		{
 			return SetData(audioMD, audioMD.FrameID(), audioMD.Timestamp());
 		}
+	};
+
+	class MockRawGenerator : public Generator
+	{
+	public:
+		MockRawGenerator(XnNodeHandle hNode = NULL) : Generator(hNode) {}
+
+		inline XnStatus Create(Context& context, const XnChar* strName = NULL);
+
+		inline XnStatus SetData(XnUInt32 nFrameID, XnUInt64 nTimestamp, XnUInt32 nDataSize, const void* pData)
+		{
+			return xnMockRawSetData(m_hNode, nFrameID, nTimestamp, nDataSize, pData);
+		}
+
 	};
 
 	//---------------------------------------------------------------------------
@@ -4070,9 +4610,9 @@ namespace xn
 		};
 
 		/// Gets an iterator to the first item in the list.
-		inline Iterator Begin() const { return Iterator(xnEnumerationErrorsGetFirst(m_pErrors)); } 
+		inline Iterator Begin() const { return Iterator(xnEnumerationErrorsGetFirst(m_pErrors)); }
 		/// Gets an iterator representing the end of the list. This iterator does not point to an actual item.
-		inline Iterator End() const { return Iterator(NULL); } 
+		inline Iterator End() const { return Iterator(NULL); }
 
 		/** @copybrief xnEnumerationErrorsToString
 		 * For full details and usage, see @ref xnEnumerationErrorsToString
@@ -4131,8 +4671,8 @@ namespace xn
 		inline Context(const Context& other) : m_pContext(other.m_pContext), m_bAllocated(FALSE) {}
 
 		/// Dtor
-		~Context() 
-		{ 
+		~Context()
+		{
 			FreeImpl();
 		}
 
@@ -4242,7 +4782,7 @@ namespace xn
 		 */
 		inline static void FreeLicensesList(XnLicense aLicenses[])
 		{
-			return xnFreeLicensesList(aLicenses);
+			xnFreeLicensesList(aLicenses);
 		}
 
 		/** @copybrief xnEnumerateProductionTrees
@@ -4269,7 +4809,7 @@ namespace xn
 		XnStatus CreateAnyProductionTree(XnProductionNodeType type, Query* pQuery, ProductionNode& node, EnumerationErrors* pErrors = NULL)
 		{
 			XnStatus nRetVal = XN_STATUS_OK;
-			
+
 			XnNodeQuery* pInternalQuery = (pQuery != NULL) ? pQuery->GetUnderlyingObject() : NULL;
 
 			XnNodeHandle hNode;
@@ -4424,7 +4964,7 @@ namespace xn
 		 */
 		inline void UnregisterFromErrorStateChange(XnCallbackHandle hCallback)
 		{
-			return xnUnregisterFromGlobalErrorStateChange(m_pContext, hCallback);
+			xnUnregisterFromGlobalErrorStateChange(m_pContext, hCallback);
 		}
 
 		/** @copybrief xnWaitAndUpdateAll
@@ -4560,7 +5100,7 @@ namespace xn
 		return xnNodeQueryFilterList(context.GetUnderlyingObject(), query.GetUnderlyingObject(), m_pList);
 	}
 
-	inline void ProductionNode::GetContext(Context& context)
+	inline void ProductionNode::GetContext(Context& context) const
 	{
 		context.SetHandle(xnGetContextFromNodeHandle(m_hNode));
 	}
@@ -4587,7 +5127,7 @@ namespace xn
 		m_pNeededNodes = NULL;
 	}
 
-	inline XnBool FrameSyncCapability::CanFrameSyncWith(Generator& other)
+	inline XnBool FrameSyncCapability::CanFrameSyncWith(Generator& other) const
 	{
 		return xnCanFrameSyncWith(m_hNode, other);
 	}
@@ -4602,15 +5142,13 @@ namespace xn
 		return xnStopFrameSyncWith(m_hNode, other);
 	}
 
-	inline XnBool FrameSyncCapability::IsFrameSyncedWith(Generator& other)
+	inline XnBool FrameSyncCapability::IsFrameSyncedWith(Generator& other) const
 	{
 		return xnIsFrameSyncedWith(m_hNode, other);
 	}
 
 	inline XnStatus NodeInfo::GetInstance(ProductionNode& node) const
 	{
-		XnStatus nRetVal = XN_STATUS_OK;
-
 		if (m_pInfo == NULL)
 		{
 			return XN_STATUS_INVALID_OPERATION;
@@ -4621,13 +5159,16 @@ namespace xn
 		return (XN_STATUS_OK);
 	}
 
-
-
 	//---------------------------------------------------------------------------
 	// Node creation functions
 	//---------------------------------------------------------------------------
 
-	inline XnStatus Recorder::Create(Context& context, const XnChar* strFormatName = NULL)
+	inline XnStatus Device::Create(Context& context, Query* pQuery/*=NULL*/, EnumerationErrors* pErrors/*=NULL*/)
+	{
+		return xnCreateDevice(context.GetUnderlyingObject(), &m_hNode, pQuery == NULL ? NULL : pQuery->GetUnderlyingObject(), pErrors == NULL ? NULL : pErrors->GetUnderlying());
+	}
+
+	inline XnStatus Recorder::Create(Context& context, const XnChar* strFormatName /*= NULL*/)
 	{
 		return xnCreateRecorder(context.GetUnderlyingObject(), strFormatName, &m_hNode);
 	}
@@ -4675,7 +5216,7 @@ namespace xn
 	{
 		return xnCreateIRGenerator(context.GetUnderlyingObject(), &m_hNode, pQuery == NULL ? NULL : pQuery->GetUnderlyingObject(), pErrors == NULL ? NULL : pErrors->GetUnderlying());
 	}
-	
+
 	inline XnStatus MockIRGenerator::Create(Context& context, const XnChar* strName /* = NULL */)
 	{
 		return xnCreateMockNode(context.GetUnderlyingObject(), XN_NODE_TYPE_IR, strName, &m_hNode);
@@ -4726,6 +5267,11 @@ namespace xn
 		return xnCreateMockNodeBasedOn(context.GetUnderlyingObject(), other, strName, &m_hNode);
 	}
 
+	inline XnStatus MockRawGenerator::Create(Context& context, const XnChar* strName /*= NULL*/)
+	{
+		return xnCreateMockNode(context.GetUnderlyingObject(), XN_NODE_TYPE_GENERATOR, strName, &m_hNode);
+	}
+
 	inline XnStatus Codec::Create(Context& context, XnCodecID codecID, ProductionNode& initializerNode)
 	{
 		return xnCreateCodec(context.GetUnderlyingObject(), codecID, initializerNode, &m_hNode);
@@ -4765,7 +5311,7 @@ namespace xn
 		static XnStatus RegisterToUnderlying(_XnRegisterStateChangeFuncPtr xnFunc, XnNodeHandle hNode, StateChangedHandler handler, void* pCookie, XnCallbackHandle& hCallback)
 		{
 			XnStatus nRetVal = XN_STATUS_OK;
-			
+
 			StateChangedCallbackTranslator* pTrans;
 			XN_VALIDATE_NEW(pTrans, StateChangedCallbackTranslator, handler, pCookie);
 
@@ -4777,7 +5323,7 @@ namespace xn
 			}
 
 			hCallback = pTrans;
-			
+
 			return (XN_STATUS_OK);
 		}
 
@@ -4790,6 +5336,8 @@ namespace xn
 		}
 
 	private:
+		friend class GeneralIntCapability;
+
 		typedef struct StateChangeCookie
 		{
 			StateChangedHandler userHandler;
@@ -4817,6 +5365,32 @@ namespace xn
 	static void _UnregisterFromStateChange(_XnUnregisterStateChangeFuncPtr xnFunc, XnNodeHandle hNode, XnCallbackHandle hCallback)
 	{
 		StateChangedCallbackTranslator::UnregisterFromUnderlying(xnFunc, hNode, hCallback);
+	}
+
+	inline XnStatus GeneralIntCapability::RegisterToValueChange(StateChangedHandler handler, void* pCookie, XnCallbackHandle& hCallback)
+	{
+		XnStatus nRetVal = XN_STATUS_OK;
+
+		StateChangedCallbackTranslator* pTrans;
+		XN_VALIDATE_NEW(pTrans, StateChangedCallbackTranslator, handler, pCookie);
+
+		nRetVal = xnRegisterToGeneralIntValueChange(m_hNode, m_strCap, pTrans->StateChangedCallback, pTrans, &pTrans->m_hCallback);
+		if (nRetVal != XN_STATUS_OK)
+		{
+			XN_DELETE(pTrans);
+			return (nRetVal);
+		}
+
+		hCallback = pTrans;
+
+		return (XN_STATUS_OK);
+	}
+
+	inline void GeneralIntCapability::UnregisterFromValueChange(XnCallbackHandle hCallback)
+	{
+		StateChangedCallbackTranslator* pTrans = (StateChangedCallbackTranslator*)hCallback;
+		xnUnregisterFromGeneralIntValueChange(m_hNode, m_strCap, pTrans->m_hCallback);
+		XN_DELETE(pTrans);
 	}
 
 	/// @}

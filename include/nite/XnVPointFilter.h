@@ -42,7 +42,15 @@ public:
 	 * @param	[in]	pMessage	The message now handling (expects a PointMessage or a ComplexMessage with an internal PointMessage)
 	 * @param	[in]	newHands	The hands that are to replace the ones in the original message
 	 */
-	void GenerateReplaced(XnVMessage* pMessage, const XnVMultipleHands& newHands);
+	void GenerateReplaced(XnVMessage* pMessage, XnVMultipleHands& newHands);
+
+	/**
+	 * Change the primary ID. If the new primary doesn't exist, it will be turned off.
+	 * This takes affect inside the GenerateReplaced function.
+	 *
+	 * @param	[in]	nNewPrimary	The ID that is to be the new primary. Use 0 to return to default
+	 */
+	void OverridePrimary(XnUInt32 nNewPrimary);
 };
 
 #endif // _XNV_POINT_FILTER_H_

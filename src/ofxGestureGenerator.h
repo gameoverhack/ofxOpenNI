@@ -45,6 +45,8 @@ public:
 	void						setUseProgress(bool b);
 	bool						getUseProgress();
 	
+	void						setVerbose(bool b);
+	
 private:
 	
 	ofxOpenNIContext*		context;
@@ -54,6 +56,8 @@ private:
 	gesture					last_gesture;
 	bool					b_use_progress;
 	int						min_time;
+	
+	bool					b_verbose;
 
 };
 
