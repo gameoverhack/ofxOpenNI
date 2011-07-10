@@ -39,6 +39,7 @@ void testApp::setupRecording(string _filename) {
 	recordUser.setSmoothing(filterFactor);				// built in openni skeleton smoothing...
 	recordUser.setUseMaskPixels(isMasking);
 	recordUser.setUseCloudPoints(isCloud);
+	recordUser.setMaxNumberOfUsers(2);					// use this to set dynamic max number of users (NB: that a hard upper limit is defined by MAX_NUMBER_USERS in ofxUserGenerator)
 	
 	recordHandTracker.setup(&recordContext, 4);
 	recordHandTracker.setSmoothing(filterFactor);		// built in openni hand track smoothing...
