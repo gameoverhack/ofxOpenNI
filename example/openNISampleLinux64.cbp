@@ -70,6 +70,7 @@
 			<Add directory="../../../addons/ofxOpenNI/include/nite" />
 			<Add directory="../../../addons/ofxOpenNI/include/openni" />
 			<Add directory="../../../addons/ofxOpenNI/include/openni/Linux-x86" />
+			<Add directory="../../../addons/ofxOpenNI/src" />
 		</Compiler>
 		<Linker>
 			<Add library="fmodex" />

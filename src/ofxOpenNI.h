@@ -12,7 +12,7 @@
 #include "ofxTrackedHand.h"
 #include "ofxOpenNIRecorder.h"
 
-#ifdef TARGET_OSX // only working on Mac at the moment
+#if defined (TARGET_OSX) //|| defined(TARGET_LINUX) // only working on Mac/Linux at the moment (but on Linux you need to run as sudo...)
 #include "ofxHardwareDriver.h"
 #endif
 
