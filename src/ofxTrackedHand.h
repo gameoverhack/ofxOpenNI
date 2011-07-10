@@ -1,10 +1,11 @@
 #ifndef _H_OFXTRACKEDHAND
 #define _H_OFXTRACKEDHAND
 
-#include "ofMain.h"
+
 #include <XnOpenNI.h>
 #include <XnCppWrapper.h>
 #include "ofxOpenNIContext.h"
+#include "ofMain.h"
 
 // This is ready for more hands, but.....
 // If MAX_NUMBER_HANDS > 1, gesture triggers several Gesture_Recognized callbacks
