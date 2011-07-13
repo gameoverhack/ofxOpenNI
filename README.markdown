@@ -101,9 +101,9 @@ Windows & Linux (Codeblocks):
 - Do the git magic above or somehow else get a copy of ofxOpenNI into your addons directory
 - Make a new project (in 062 by copying emptyExample folder from the apps/examples/ directory into your working path -> something like ofFolder/apps/dev/)
 - Copy the 'ofxOpenNI/win/copy_to_data_openni_path' to your bin/data/openni directory (OPTIONAL)
-- Right-click the 'emptyExample' project folder on the left hand side of the interface and select Add FilesÉ
+- Right-click the 'emptyExample' project folder on the left hand side of the interface and select Add Files
 - Add all the files from 'src', 'include/openni', 'include/nite'
 - DO NOT add the libusb files in the include folder; remove the ofxHardwareDriver.h and ofxHardwareDriver.cpp files from your project (they got imported in the last step but will stall the compiler) TODO: make it not so ;-)
 - Go to Project->Properties->Link and add OpenNI to the libraries
-- Go to Project->Properties->Search Paths and add ../../../addons/ofxOpenNI/include/openni, ../../../addons/ofxOpenNI/include/nite, ../../../addons/ofxOpenNI/src and either add the path 'bin/data/openni/lib' (if you did the OPTIONAL step above) or navigate to the lib folder of your openNI installÉsomething like c:/Programs(x86)/openNI/lib/
+- Go to Project->Properties->Search Paths and add ../../../addons/ofxOpenNI/include/openni, ../../../addons/ofxOpenNI/include/nite, ../../../addons/ofxOpenNI/src and either add the path 'bin/data/openni/lib' (if you did the OPTIONAL step above) or navigate to the lib folder of your openNI install; something like c:/Programs(x86)/openNI/lib/
 - Add #include "ofxOpenNI.h" at the top of your testApp.h (or in whatever class you're using ofxOpenNI)
