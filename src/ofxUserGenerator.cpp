@@ -407,13 +407,13 @@ void ofxUserGenerator::updateCloudPoints() {
 
 ofPoint ofxUserGenerator::getWorldCoordinateAt(int x, int y, int userID) {
 	
-	return cloudPoints[userID][y * height + x];
+	return cloudPoints[userID][y * width + x];
 	
 }
 
 ofColor ofxUserGenerator::getWorldColorAt(int x, int y, int userID) {
 	
-	return cloudColors[userID][y * height + x];
+	return cloudColors[userID][y * width + x];
 	
 }
 
