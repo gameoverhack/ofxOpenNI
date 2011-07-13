@@ -56,8 +56,8 @@ NOTE ABOUT PORTABILITY
 HOW TO SETUP YOUR APPLICATION
 ==============================
 
-DRIVERS
-+++++++
+DRIVERS & GETTING THE EXAMPLES TO WORK
+++++++++++++++++++++++++++++++++++++++
 
 Mac OS X:
 
@@ -65,7 +65,7 @@ You don't need to do any install of drivers if you don't want, just:
 
 - Do the git magic above or somehow else get a copy of ofxOpenNI into your addons directory
 - Copy 'example' folder to yourofdir/apps/yourworkingdir
-- Copy the 'ofxOpenNI/mac/copy_to_data_openni_path' to your bin/data/openni directory of your example.
+- Copy the folder called 'lib' from 'ofxOpenNI/mac/copy_to_data_openni_path' to your 'bin/data/openni' directory of your example.
 
 Windows & Linux:
 
@@ -80,3 +80,33 @@ then on Windows:
 
 or on Linux:
 - Just copy 'example' folder to yourofdir/apps/yourworkingdir
+
+DRIVERS & SETTING UP YOUR OWN PROJECTS
+++++++++++++++++++++++++++++++++++++++
+
+* The easiest thing to do is to make a copy of the included examples and then gut the testApp.h and testApp.cpp for making a new project, but below are some pointers on making your own projects. Forgive me (and remind me) if I forget some steps.
+
+Mac OS X:
+
+You don't need to do any install of drivers if you don't want, just:
+
+- Do the git magic above or somehow else get a copy of ofxOpenNI into your addons directory
+- Make a new project (in 062 by copying emptyExample folder from the apps/examples/ directory into your working path -> something like ofFolder/apps/dev/)
+- Copy the folder called 'lib' from 'ofxOpenNI/mac/copy_to_data_openni_path' to your 'bin/data/openni' directory of your emptyExample
+- In Xcode make a new Group called 'ofxOpenNI' under 'Addons' (right or control click the 'Addons' Group, select Add->New Group)
+- Drag the 'src' and 'include' folders from inside the ofxOpenNI folder (in your addons directory) into the Group 'ofxOpenNI' you just made.
+- Drag the folder 'lib' from bin/data/openni (the one you just copied) into the Group 'ofxOpenNI'
+- Add #include "ofxOpenNI.h" at the top of your testApp.h (or in whatever class you're using ofxOpenNI)
+
+Windows & Linux (Codeblocks):
+
+_ Install the drivers as per above
+- Do the git magic above or somehow else get a copy of ofxOpenNI into your addons directory
+- Make a new project (in 062 by copying emptyExample folder from the apps/examples/ directory into your working path -> something like ofFolder/apps/dev/)
+- Copy the 'ofxOpenNI/win/copy_to_data_openni_path' to your bin/data/openni directory (OPTIONAL)
+- Right-click the 'emptyExample' project folder on the left hand side of the interface and select Add Files…
+- Add all the files from 'src', 'include/openni', 'include/nite'
+- DO NOT add the libusb files in the include folder; remove the ofxHardwareDriver.h and ofxHardwareDriver.cpp files from your project (they got imported in the last step but will stall the compiler) TODO: make it not so ;-)
+- Go to Project->Properties->Link and add OpenNI to the libraries
+- Go to Project->Properties->Search Paths and add ../../../addons/ofxOpenNI/include/openni, ../../../addons/ofxOpenNI/include/nite, ../../../addons/ofxOpenNI/src and either add the path 'bin/data/openni/lib' (if you did the OPTIONAL step above) or navigate to the lib folder of your openNI install…something like c:/Programs(x86)/openNI/lib/
+- Add #include "ofxOpenNI.h" at the top of your testApp.h (or in whatever class you're using ofxOpenNI)
