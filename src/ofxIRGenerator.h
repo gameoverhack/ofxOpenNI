@@ -16,6 +16,9 @@ public:
 	
 	xn::IRGenerator& getXnIRGenerator();
 	
+//	ofxIRGenerator(ofxIRGenerator const& mom);
+//	ofxIRGenerator & operator = (const ofxIRGenerator& mom);
+	
 private:
 	
 	void generateTexture();

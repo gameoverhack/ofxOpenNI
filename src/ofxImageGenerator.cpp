@@ -47,6 +47,8 @@ bool ofxImageGenerator::setup(ofxOpenNIContext* pContext) {
 		result = image_generator.Create(pContext->getXnContext());
 		CHECK_RC(result, "Creating image generator");
 		
+		if (result != XN_STATUS_OK) return false;
+		
 		// make new map mode -> default to 640 x 480 @ 30fps
 		map_mode.nXRes = XN_VGA_X_RES;
 		map_mode.nYRes = XN_VGA_Y_RES;

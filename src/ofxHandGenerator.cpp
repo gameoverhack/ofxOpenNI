@@ -127,6 +127,9 @@ bool ofxHandGenerator::setup(ofxOpenNIContext* pContext, int number_of_hands) {
 	} else {
 		result = hands_generator.Create(context->getXnContext());
 		CHECK_RC(result, "Creating hand generator");
+		
+		if (result != XN_STATUS_OK) return false;
+		
 		hands_generator.StartGenerating();
 	}
 	

@@ -14,6 +14,14 @@ enum enumDepthColoring {
 	COLORING_COUNT
 };
 
+typedef struct {
+	int nearThreshold;
+	int farThreshold;
+} depth_threshold;
+
+// this must be at least 1!
+#define MAX_NUMBER_DEPTHS 4
+
 class ofxDepthGenerator {
 	
 public:
@@ -25,7 +33,12 @@ public:
 	void				draw(float x=0, float y=0, float w=640, float h=480);
 	void				update();
 	
-	unsigned char*		getDepthPixels(int nearThreshold = 0, int farThreshold = 10000);
+	void				setMaxNumDepthThresholds(int num);
+	int					getMaxNumDepthThresholds() {return max_number_depths;};
+	void				setDepthThreshold(int forDepthThresholdNumber = 0, int nearThreshold = 0, int farThreshold = 10000);
+	
+	unsigned char*		getDepthPixels(int forDepthThresholdNumber);
+	unsigned char*		getDepthPixels(int nearThreshold, int farThreshold);
 	
 	xn::DepthGenerator&	getXnDepthGenerator();
 	
@@ -38,20 +51,28 @@ public:
 	ofColor				getPixelColor(int x, int y);
 	ofColor				getPixelColor(const ofPoint & p);
 	int					getPixelDepth(int x, int y);
-
+	
 private:
 	
 	void				generateTexture();
 
+	void				updateMaskPixels();
+	
 	xn::DepthGenerator	depth_generator;
 	xn::DepthMetaData	dmd;
 
 	ofTexture			depth_texture;
-	unsigned char *		depth_pixels;
+	unsigned char*		depth_pixels;
 	int					depth_coloring;
 	int					width, height;
 	float				max_depth;
-	unsigned char*		maskPixels;
+	unsigned char*		maskPixels[MAX_NUMBER_DEPTHS];
+	depth_threshold		depth_thresholds[MAX_NUMBER_DEPTHS];
+	int					max_number_depths;
+	
+	ofxDepthGenerator(const ofxDepthGenerator& other);
+	ofxDepthGenerator& operator = (const ofxDepthGenerator&);
+	
 };
 
 #endif

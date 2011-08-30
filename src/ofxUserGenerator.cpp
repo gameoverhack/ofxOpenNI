@@ -112,9 +112,13 @@ void ofxUserGenerator::requestCalibration(XnUserID nID) {
 //----------------------------------------
 bool ofxUserGenerator::setup( ofxOpenNIContext* pContext) {
 	
+	bool ok = false;
+	
 	// store context and generator references
 	context	= pContext;
-	context->getDepthGenerator(&depth_generator);
+	ok = context->getDepthGenerator(&depth_generator);
+    if (!ok) return false;
+    
 	context->getImageGenerator(&image_generator);
 	
 	XnStatus result = XN_STATUS_OK;
@@ -148,11 +152,9 @@ bool ofxUserGenerator::setup( ofxOpenNIContext* pContext) {
 		
 		// if one doesn't exist then create user generator.
 		result = user_generator.Create(context->getXnContext());
-		SHOW_RC(result, "Create user generator");
+		CHECK_RC(result, "Create user generator");
 		
-		if(result != XN_STATUS_OK) {
-			return false;
-		}
+		if (result != XN_STATUS_OK) return false;
 	}	
 	
 	// register user callbacks

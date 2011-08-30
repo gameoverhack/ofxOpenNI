@@ -24,6 +24,9 @@ private:
 	ofTexture			image_texture;
 	unsigned char *		image_pixels;
 	
+	ofxImageGenerator(ofxImageGenerator const& other);
+	ofxImageGenerator & operator = (const ofxImageGenerator&);
+	
 };
 
 #endif

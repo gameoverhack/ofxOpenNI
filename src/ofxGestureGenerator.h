@@ -45,7 +45,7 @@ public:
 	void						setUseProgress(bool b);
 	bool						getUseProgress();
 	
-	void						setVerbose(bool b);
+	void						setVerbose(bool b);	
 	
 private:
 	
@@ -59,6 +59,9 @@ private:
 	
 	bool					b_verbose;
 
+	ofxGestureGenerator(ofxGestureGenerator const& other);
+	ofxGestureGenerator & operator = (const ofxGestureGenerator&);
+	
 };
 
 

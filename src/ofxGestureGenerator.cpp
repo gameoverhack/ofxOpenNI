@@ -98,6 +98,9 @@ bool ofxGestureGenerator::setup(ofxOpenNIContext* pContext) {
 	} else {
 		result = gesture_generator.Create(pContext->getXnContext());
 		CHECK_RC(result, "Creating gesture generator");
+		
+		if (result != XN_STATUS_OK) return false;
+		
 	}
 
 	XnCallbackHandle gesture_cb_handle;

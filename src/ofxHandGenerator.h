@@ -78,6 +78,9 @@ private:
 	XnCallbackHandle			hand_cb_handle;
 	
 	bool						bIsTracking;
+	
+	ofxHandGenerator(ofxHandGenerator const& other);
+	ofxHandGenerator & operator = (const ofxHandGenerator&);
 
 };
 

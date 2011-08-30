@@ -42,6 +42,7 @@ void CreateRainbowPallet() {
 ofxDepthGenerator::ofxDepthGenerator(){
 	CreateRainbowPallet();	
 	depth_coloring = COLORING_RAINBOW;
+	max_number_depths = 1;
 }
 
 bool ofxDepthGenerator::setup(ofxOpenNIContext* pContext) {
@@ -56,6 +57,8 @@ bool ofxDepthGenerator::setup(ofxOpenNIContext* pContext) {
 	} else {
 		result = depth_generator.Create(pContext->getXnContext());
 		CHECK_RC(result, "Creating depth generator");
+		
+		if (result != XN_STATUS_OK) return false;
 		
 		// make new map mode -> default to 640 x 480 @ 30fps
 		map_mode.nXRes = XN_VGA_X_RES;
@@ -75,10 +78,14 @@ bool ofxDepthGenerator::setup(ofxOpenNIContext* pContext) {
 	depth_pixels = new unsigned char[map_mode.nXRes * map_mode.nYRes * 4];
 	memset(depth_pixels, 0, map_mode.nXRes * map_mode.nYRes * 4 * sizeof(unsigned char));
 	
-	depth_generator.StartGenerating();	
+	// setup mask pixelskk
+	for (int i = 0; i < MAX_NUMBER_DEPTHS; i++) {
+		maskPixels[i] = new unsigned char[width * height];
+		depth_thresholds[i].nearThreshold = 0;
+		depth_thresholds[i].farThreshold = 10000;
+	}
 	
-	// setup mask pixels TODO: make do multiple ranges
-	maskPixels = new unsigned char[map_mode.nXRes * map_mode.nYRes];
+	depth_generator.StartGenerating();	
 	
 	printf("Depth camera inited\n");
 	
@@ -87,7 +94,11 @@ bool ofxDepthGenerator::setup(ofxOpenNIContext* pContext) {
 void ofxDepthGenerator::update() {
 	// get meta-data
 	depth_generator.GetMetaData(dmd);
-	this->generateTexture();
+	generateTexture();
+	
+	if (max_number_depths > 1) {
+		updateMaskPixels();
+	}
 }
 
 void ofxDepthGenerator::draw(float x, float y, float w, float h) {
@@ -103,17 +114,63 @@ void ofxDepthGenerator::setDepthColoring(enumDepthColoring c) {
 // returns mask pixels in a range TODO: make do multiple ranges
 unsigned char* ofxDepthGenerator::getDepthPixels(int nearThreshold, int farThreshold) {
 	
+	if (max_number_depths == 1) {
+		const XnDepthPixel* depth = dmd.Data();
+		
+		int numPixels = dmd.XRes() * dmd.YRes();
+		for(int i = 0; i < numPixels; i++, depth++) {
+			if(*depth < farThreshold && *depth > nearThreshold) {
+				maskPixels[0][i] = 255;
+			} else {
+				maskPixels[0][i] = 0;
+			}
+		}
+		
+	} else printf("You sure you want to use this method not getDepthPixels(int forDepthThresholdNumber)?? There are multiple depth thresholds defined");
+	
+	return maskPixels[0];
+}
+
+void ofxDepthGenerator::updateMaskPixels() {
+	
 	const XnDepthPixel* depth = dmd.Data();
 	
 	int numPixels = dmd.XRes() * dmd.YRes();
+	
 	for(int i = 0; i < numPixels; i++, depth++) {
-		if(*depth < farThreshold && *depth > nearThreshold) {
-			maskPixels[i] = 255;
-		} else {
-			maskPixels[i] = 0;
+		for (int d = 0; d < max_number_depths; d++) {
+			if(*depth < depth_thresholds[d].farThreshold && *depth > depth_thresholds[d].nearThreshold) {
+				maskPixels[d][i] = 255;
+			} else {
+				maskPixels[d][i] = 0;
+			}
 		}
 	}
-	return maskPixels;
+	
+}
+
+void ofxDepthGenerator::setMaxNumDepthThresholds(int num) {
+	// TODO: make this truly dynamic by replacing the define and writing dynamic allocation/deletion functions for the arrays! Lazy method below ;-)
+	if (num <= MAX_NUMBER_DEPTHS) {
+		max_number_depths = num;
+	} else printf("Attempting to set max number of depth thresholds higher than MAX_NUMBER_DEPTHS - change the define in ofxDepthGenerator.h first!");
+}
+
+void ofxDepthGenerator::setDepthThreshold(int forDepthThresholdNumber, int nearThreshold, int farThreshold) {
+	
+	if (forDepthThresholdNumber <= max_number_depths) {
+		
+		depth_thresholds[forDepthThresholdNumber].nearThreshold = nearThreshold;
+		depth_thresholds[forDepthThresholdNumber].farThreshold = farThreshold;
+		
+	} else printf("Requested depthThreshold number is out of range!! Change the max or change the define MAX_NUMBER_DEPTHS and the max!");
+	
+}
+
+unsigned char* ofxDepthGenerator::getDepthPixels(int forDepthThresholdNumber) {
+	
+	return maskPixels[forDepthThresholdNumber];
+	
 }
 
 int ofxDepthGenerator::getWidth() {
