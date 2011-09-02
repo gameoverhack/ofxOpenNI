@@ -282,7 +282,11 @@ void ofxUserGenerator::update() {
 	for(int i = 0; i < found_users; ++i) {
 		if(user_generator.GetSkeletonCap().IsTracking(users[i])) {	
 			tracked_users[i]->id = users[i];
-			tracked_users[i]->updateBonePositions();
+			user_generator.GetCoM(users[i], tracked_users[i]->center);
+            tracked_users[i]->skeletonTracking	  = user_generator.GetSkeletonCap().IsTracking(users[i]);
+            tracked_users[i]->skeletonCalibrating = user_generator.GetSkeletonCap().IsCalibrating(users[i]);
+            tracked_users[i]->skeletonCalibrated  = user_generator.GetSkeletonCap().IsCalibrated(users[i]);
+            if(tracked_users[i]->skeletonTracking) tracked_users[i]->updateBonePositions();
 		}
 	}
 	
