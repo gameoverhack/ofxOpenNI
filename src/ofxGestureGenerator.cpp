@@ -27,8 +27,7 @@ OpenNI_Gesture_Recognized(xn::GestureGenerator& generator,
 {	
 	
 	ofxGestureGenerator* ofx_gesture_generator = static_cast<ofxGestureGenerator*>(pCookie);
-	
-	
+
 	ofLog(OF_LOG_VERBOSE, "Gesture RECOGNIZED: %s  posID [%d, %d, %d]  posEND [%d, %d, %d]\n", strGesture,
 							(int)pIDPosition->X, (int)pIDPosition->Y, (int)pIDPosition->Z,
 							(int)pEndPosition->X, (int)pEndPosition->Y, (int)pEndPosition->Z);	
@@ -103,6 +102,8 @@ bool ofxGestureGenerator::setup(ofxOpenNIContext* pContext) {
 		
 	}
 
+	last_gesture.gesture_timestamp = 0;
+	
 	XnCallbackHandle gesture_cb_handle;
 	gesture_generator.RegisterGestureCallbacks(OpenNI_Gesture_Recognized, OpenNI_Gesture_Process, this, gesture_cb_handle);
 	

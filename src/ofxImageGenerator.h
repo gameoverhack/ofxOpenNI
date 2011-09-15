@@ -14,6 +14,8 @@ public:
 	void update();
 	void draw(float x=0, float y=0, float w=640, float h=480);
 	
+	unsigned char*		getPixels() {return image_pixels;};
+	
 	xn::ImageGenerator& getXnImageGenerator();
 	
 private:
