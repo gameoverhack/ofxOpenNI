@@ -197,6 +197,11 @@ public:
 	void SetSteadyMaxStdDev(XnFloat fStdDev);
 	XnFloat GetSteadyMaxStdDev() const;
 
+	XnFloat XN_API_DEPRECATED("Use GetSteadyMaxStdDev() instead")
+		GetSteadyMaxVelocity() const;
+	void XN_API_DEPRECATED("Use SetSteadyMaxStdDev() instead")
+		SetSteadyMaxVelocity(XnFloat fVelocity);
+
 	/**
 	 * Change internal Steady Detector's steady detection duration
 	 *

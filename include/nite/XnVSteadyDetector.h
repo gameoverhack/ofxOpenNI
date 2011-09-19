@@ -134,6 +134,11 @@ public:
 	* @param	[in]	cxt	The hand context of the updated point
 	*/
 	void OnPointUpdate(const XnVHandPointContext* cxt);
+
+	XnFloat XN_API_DEPRECATED("Please use GetMaximumStdDevForSteady() instead.")
+		GetMaximumVelocity() const;
+	void XN_API_DEPRECATED("Please use SetMaximumStdDevForSteady() instead.")
+		SetMaximumVelocity(XnFloat fVelocity);
 protected:
 	void Reset(XnUInt32 id);
 	// called whenever we have a new point

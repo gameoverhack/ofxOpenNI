@@ -6,15 +6,79 @@
 //----------------------------------------
 ofxOpenNIContext::ofxOpenNIContext() {
 	is_using_recording = false;
+	enableLogging();
 }
 
 // Just initialize; use this when you"re creating nodes yourself.
 //----------------------------------------
 bool ofxOpenNIContext::initContext(){
 	xn::EnumerationErrors errors;
-	XnStatus result = context.Init();
-	if(result != XN_STATUS_OK) logErrors(errors);
-	BOOL_RC(result, "ofxOpenNIContext.setup()");
+	XnStatus nRetVal = context.Init();
+	cout << xnGetStatusString(nRetVal) << endl;
+	if(nRetVal != XN_STATUS_OK) logErrors(errors);
+	CHECK_RC(nRetVal, "ofxOpenNIContext.setup()");
+	
+	// find devices
+	NodeInfoList list;
+	nRetVal = context.EnumerateProductionTrees(XN_NODE_TYPE_DEVICE, NULL, list, &errors);
+	cout << xnGetStatusString(nRetVal) << endl;
+	if(nRetVal != XN_STATUS_OK) logErrors(errors);
+	XN_IS_STATUS_OK(nRetVal);
+	
+	printf("The following devices were found:\n");
+	int i = 1;
+	for (NodeInfoList::Iterator it = list.Begin(); it != list.End(); ++it, ++i)
+	{
+		NodeInfo deviceNodeInfo = *it;
+		
+		Device deviceNode;
+		deviceNodeInfo.GetInstance(deviceNode);
+		XnBool bExists = deviceNode.IsValid();
+		if (!bExists)
+		{
+			context.CreateProductionTree(deviceNodeInfo, deviceNode);
+			// this might fail.
+		}
+		
+		if (deviceNode.IsValid() && deviceNode.IsCapabilitySupported(XN_CAPABILITY_DEVICE_IDENTIFICATION))
+		{
+			const XnUInt32 nStringBufferSize = 200;
+			XnChar strDeviceName[nStringBufferSize];
+			XnChar strSerialNumber[nStringBufferSize];
+			
+			XnUInt32 nLength = nStringBufferSize;
+			deviceNode.GetIdentificationCap().GetDeviceName(strDeviceName, nLength);
+			nLength = nStringBufferSize;
+			deviceNode.GetIdentificationCap().GetSerialNumber(strSerialNumber, nLength);
+			printf("[%d] %s (%s)\n", i, strDeviceName, strSerialNumber);
+		}
+		else
+		{
+			printf("[%d] %s\n", i, deviceNodeInfo.GetCreationInfo());
+		}
+		
+		// release the device if we created it
+		if (!bExists && deviceNode.IsValid())
+		{
+			deviceNode.Release();
+		}
+	}
+	printf("\n");
+	printf("Choose device to open (1): ");
+	
+	int chosen = 1;
+	scanf("%d", &chosen);
+	
+	// create it
+	NodeInfoList::Iterator it = list.Begin();
+	for (i = 1; i < chosen; ++i)
+	{
+		it++;
+	}
+	
+	NodeInfo deviceNode = *it;
+	nRetVal = context.CreateProductionTree(deviceNode, g_Device);
+	XN_IS_STATUS_OK(nRetVal);
 }
 
 // Initialize using an .ONI recording.
@@ -52,7 +116,6 @@ bool ofxOpenNIContext::setup() {
 	
 	if (initContext()) {
 		addLicense("PrimeSense", "0KOIk2JeIBYClPWVnMoRKn5cdY4=");
-		enableLogging();
 		return true;
 	} else return false;
 

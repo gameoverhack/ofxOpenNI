@@ -22,6 +22,8 @@ typedef struct {
 // this must be at least 1!
 #define MAX_NUMBER_DEPTHS 4
 
+using namespace xn;
+
 class ofxDepthGenerator {
 	
 public:

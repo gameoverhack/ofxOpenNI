@@ -55,7 +55,14 @@ bool ofxDepthGenerator::setup(ofxOpenNIContext* pContext) {
 		// found the depth generator so set map_mode from it
 		depth_generator.GetMapOutputMode(map_mode);
 	} else {
-		result = depth_generator.Create(pContext->getXnContext());
+		NodeInfoList depthsList;
+		result = pContext->getXnContext().EnumerateProductionTrees(XN_NODE_TYPE_DEPTH, NULL, depthsList);
+		
+		// take first
+		NodeInfo chosen = *depthsList.Begin();
+		
+		result = pContext->getXnContext().CreateProductionTree(chosen, depth_generator);
+		//result = depth_generator.Create(pContext->getXnContext());
 		CHECK_RC(result, "Creating depth generator");
 		
 		if (result != XN_STATUS_OK) return false;
@@ -111,7 +118,7 @@ void ofxDepthGenerator::setDepthColoring(enumDepthColoring c) {
 }
 
 
-// returns mask pixels in a range TODO: make do multiple ranges
+// returns mask pixels in a range (use updateMaskPixels and getDepthPixels(int forDepthThresholdNumber) for multiple masks as it's more efficient)
 unsigned char* ofxDepthGenerator::getDepthPixels(int nearThreshold, int farThreshold) {
 	
 	if (max_number_depths == 1) {

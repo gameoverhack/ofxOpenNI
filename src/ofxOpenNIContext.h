@@ -7,6 +7,8 @@
 #include <XnLog.h>
 #include "ofMain.h"
 
+using namespace xn;
+
 class ofxOpenNIContext {
 
 public:
@@ -49,6 +51,8 @@ private:
 
 	bool is_using_recording;
 	xn::Context context;
+	
+	Device g_Device;
 
 };
 
