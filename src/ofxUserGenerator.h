@@ -65,9 +65,9 @@ private:
 	
 	// vars for cloud point and masking
 	XnUInt16			width, height;
-	unsigned char *		maskPixels[MAX_NUMBER_USERS];
-	ofPoint		*		cloudPoints[MAX_NUMBER_USERS];
-	ofColor		*		cloudColors[MAX_NUMBER_USERS];
+	unsigned char *		maskPixels[MAX_NUMBER_USERS+1];//including 0 as all users
+	ofPoint		*		cloudPoints[MAX_NUMBER_USERS+1];//including 0 as all users
+	ofColor		*		cloudColors[MAX_NUMBER_USERS+1];//including 0 as all users
 	bool				useMaskPixels, useCloudPoints;
 	
 	float				smoothing_factor;
