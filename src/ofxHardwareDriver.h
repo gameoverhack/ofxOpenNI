@@ -67,6 +67,8 @@ public:
 	int		tilt_angle;
 	
 	void shutDown();
+    
+    libusb_context *ctx;
 	
 private:
 	

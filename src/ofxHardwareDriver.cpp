@@ -10,7 +10,7 @@ ofxHardwareDriver::~ofxHardwareDriver() {
 
 void ofxHardwareDriver::setup(int index)
 {
-	libusb_context *ctx;
+	//libusb_context *ctx;
 	libusb_init(&ctx);
 	libusb_device **devs; //pointer to pointer of device, used to retrieve a list of devices
 	ssize_t cnt = libusb_get_device_list (ctx, &devs); //get the list of devices
@@ -135,5 +135,5 @@ void ofxHardwareDriver::shutDown() {
 						// strange behaviour if the kinect is tilted in between 
 						// application starts eg., the angle continues to be set 
 						// even when app not running...which is odd...
-	libusb_exit(0);
+	libusb_exit(ctx);
 }
