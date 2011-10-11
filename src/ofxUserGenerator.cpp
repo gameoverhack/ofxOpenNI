@@ -220,23 +220,25 @@ bool ofxUserGenerator::setup( ofxOpenNIContext* pContext) {
 
 // Draw a specific user (start counting at 0)
 //----------------------------------------
-void ofxUserGenerator::drawUser(int nUserNum) {
+void ofxUserGenerator::drawUser(int nUserNum, const float wScale, const float hScale) {
 	if(nUserNum - 1 > max_num_users)
 		return;
 	tracked_users[nUserNum]->updateBonePositions();
-	tracked_users[nUserNum]->debugDraw();
+	tracked_users[nUserNum]->debugDraw(wScale, hScale);
 }
 
 // Draw all the found users.
 //----------------------------------------
-void ofxUserGenerator::draw() {
+void ofxUserGenerator::draw(const int width, const int height) {
 	
 	// show green/red circle if any one is found
 	if (found_users > 0) {
+    const float wScale = width/640.0f;
+    const float hScale = height/480.0f;
 		
 		// draw all the users
 		for(int i = 0;  i < found_users; ++i) {
-			drawUser(i);
+			drawUser(i, wScale, hScale);
 		}
 		
 		glColor3f(0, 1.0f, 0);
