@@ -134,7 +134,8 @@ bool ofxUserGenerator::setup( ofxOpenNIContext* pContext) {
 	useMaskPixels = false;
 	
 	// setup mask pixels array TODO: clean this up on closing or dtor
-	for (int user = 0; user < MAX_NUMBER_USERS; user++) {
+    //including 0 as all users
+	for (int user = 0; user <= MAX_NUMBER_USERS; user++) {
 		maskPixels[user] = new unsigned char[width * height];
 	}
 	
@@ -142,7 +143,8 @@ bool ofxUserGenerator::setup( ofxOpenNIContext* pContext) {
 	useCloudPoints = false;
 	
 	// setup cloud points array TODO: clean this up on closing or dtor
-	for (int user = 0; user < MAX_NUMBER_USERS; user++) {
+    //including 0 as all users
+	for (int user = 0; user <= MAX_NUMBER_USERS; user++) {
 		cloudPoints[user] = new ofPoint[width * height];
 		cloudColors[user] = new ofColor[width * height];
 	}
@@ -282,7 +284,11 @@ void ofxUserGenerator::update() {
 	for(int i = 0; i < found_users; ++i) {
 		if(user_generator.GetSkeletonCap().IsTracking(users[i])) {	
 			tracked_users[i]->id = users[i];
-			tracked_users[i]->updateBonePositions();
+			user_generator.GetCoM(users[i], tracked_users[i]->center);
+            tracked_users[i]->skeletonTracking	  = user_generator.GetSkeletonCap().IsTracking(users[i]);
+            tracked_users[i]->skeletonCalibrating = user_generator.GetSkeletonCap().IsCalibrating(users[i]);
+            tracked_users[i]->skeletonCalibrated  = user_generator.GetSkeletonCap().IsCalibrated(users[i]);
+            if(tracked_users[i]->skeletonTracking) tracked_users[i]->updateBonePositions();
 		}
 	}
 	
@@ -409,13 +415,13 @@ void ofxUserGenerator::updateCloudPoints() {
 
 ofPoint ofxUserGenerator::getWorldCoordinateAt(int x, int y, int userID) {
 	
-	return cloudPoints[userID][y * height + x];
+	return cloudPoints[userID][y * width + x];
 	
 }
 
 ofColor ofxUserGenerator::getWorldColorAt(int x, int y, int userID) {
 	
-	return cloudColors[userID][y * height + x];
+	return cloudColors[userID][y * width + x];
 	
 }
 
