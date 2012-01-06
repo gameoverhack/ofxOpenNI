@@ -12,15 +12,12 @@ void ofxIRGenerator::generateTexture() {
 	
 	xn::IRMetaData ird;
 	ir_generator.GetMetaData(ird);	
-	const XnUInt8* pImage = (XnUInt8*)ird.Data();
+	const XnIRPixel* pImage = ird.Data();
 
-	int j = 0;
-	
-	for (int i = 0; i < ird.XRes() * ird.YRes()*2; i+=2, j++) {		// Don't ask me why ;-)
-		ir_pixels[j] = pImage[i];
+	for (int i = 0; i < ird.XRes() * ird.YRes(); i++) {
+		ir_pixels[i] = pImage[i]/4;
 	}
-	
-	//memcpy(ir_pixels, pImage, sizeof(unsigned char) * ird.XRes() * ird.YRes());
+		
 	ir_texture.loadData(ir_pixels, ird.XRes(), ird.YRes(), GL_LUMINANCE);	
 	
 }
