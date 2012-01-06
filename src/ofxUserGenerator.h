@@ -18,7 +18,7 @@ public:
 	
 	bool				setup(ofxOpenNIContext* pContext);
 	
-	void				draw();
+	void				draw(const int width=640, const int height=480);
 	void				update();
 
 	void				startTracking(XnUserID nID);
@@ -47,7 +47,7 @@ public:
 	
 private:
 	
-	void				drawUser(int nUserNum);
+	void				drawUser(int nUserNum, const float wScale=1.0f, const float hScale=1.0f);
 	void				updateUserPixels();
 	void				updateCloudPoints();
 	
