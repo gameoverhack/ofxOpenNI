@@ -6,10 +6,10 @@ Tested and working on Mac OSX (10.6.8), Linux (Ubuntu 10.10 64 & 32), Windows 7 
 
 Latest changes (09/01/20112):
 * Updated to latest drivers (OpenNI 1.5.2.7 unstable, NITE 1.5.2.7 , SensorKinect (Avin) 5.1.0.25) for Mac portable dylibs.
-* Tested with Win32 latest unstable and linux 64 latest unstable drivers and is working (NOTE: Win 7 64 bit users I may need to add a 64 bit version of the lib)Éwill test soon
+* Tested with Win32 latest unstable and linux 64 latest unstable drivers and is working (NOTE: Win 7 64 bit users I may need to add a 64 bit version of the lib)...will test soon
 * Added a weird hack to make sure the ofRootPath is set before calling an init on the Context - for some reason on of007 I need to do this?!?
 * Deprecated support for of062 - all example projects are for of007: Xcode, Codeblocks (Win and Linux64), VS2010
-* Fixed a bug in the example where my demo of MaskPixels was making everything go blackÉfor some reason glEnableBlend(GL_DST_COLOR, GL_ZERO) is not behaving like I expect
+* Fixed a bug in the example where my demo of MaskPixels was making everything go black...for some reason glEnableBlend(GL_DST_COLOR, GL_ZERO) is not behaving like I expect
 * Restructured the examples folder, including going back to having the config folder already in the bin/data/openni path
 
 Previous changes:
@@ -129,4 +129,5 @@ Linux (Codeblocks):
 - Go to Project->Properties->Link and add OpenNI to the libraries
 - Go to Project->Properties->Search Paths and add ../../../addons/ofxOpenNI/include/openni, ../../../addons/ofxOpenNI/include/nite, ../../../addons/ofxOpenNI/src
 - Add #include "ofxOpenNI.h" at the top of your testApp.h (or in whatever class you're using ofxOpenNI)
+
 
