@@ -1,3 +1,32 @@
+/*
+ * ofxUserGenerator.cpp
+ *
+ * Copyright 2011 (c) Matthew Gingold http://gingold.com.au
+ * Originally forked from a project by roxlu http://www.roxlu.com/ 
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ *
+ */
+
 #include "ofxUserGenerator.h"
 #include "ofxOpenNIMacros.h"
 #include "ofxTrackedUser.h"
@@ -134,7 +163,8 @@ bool ofxUserGenerator::setup( ofxOpenNIContext* pContext) {
 	useMaskPixels = false;
 	
 	// setup mask pixels array TODO: clean this up on closing or dtor
-	for (int user = 0; user < MAX_NUMBER_USERS; user++) {
+    //including 0 as all users
+	for (int user = 0; user <= MAX_NUMBER_USERS; user++) {
 		maskPixels[user] = new unsigned char[width * height];
 	}
 	
@@ -142,7 +172,8 @@ bool ofxUserGenerator::setup( ofxOpenNIContext* pContext) {
 	useCloudPoints = false;
 	
 	// setup cloud points array TODO: clean this up on closing or dtor
-	for (int user = 0; user < MAX_NUMBER_USERS; user++) {
+    //including 0 as all users
+	for (int user = 0; user <= MAX_NUMBER_USERS; user++) {
 		cloudPoints[user] = new ofPoint[width * height];
 		cloudColors[user] = new ofColor[width * height];
 	}
@@ -282,7 +313,11 @@ void ofxUserGenerator::update() {
 	for(int i = 0; i < found_users; ++i) {
 		if(user_generator.GetSkeletonCap().IsTracking(users[i])) {	
 			tracked_users[i]->id = users[i];
-			tracked_users[i]->updateBonePositions();
+			user_generator.GetCoM(users[i], tracked_users[i]->center);
+            tracked_users[i]->skeletonTracking	  = user_generator.GetSkeletonCap().IsTracking(users[i]);
+            tracked_users[i]->skeletonCalibrating = user_generator.GetSkeletonCap().IsCalibrating(users[i]);
+            tracked_users[i]->skeletonCalibrated  = user_generator.GetSkeletonCap().IsCalibrated(users[i]);
+            if(tracked_users[i]->skeletonTracking) tracked_users[i]->updateBonePositions();
 		}
 	}
 	
@@ -409,13 +444,13 @@ void ofxUserGenerator::updateCloudPoints() {
 
 ofPoint ofxUserGenerator::getWorldCoordinateAt(int x, int y, int userID) {
 	
-	return cloudPoints[userID][y * height + x];
+	return cloudPoints[userID][y * width + x];
 	
 }
 
 ofColor ofxUserGenerator::getWorldColorAt(int x, int y, int userID) {
 	
-	return cloudColors[userID][y * height + x];
+	return cloudColors[userID][y * width + x];
 	
 }
 

@@ -1,4 +1,36 @@
+/*
+ * ofxHardwareDriver.cpp
+ *
+ * Copyright 2011 (c) Matthew Gingold http://gingold.com.au
+ * Originally forked from a project by roxlu http://www.roxlu.com/ 
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ *
+ */
+
+
 #include "ofxHardwareDriver.h"
+
+#if defined (TARGET_OSX)
 
 ofxHardwareDriver::ofxHardwareDriver() {
 	printf("Init lib_usb control of Kinect Motor, LEDs and accelerometers");
@@ -10,7 +42,7 @@ ofxHardwareDriver::~ofxHardwareDriver() {
 
 void ofxHardwareDriver::setup(int index)
 {
-	libusb_context *ctx;
+	//libusb_context *ctx;
 	libusb_init(&ctx);
 	libusb_device **devs; //pointer to pointer of device, used to retrieve a list of devices
 	ssize_t cnt = libusb_get_device_list (ctx, &devs); //get the list of devices
@@ -135,5 +167,7 @@ void ofxHardwareDriver::shutDown() {
 						// strange behaviour if the kinect is tilted in between 
 						// application starts eg., the angle continues to be set 
 						// even when app not running...which is odd...
-	libusb_exit(0);
+	libusb_exit(ctx);
 }
+
+#endif
