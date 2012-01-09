@@ -12,6 +12,7 @@
 #include "XnVPointFilter.h"
 
 class XnVVirtualCoordinatesInternal;
+class XnVIntVCIHash;
 
 #define XNV_VC_MAX_FILE_NAME	2048
 
@@ -59,13 +60,12 @@ public:
 	*/
 	void OnPointDestroy(XnUInt32 nID);
 protected:
-	XN_DECLARE_DEFAULT_HASH_DECL(XNV_NITE_API, XnUInt32, XnVVirtualCoordinatesInternal*, XnVIntVCIHash);
 
 	void Clear();
 	virtual void UpdateVirtualPoint(XnVVirtualCoordinatesInternal* pVC, const XnVHandPointContext* pContext, XnVHandPointContext* pLocalContext);
 	XnVVirtualCoordinatesInternal* GetLocalContext(XnUInt32 nID);
 
-	XnVIntVCIHash m_VCContexts;
+	XnVIntVCIHash* m_pVCContexts;
 
 	XnChar m_strINI[XNV_VC_MAX_FILE_NAME];
 

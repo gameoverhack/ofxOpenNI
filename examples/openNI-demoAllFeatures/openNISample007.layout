@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_layout_file>
+	<ActiveTarget name="release" />
+	<File name="..\..\..\addons\ofxOpenNI\include\openni\XnCppWrapper.h" open="1" top="0" tabpos="4">
+		<Cursor position="214607" topLine="6398" />
+	</File>
+	<File name="..\..\..\addons\ofxOpenNI\include\openni\XnLog.h" open="0" top="0" tabpos="0">
+		<Cursor position="22108" topLine="501" />
+	</File>
+	<File name="..\..\..\addons\ofxOpenNI\include\openni\XnOS.h" open="1" top="0" tabpos="5">
+		<Cursor position="6948" topLine="164" />
+	</File>
+	<File name="..\..\..\addons\ofxOpenNI\include\openni\XnPlatform.h" open="1" top="1" tabpos="1">
+		<Cursor position="2748" topLine="42" />
+	</File>
+	<File name="..\..\..\addons\ofxOpenNI\src\ofxOpenNIContext.h" open="0" top="0" tabpos="0">
+		<Cursor position="1305" topLine="14" />
+	</File>
+</CodeBlocks_layout_file>

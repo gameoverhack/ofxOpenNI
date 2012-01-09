@@ -10,7 +10,8 @@
 #define _XNV_SLIDER_3D_H_
 
 #include "XnVNiteDefs.h"
-#include "XnVNiteEvents.h"
+
+class XnVValueChange3DSpecificEvent;
 
 /**
 * This is a simple 3D slider. It receives a point,
@@ -56,15 +57,13 @@ public:
 	*/
 	void UnregisterValueChange(XnCallbackHandle hCB);
 protected:
-	XN_DECLARE_EVENT_3ARG(XnVValueChange3DSpecificEvent, XnVValueChange3DEvent, XnFloat, fValueX, XnFloat, fValueY, XnFloat, fValueZ);
-
 	// Event broadcast
 	void ValueChange(XnFloat fXValue, XnFloat fYValue, XnFloat fZValue); // go over list and call all functions
 
 	XnPoint3D m_ptMin, m_ptMax;
 	XnFloat m_fSizeX, m_fSizeY, m_fSizeZ;
 
-	XnVValueChange3DSpecificEvent m_ValueChangeCBs;
+	XnVValueChange3DSpecificEvent* m_pValueChangeCBs;
 }; // XnVSlider3D
 
 #endif // _XNV_SLIDER_3D_H_

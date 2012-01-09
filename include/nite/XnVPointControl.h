@@ -12,6 +12,13 @@
 #include "XnVMessageListener.h"
 #include "XnVMultipleHands.h"
 
+class XnEvent;
+class XnVHandPointContextSpecificEvent;
+class XnVMultipleHandsSpecificEvent;
+class XnVHandPointContextPointSpecificEvent;
+class XnVUintHandPointContextSpecificEvent;
+class XnVUintSpecificEvent;
+
 /**
 * A XnVPointControl is a Message Listener that expects Point Messages.
 * It is meant to be a base class for Controls that are Point-based.
@@ -272,24 +279,18 @@ public:
 	*/
 	XnUInt32 GetPrimaryID() const;
 private:
-	XN_DECLARE_EVENT_1ARG(XnVHandPointContextSpecificEvent, XnVHandPointContextEvent, const XnVHandPointContext*, pContext);
-	XN_DECLARE_EVENT_1ARG(XnVMultipleHandsSpecificEvent, XnVMultipleHandsEvent, const XnVMultipleHands&, pContext);
+	XnVHandPointContextSpecificEvent* m_pPointCreateCBs;
+	XnVHandPointContextSpecificEvent* m_pPointUpdateCBs;
+	XnVUintSpecificEvent* m_pPointDestroyCBs;
 
-	XN_DECLARE_EVENT_2ARG(XnVHandPointContextPointSpecificEvent, XnVHandPointContextPointEvent, const XnVHandPointContext*, pContext, const XnPoint3D&, ptPos); 
-	XN_DECLARE_EVENT_2ARG(XnVUintHandPointContextSpecificEvent, XnVUintHandPointContextEvent, XnUInt32, nValue, const XnVHandPointContext*, pContext); 
+	XnVHandPointContextPointSpecificEvent* m_pPrimaryPointCreateCBs;
+	XnVHandPointContextSpecificEvent* m_pPrimaryPointUpdateCBs;
+	XnVUintHandPointContextSpecificEvent* m_pPrimaryPointReplaceCBs;
+	XnVUintSpecificEvent* m_pPrimaryPointDestroyCBs;
 
-	XnVHandPointContextSpecificEvent m_PointCreateCBs;
-	XnVHandPointContextSpecificEvent m_PointUpdateCBs;
-	XnVUintSpecificEvent m_PointDestroyCBs;
+	XnVEvent* m_pNoPointsCBs;
 
-	XnVHandPointContextPointSpecificEvent m_PrimaryPointCreateCBs;
-	XnVHandPointContextSpecificEvent m_PrimaryPointUpdateCBs;
-	XnVUintHandPointContextSpecificEvent m_PrimaryPointReplaceCBs;
-	XnVUintSpecificEvent m_PrimaryPointDestroyCBs;
-
-	XnVEvent m_NoPointsCBs;
-
-	XnVMultipleHandsSpecificEvent m_HandsUpdateCBs;
+	XnVMultipleHandsSpecificEvent* m_pHandsUpdateCBs;
 
 	XnUInt32 m_nPrimaryID;
 protected:

@@ -10,11 +10,10 @@
 #define _XNV_MULTI_ITEM_HYSTERESIS_2D_H_
 
 #include "XnVNiteDefs.h"
-#include "XnVNiteEvents.h"
 
 class XnVSigmoid;
 class XnVPointBuffer;
-
+class XnVIntIntSpecificEvent;
 /**
 * The multi item controller is initialized with a number of items in each axis,
 * and sends a select event when moving between them.
@@ -181,7 +180,7 @@ protected:
 
 	XnFloat m_fHysteresisRatio;
 
-	XnVIntIntSpecificEvent m_ItemSelectCBs;
+	XnVIntIntSpecificEvent* m_pItemSelectCBs;
 }; // XnVMultiItem2DController
 
 #endif // _XNV_MULTI_ITEM_HYSTERESIS_1D_H_

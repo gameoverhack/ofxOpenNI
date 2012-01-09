@@ -10,8 +10,8 @@
 #define _XNV_MULTI_ITEM_HYSTERESIS_1D_H_
 
 #include "XnVNiteDefs.h"
-#include "XnVNiteEvents.h"
 
+class XnVIntSpecificEvent;
 /**
 * The multi item hysteresis is initialized with a number of items,
 * and sends a select event when moving between them.
@@ -141,7 +141,7 @@ protected:
 	XnFloat m_fBorderWidth;
 	XnFloat m_fHysteresisRatio;
 
-	XnVIntSpecificEvent m_ItemSelectCBs;
+	XnVIntSpecificEvent* m_pItemSelectCBs;
 };
 
 #endif // _XNV_MULTI_ITEM_HYSTERESIS_1D_H_

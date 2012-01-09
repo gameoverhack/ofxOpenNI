@@ -9,11 +9,12 @@
 #ifndef _XNV_MESSAGE_GENERATOR_H_
 #define _XNV_MESSAGE_GENERATOR_H_
 
-#include <XnStringsHash.h>
-
 #include "XnVMessageListener.h"
 #include "XnVMessage.h"
 #include "XnVHandle.h"
+
+class XnVIntMessageListenerHash;
+class XnStringsHash;
 
 /**
 * A XnVMessageGenerator knows how to generate messages.
@@ -74,13 +75,11 @@ public:
 	 */
 	const XnChar* GetGeneratorName() const;
 protected:
-	XN_DECLARE_DEFAULT_HASH_DECL(XNV_NITE_API, XnUInt32, XnVMessageListener*, XnVIntMessageListenerHash);
-
 	void OpenNewSession(XnVMessageListener* pListener);
 	void CloseOldSession(XnVMessageListener* pListener);
 
-	XnVIntMessageListenerHash m_hListeners;
-	XnStringsHash m_Properties; // for last points
+	XnVIntMessageListenerHash* m_phListeners;
+	XnStringsHash* m_pProperties; // for last points
 	XnVHandle m_hNextAvailable;
 
 	XnChar* m_strGeneratorName;

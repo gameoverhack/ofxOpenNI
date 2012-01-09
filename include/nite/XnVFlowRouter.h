@@ -9,8 +9,9 @@
 #ifndef _XNV_FLOW_ROUTER_H_
 #define _XNV_FLOW_ROUTER_H_
 
-#include <XnStringsHash.h>
 #include "XnVMessageListener.h"
+
+class XnStringsHash;
 
 /**
 * A XnVFlowRouter is a Message Listener, that holds another single Listener internally,
@@ -61,7 +62,7 @@ protected:
 	virtual void OpenNewSession();
 	XnVMessageListener* m_pActive;
 
-	XnStringsHash m_Properties; // for last points
+	XnStringsHash* m_pProperties; // for last points
 };
 
 #endif

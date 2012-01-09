@@ -1,6 +1,6 @@
 /****************************************************************************
 *                                                                           *
-*  OpenNI 1.1 Alpha                                                         *
+*  OpenNI 1.x Alpha                                                         *
 *  Copyright (C) 2011 PrimeSense Ltd.                                       *
 *                                                                           *
 *  This file is part of OpenNI.                                             *
@@ -34,6 +34,7 @@
 #define XN_PLATFORM_ARC 6
 #define XN_PLATFORM_LINUX_ARM 7
 #define XN_PLATFORM_MACOSX 8
+#define XN_PLATFORM_ANDROID_ARM 9
 
 #define XN_PLATFORM_IS_LITTLE_ENDIAN 1
 #define XN_PLATFORM_IS_BIG_ENDIAN    2
@@ -48,18 +49,20 @@
 //---------------------------------------------------------------------------
 
 #if defined(_WIN32) // Microsoft Visual Studio
-#ifndef __MINGW32_VERSION // MingW32 (added gameover/m gingold 10/07/2011)
-	#ifndef RC_INVOKED
-		#if _MSC_VER < 1300 // Before MSVC7 (2003)
-			#error Xiron Platform Abstraction Layer - Win32 - Microsoft Visual Studio versions below 2003 (7.0) are not supported!
-		#endif
+        #ifndef RC_INVOKED
+            #ifdef _MSC_VER // MingW32 (added gameover/m gingold 10/07/2011)
+                #if _MSC_VER < 1300 // Before MSVC7 (2003)
+                    #error Xiron Platform Abstraction Layer - Win32 - Microsoft Visual Studio versions below 2003 (7.0) are not supported!
+                #endif
 
-		#if _MSC_VER > 1600 // After MSVC8 (2010)
-			#error Xiron Platform Abstraction Layer - Win32 - Microsoft Visual Studio versions above 2010 (10.0) are not supported!
-		#endif
-	#endif
-#endif
+                #if _MSC_VER > 1600 // After MSVC8 (2010)
+                    #error Xiron Platform Abstraction Layer - Win32 - Microsoft Visual Studio versions above 2010 (10.0) are not supported!
+                #endif
+            #endif
+        #endif
 	#include "Win32/XnPlatformWin32.h"
+#elif defined(ANDROID) && defined(__arm__)
+	#include "Android-Arm/XnPlatformAndroid-Arm.h"
 #elif (linux && (i386 || __x86_64__))
 	#include "Linux-x86/XnPlatformLinux-x86.h"
 #elif (linux && __arm__)
@@ -88,6 +91,8 @@
 #define XN_MAX(a,b)            (((a) > (b)) ? (a) : (b))
 
 typedef void (*XnFuncPtr)();
+
+#define XN_COMPILER_ASSERT(x) typedef int compileAssert[x ? 1 : -1]
 
 //---------------------------------------------------------------------------
 // API Export/Import Macros

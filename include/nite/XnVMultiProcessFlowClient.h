@@ -15,6 +15,7 @@
 struct XnVNiteMultiprocessData;
 class XnVMultiprocessReadSynchronizer;
 class IdToContextMapping;
+class XnVIntContextHash;
 
 /**
  * The multi process flow client is a near-equivalent to an XnVSessionManager, but which receives
@@ -78,8 +79,6 @@ public:
 	XnStatus ForceSession(const XnPoint3D& ptFocus);
 	XnStatus TrackPoint(const XnPoint3D& pt);
 protected:
-	XN_DECLARE_DEFAULT_HASH_DECL(XNV_NITE_API, XnUInt32, XnVHandPointContext*, XnVIntContextHash);
-
 	XnVHandPointContext* GetLocalContext(XnUInt32 nID);
 
 	void SendEventsForStateDiff(const XnVNiteMultiprocessData& NewState);

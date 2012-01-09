@@ -9,8 +9,10 @@
 #ifndef _XNV_GESTURE_H_
 #define _XNV_GESTURE_H_
 #include <XnOpenNI.h>
-
 #include "XnVDeviceControl.h"
+
+class XnVGestureRecognizeSpecificEvent;
+class XnVGestureStartRecognizeSpecificEvent;
 
 /**
 * A XnVGesture is a Context Control, which identifies gestures. 
@@ -98,10 +100,8 @@ public:
 	*/
 	void UnregisterStartRecognize(XnCallbackHandle hCB);
 private:
-	XN_DECLARE_EVENT_3ARG(XnVGestureRecognizeSpecificEvent, XnVGestureRecognizeEvent, const XnChar*, strGesture, const XnPoint3D&, ptIDPos, const XnPoint3D&, ptEndPos);
-	XN_DECLARE_EVENT_3ARG(XnVGestureStartRecognizeSpecificEvent, XnVGestureStartRecognizeEvent, const XnChar*, strGesture, const XnPoint3D&, ptPos, XnFloat, fProgress);
-	XnVGestureStartRecognizeSpecificEvent m_StartRecognizeCBs;
-	XnVGestureRecognizeSpecificEvent m_RecognizeCBs;
+	XnVGestureStartRecognizeSpecificEvent* m_pStartRecognizeCBs;
+	XnVGestureRecognizeSpecificEvent* m_pRecognizeCBs;
 };
 
 #endif

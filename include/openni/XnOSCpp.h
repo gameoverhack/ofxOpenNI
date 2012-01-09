@@ -1,6 +1,6 @@
 /****************************************************************************
 *                                                                           *
-*  OpenNI 1.1 Alpha                                                         *
+*  OpenNI 1.x Alpha                                                         *
 *  Copyright (C) 2011 PrimeSense Ltd.                                       *
 *                                                                           *
 *  This file is part of OpenNI.                                             *
@@ -33,7 +33,7 @@
 class XnAutoCSLocker
 {
 public:
-	inline XnAutoCSLocker(const XnAutoCSLocker& other) : m_hCS(other.m_hCS)
+	inline XnAutoCSLocker(const XnAutoCSLocker& other) : m_hCS(other.m_hCS), m_bLocked(FALSE)
 	{
 		Lock();
 	}
@@ -46,7 +46,7 @@ public:
 		return *this;
 	}
 
-	inline XnAutoCSLocker(XN_CRITICAL_SECTION_HANDLE hCS) : m_hCS(hCS)
+	inline XnAutoCSLocker(XN_CRITICAL_SECTION_HANDLE hCS) : m_hCS(hCS), m_bLocked(FALSE)
 	{
 		Lock();
 	}
@@ -56,20 +56,27 @@ public:
 		Unlock();
 	}
 
-private:
 	inline void Lock()
 	{
-		XnStatus nRetVal = xnOSEnterCriticalSection(&m_hCS);
-		XN_ASSERT(nRetVal == XN_STATUS_OK);
+		if (!m_bLocked)
+		{
+			xnOSEnterCriticalSection(&m_hCS);
+			m_bLocked = TRUE;
+		}
 	}
 
 	inline void Unlock()
 	{
-		XnStatus nRetVal = xnOSLeaveCriticalSection(&m_hCS);
-		XN_ASSERT(nRetVal == XN_STATUS_OK);
+		if (m_bLocked)
+		{
+			xnOSLeaveCriticalSection(&m_hCS);
+			m_bLocked = FALSE;
+		}
 	}
 
+private:
 	XN_CRITICAL_SECTION_HANDLE m_hCS;
+	XnBool m_bLocked;
 };
 
 class XnAutoMutexLocker
@@ -119,14 +126,14 @@ public:
 		return xnOSCreateEvent(&m_hEvent, bManualReset);
 	}
 
-	XnStatus Create(const XnChar* strName, XnBool bManualReset)
+	XnStatus Create(const XnChar* strName, XnBool bManualReset, XnBool bAllowOtherUsers = FALSE)
 	{
-		return xnOSCreateNamedEvent(&m_hEvent, strName, bManualReset);
+		return xnOSCreateNamedEventEx(&m_hEvent, strName, bManualReset, bAllowOtherUsers);
 	}
 
-	XnStatus Open(const XnChar* strName)
+	XnStatus Open(const XnChar* strName, XnBool bEnableOtherUsers = FALSE)
 	{
-		return xnOSOpenNamedEvent(&m_hEvent, strName);
+		return xnOSOpenNamedEventEx(&m_hEvent, strName, bEnableOtherUsers);
 	}
 
 	XnStatus Close()

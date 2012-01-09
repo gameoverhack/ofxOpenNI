@@ -14,7 +14,8 @@
 #include "XnV3DVector.h"
 
 class XnVPointBuffer;
-
+class XnVFloatFloatSpecificEvent;
+class XnVFloatSpecificEvent;
 /**
  * A control that identifies pushes - moves in the z axis.
  * The XnVPushDetector defines 2 events:
@@ -258,8 +259,8 @@ protected:
 	void PushDetected(XnFloat fVelocity, XnFloat fAngle);
 	void StabilizedDetected(XnFloat fVelocity);
 
-	XnVFloatFloatSpecificEvent m_PushCBs;
-	XnVFloatSpecificEvent m_StabilizedCBs;
+	XnVFloatFloatSpecificEvent* m_pPushCBs;
+	XnVFloatSpecificEvent* m_pStabilizedCBs;
 }; // XnVPushDetector
 
 #endif // _XNV_PUSH_DETECTOR_H_

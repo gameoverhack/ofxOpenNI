@@ -1,6 +1,6 @@
 /****************************************************************************
 *                                                                           *
-*  OpenNI 1.1 Alpha                                                         *
+*  OpenNI 1.x Alpha                                                         *
 *  Copyright (C) 2011 PrimeSense Ltd.                                       *
 *                                                                           *
 *  This file is part of OpenNI.                                             *
@@ -26,20 +26,23 @@
 // Prerequisites
 //---------------------------------------------------------------------------
 #ifndef WINVER						// Allow use of features specific to Windows XP or later
-#define WINVER 0x0501
+	#define WINVER 0x0501
 #endif
 #ifndef _WIN32_WINNT				// Allow use of features specific to Windows XP or later
-#define _WIN32_WINNT 0x0501
+	#define _WIN32_WINNT 0x0501
 #endif
 #ifndef _WIN32_WINDOWS				// Allow use of features specific to Windows 98 or later
-#define _WIN32_WINDOWS 0x0410
+	#define _WIN32_WINDOWS 0x0410
 #endif
 #ifndef _WIN32_IE					// Allow use of features specific to IE 6.0 or later
-#define _WIN32_IE 0x0600
+	#define _WIN32_IE 0x0600
 #endif
 #define WIN32_LEAN_AND_MEAN			// Exclude rarely-used stuff from Windows headers
 
-#define _CRT_SECURE_NO_DEPRECATE 1	// Undeprecate CRT functions
+// Undeprecate CRT functions
+#ifndef _CRT_SECURE_NO_DEPRECATE
+	#define _CRT_SECURE_NO_DEPRECATE 1
+#endif
 
 //---------------------------------------------------------------------------
 // Includes
@@ -130,31 +133,31 @@ typedef FARPROC				XnFarProc;
 typedef size_t				XnSizeT;
 
 /** Max unsigned 8-bit value */
-#define XN_MAX_UINT8 255
+#define XN_MAX_UINT8 _UI8_MAX
 /** Max unsigned 16-bit value */
-#define XN_MAX_UINT16 65535
+#define XN_MAX_UINT16 _UI16_MAX
 /** Max unsigned 32-bit value */
-#define XN_MAX_UINT32 4294967295
+#define XN_MAX_UINT32 _UI32_MAX
 /** Max unsigned 64-bit value */
-#define XN_MAX_UINT64 18446744073709551615
+#define XN_MAX_UINT64 _UI64_MAX
 
 /** Min signed 8-bit value */
-#define XN_MIN_INT8 -127
+#define XN_MIN_INT8 _I8_MIN
 /** Min signed 16-bit value */
-#define XN_MIN_INT16 -32767
+#define XN_MIN_INT16 _I16_MIN
 /** Min signed 32-bit value */
-#define XN_MIN_INT32 -2147483647
+#define XN_MIN_INT32 _I32_MIN
 /** Min signed 64-bit value */
-#define XN_MIN_INT64 -9223372036854775807
+#define XN_MIN_INT64 _I64_MIN
 
 /** Max signed 8-bit value */
-#define XN_MAX_INT8 127
+#define XN_MAX_INT8 _I8_MAX
 /** Max signed 16-bit value */
-#define XN_MAX_INT16 32767
+#define XN_MAX_INT16 _I16_MAX
 /** Max signed 32-bit value */
-#define XN_MAX_INT32 2147483647
+#define XN_MAX_INT32 _I32_MAX
 /** Max signed 64-bit value */
-#define XN_MAX_INT64 9223372036854775807
+#define XN_MAX_INT64 _I64_MAX
 
 /** Min double value */
 #define XN_MIN_DOUBLE DBL_MIN
@@ -205,6 +208,7 @@ typedef size_t				XnSizeT;
 /** Asserts an expression, only on Debug build. */
 #define XN_ASSERT(x)	_ASSERTE(x)
 #endif
+
 //---------------------------------------------------------------------------
 // API Export/Import Macros
 //---------------------------------------------------------------------------
@@ -222,10 +226,23 @@ typedef size_t				XnSizeT;
 #endif
 
 #ifdef __INTEL_COMPILER
-	#define XN_DEPRECATED_WARNING_IDS	1786
+	#define XN_DEPRECATED_WARNING_IDS			1786
+	#define XN_HIDES_PARENT_METHOD_WARNING_ID	1125
+	#define XN_CONDITION_IS_CONST_WARNING_ID
 #else
-	#define XN_DEPRECATED_WARNING_IDS	4995 4996
+	#define XN_DEPRECATED_WARNING_IDS			4995 4996
+	#define XN_HIDES_PARENT_METHOD_WARNING_ID
+	#define XN_CONDITION_IS_CONST_WARNING_ID	4127
 #endif
+
+#define XN_PRAGMA_START_DISABLED_WARNING_SECTION(warnings)			\
+	__pragma(warning(push))											\
+	__pragma(warning(disable:XN_HIDES_PARENT_METHOD_WARNING_ID))
+
+#define XN_PRAGMA_STOP_DISABLED_WARNING_SECTION						\
+	__pragma(warning(pop))
+
+
 
 /** Declares a global shared library export function. */
 #define XN_API_EXPORT_INIT()															\
