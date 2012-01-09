@@ -1,6 +1,6 @@
 /****************************************************************************
 *                                                                           *
-*  OpenNI 1.1 Alpha                                                         *
+*  OpenNI 1.x Alpha                                                         *
 *  Copyright (C) 2011 PrimeSense Ltd.                                       *
 *                                                                           *
 *  This file is part of OpenNI.                                             *
@@ -25,6 +25,10 @@
 #include "XnModuleCppInterface.h"
 
 using namespace xn;
+
+#ifdef XN_NO_DYNAMIC_CAST
+#include "XnDerivedCast.h"
+#endif
 
 #define _XN_VALIDATE_CAPABILITY_INTERFACE_RET(capInterface, retVal)		\
 	if (capInterface == NULL)											\
@@ -1356,6 +1360,7 @@ XnStatus XN_CALLBACK_TYPE __ModuleGetAllAvailablePoses(XnModuleNodeHandle hGener
 	return pInterface->GetAllAvailablePoses(pstrPoses, nNameLength, *pnPoses);
 }
 
+
 XnStatus XN_CALLBACK_TYPE __ModuleStartPoseDetection(XnModuleNodeHandle hGenerator, const XnChar* strPose, XnUserID user)
 {
 	ModuleProductionNode* pProdNode = (ModuleProductionNode*)hGenerator;
@@ -1371,6 +1376,14 @@ XnStatus XN_CALLBACK_TYPE __ModuleStopPoseDetection(XnModuleNodeHandle hGenerato
 	ModulePoseDetectionInteface* pInterface = pNode->GetPoseDetectionInteface();
 	_XN_VALIDATE_CAPABILITY_INTERFACE(pInterface);
 	return pInterface->StopPoseDetection(user);
+}
+XnStatus XN_CALLBACK_TYPE __ModuleStopSinglePoseDetection(XnModuleNodeHandle hGenerator, XnUserID user, const XnChar* strPose)
+{
+	ModuleProductionNode* pProdNode = (ModuleProductionNode*)hGenerator;
+	ModuleUserGenerator* pNode = dynamic_cast<ModuleUserGenerator*>(pProdNode);
+	ModulePoseDetectionInteface* pInterface = pNode->GetPoseDetectionInteface();
+	_XN_VALIDATE_CAPABILITY_INTERFACE(pInterface);
+	return pInterface->StopSinglePoseDetection(user, strPose);
 }
 
 XnStatus XN_CALLBACK_TYPE __ModuleRegisterToPoseCallbacks(XnModuleNodeHandle hGenerator, XnModulePoseDetectionCallback PoseDetectionStartCB, XnModulePoseDetectionCallback PoseDetectionEndCB, void* pCookie, XnCallbackHandle* phCallback)
@@ -1894,6 +1907,7 @@ void XN_CALLBACK_TYPE __ModuleGetPoseDetectionInterface(XnModulePoseDetectionCap
 	pInteface->GetAllAvailablePoses = __ModuleGetAllAvailablePoses;
 	pInteface->StartPoseDetection = __ModuleStartPoseDetection;
 	pInteface->StopPoseDetection = __ModuleStopPoseDetection;
+	pInteface->StopSinglePoseDetection = __ModuleStopSinglePoseDetection;
 	pInteface->RegisterToPoseCallbacks = __ModuleRegisterToPoseCallbacks;
 	pInteface->UnregisterFromPoseCallbacks = __ModuleUnregisterFromPoseCallbacks;
 

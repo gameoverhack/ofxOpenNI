@@ -12,7 +12,8 @@
 #include "XnVNiteDefs.h"
 #include "XnVPointControl.h"
 class XnVPointBuffer;
-
+class XnVSteadyStates;
+class XnVUintFloatSpecificEvent;
 /**
 * A control that identifies return to steady condition.
 * The XnVSteadyDetector defines one event:
@@ -156,17 +157,10 @@ protected:
 
 	XnUInt32 m_nInitialCooldownFrames;
 
-	struct SteadyState
-	{
-		XnUInt32 nCurrentCooldownFrames;
-		XnBool bCurrentSteady;
-		XnVPointBuffer* pPoints;
-	};
-	XN_DECLARE_DEFAULT_HASH(XnUInt32, SteadyState*, SteadyStates);
-	SteadyStates m_SteadyStates;
+	XnVSteadyStates* m_pSteadyStates;
 private:
-	XnVUintFloatSpecificEvent m_SteadyCBs;
-	XnVUintFloatSpecificEvent m_NotSteadyCBs;
+	XnVUintFloatSpecificEvent* m_pSteadyCBs;
+	XnVUintFloatSpecificEvent* m_pNotSteadyCBs;
 }; // XnVSteadyDetector
 
 #endif // _XNV_STEADY_DETECTOR_H_

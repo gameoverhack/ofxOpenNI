@@ -16,6 +16,9 @@
 class XnVPointBuffer;
 class XnVCircleSolver;
 
+class XnVNoCircleSpecificEvent;
+class XnVCircleSpecificEvent;
+
 /**
 * Identify a circle. This is done by starting from a single point, and finding points going further away,
 * then back closer. A best fitting circle is found, and makes sure it really is a circle - there are points in all
@@ -213,9 +216,6 @@ public:
 	XnStatus GetMaxErrors(XnUInt32& nMaxErrors) const;
 
 protected:
-	XN_DECLARE_EVENT_2ARG(XnVNoCircleSpecificEvent, XnVNoCircleEvent, XnFloat, fValue, XnVNoCircleReason, eReason);
-	XN_DECLARE_EVENT_3ARG(XnVCircleSpecificEvent, XnVCircleEvent, XnFloat, fTimes, XnBool, bConfidence,  const XnVCircle*, pCircle);
-
 	void AddPoint(const XnPoint3D& pt, XnFloat fTime);
 
 	XnVCircleSolver* m_pCircleSolver;
@@ -245,8 +245,8 @@ protected:
 
 	XnVPointBuffer* m_pMovementDetectionBuffer;
 
-	XnVCircleSpecificEvent m_CircleCBs;
-	XnVNoCircleSpecificEvent m_NoCircleCBs;
+	XnVCircleSpecificEvent* m_pCircleCBs;
+	XnVNoCircleSpecificEvent* m_pNoCircleCBs;
 };
 
 #endif // _XNV_CIRCLE_DETECTOR_H_

@@ -16,7 +16,8 @@
 #include "XnVSteadyDetector.h"
 
 class XnVPointBuffer;
-
+class XnVFloatFloatSpecificEvent;
+class XnVGeneralSwipeSpecificEvent;
 /**
 * A control that identifies swipes - moves on the x and y axes.
 * The XnVSwipeDetector defines 4 events for specific direction swipes:
@@ -213,8 +214,6 @@ public:
 	void SetUseSteady(XnBool bUse);
 	XnBool GetUseSteady() const;
 protected:
-	XN_DECLARE_EVENT_3ARG(XnVGeneralSwipeSpecificEvent, XnVGeneralSwipeEvent, XnVDirection, eDir, XnFloat, fVelocity, XnFloat, fAngle);
-
 	XnStatus AddPoint(const XnPoint3D& pt, XnFloat fTime);
 
 	static void XN_CALLBACK_TYPE Steady_Steady(XnUInt32 nId, XnFloat fVelocity, void* cxt);
@@ -238,9 +237,12 @@ protected:
 	XnFloat m_fPendingVelocity;
 	XnFloat m_fPendingAngle;
 
-	XnVFloatFloatSpecificEvent m_SwipeDownCBs, m_SwipeUpCBs, m_SwipeLeftCBs, m_SwipeRightCBs;
+	XnVFloatFloatSpecificEvent* m_pSwipeDownCBs;
+	XnVFloatFloatSpecificEvent* m_pSwipeUpCBs;
+	XnVFloatFloatSpecificEvent* m_pSwipeLeftCBs;
+	XnVFloatFloatSpecificEvent* m_pSwipeRightCBs;
 
-	XnVGeneralSwipeSpecificEvent m_SwipeCBs;
+	XnVGeneralSwipeSpecificEvent* m_pSwipeCBs;
 
 	XnBool m_bUseSteady;
 	XnBool m_bInSteady;

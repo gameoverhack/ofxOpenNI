@@ -9,11 +9,11 @@
 #ifndef _XNV_MESSAGE_MUX_H_
 #define _XNV_MESSAGE_MUX_H_
 
-#include <XnStringsHash.h>
-
 #include "XnVFilter.h"
 #include "XnVComplexMessage.h"
 
+class XnStringsHash;
+class XnList;
 /**
 * A XnVMessageMux is a Filter which created Complex Messages from multiple other Messages
 */
@@ -76,9 +76,9 @@ protected:
 	XnVMuxMode m_eMode;
 	XnChar* m_strSpecific;
 
-	XnStringsHash m_hTypes;
+	XnStringsHash* m_phTypes;
 	XnUInt32 m_nExpected;
-	XnList m_hCurrent;
+	XnList* m_phCurrent;
 };
 
 #endif

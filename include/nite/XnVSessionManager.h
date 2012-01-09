@@ -19,6 +19,7 @@
 #include "XnV3DVector.h"
 #include "XnVSteadyDetector.h"
 
+class XnVGestureHash;
 /**
 * A XnVSessionManager manages the session state
 * Possible states are:
@@ -294,18 +295,9 @@ protected:
 	XnBool m_bGesturesEnabled;
 	XnBool m_bQuickRefocusEnabled;
 
-	struct GestureDescription
-	{
-		XnUInt32 nID;
-		XnVGesture* pGesture;
-		XnBool bAuto;
-		XnCallbackHandle hFocus;
-		XnCallbackHandle hMidFocus;
-	};
-	XN_DECLARE_DEFAULT_HASH(XnUInt32, GestureDescription*, GestureHash);
-	void ClearGestureHash(GestureHash& hash);
-	GestureHash m_MainGestures;
-	GestureHash m_QuickRefocusGestures;
+	void ClearGestureHash(XnVGestureHash& hash);
+	XnVGestureHash* m_pMainGestures;
+	XnVGestureHash* m_pQuickRefocusGestures;
 	XnUInt32 m_nNextGestureID;
 
 	XnUInt32 AddGesture(XnVGesture* pGesture, XnBool bAuto, XnUInt32 nHintID, XnBool bFocus);
@@ -313,7 +305,7 @@ protected:
 	XnUInt32 AddGesture(xn::Context& context, const XnChar* strName, const XnStringsHash& hash, XnBool bFocus);
 	XnUInt32 AddGesture(xn::GestureGenerator& generator, const XnChar* strName, const XnStringsHash& hash, XnBool bFocus);
 
-	void RemoveGesture(XnUInt32 nId, GestureHash& hash);
+	void RemoveGesture(XnUInt32 nId, XnVGestureHash& hash);
 
 	XnVPointTracker* m_pTracker;
 	XnBool m_bAutoTracker;

@@ -13,6 +13,7 @@
 #include "XnVPointControl.h"
 
 struct XnVWaveContext;
+class XnVEvent;
 
 class XNV_NITE_API XnVWaveDetector :
 	public XnVPointControl
@@ -90,7 +91,7 @@ public:
 	XnInt32 GetMaxDeviation() const;
 protected:
 	XnVWaveContext* m_pContext;
-	XnVEvent m_WaveCBs;
+	XnVEvent* m_pWaveCBs;
 }; // XnVWaveDetector
 
 #endif // _XNV_WAVE_DETECTOR_H_

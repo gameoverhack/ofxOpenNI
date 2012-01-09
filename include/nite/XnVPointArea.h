@@ -13,6 +13,9 @@
 #include "XnVSessionGenerator.h"
 #include "XnVPointTracker.h"
 
+class XnVUintSpecificEvent;
+class XnVIntHash;
+
 /**
 * Defines a legal bounding box. Any point that goes outside it will seem to be lost to anyone further along the chain - 
 * it will be silenced by the PointArea.
@@ -53,6 +56,10 @@ public:
 	*/
 	XnVPointArea(const XnPoint3D& ptMins, const XnPoint3D& ptMaxs, XnBool bRelative = false, const XnChar* strName = "XnVPointArea");
 
+	/**
+	* Destructor - deallocate all internal data
+	*/
+	virtual ~XnVPointArea();
 	/**
 	* Change the area in which points are allowed to exist
 	*
@@ -162,9 +169,11 @@ protected:
 	XnBool m_bRelative;
 	XnBoundingBox3D m_bbRelativeArea;
 
-	XnVIntHash m_SilentPoints;
+	XnVIntHash* m_pSilentPoints;
 
-	XnVUintSpecificEvent m_PointSilencedCBs, m_PointRevivedCBs, m_SilentPointRemovedCBs;
+	XnVUintSpecificEvent* m_pPointSilencedCBs;
+	XnVUintSpecificEvent* m_pPointRevivedCBs;
+	XnVUintSpecificEvent* m_pSilentPointRemovedCBs;
 
 	XnBool m_bRemoveByGenerator;
 	XnBool m_bRemoveByTracker;

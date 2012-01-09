@@ -12,6 +12,10 @@
 #include "XnVVirtualCoordinates.h"
 
 class XnVClickableVirtualPlane;
+class XnVIntPointHash;
+class XnVIntIDHash;
+class XnVUintPointSpecificEvent;
+
 struct XnVClickableID
 {
 	XnVClickableID(const XnVHandPointContext* cxt, XnVClickableVirtualPlane* pPlane) :
@@ -101,15 +105,12 @@ public:
 	 */
 	XnBool IsFrozen(XnUInt32 nID) const;
 protected:
-	XN_DECLARE_DEFAULT_HASH_DECL(XNV_NITE_API, XnUInt32, XnPoint3D*, XnVIntPointHash);
-	XN_DECLARE_DEFAULT_HASH_DECL(XNV_NITE_API, XnUInt32, XnVClickableID*, XnVIntIDHash);
-
 	void UpdateVirtualPoint(XnVVirtualCoordinatesInternal* pVC, const XnVHandPointContext* pContext, XnVHandPointContext* pLocalContext);
 
-	XnVIntPointHash m_FrozenPoints;
-	XnVIntIDHash m_IDContexts;
+	XnVIntPointHash* m_pFrozenPoints;
+	XnVIntIDHash* m_pIDContexts;
 
-	XnVUintPointSpecificEvent m_ClickCBs;
+	XnVUintPointSpecificEvent* m_pClickCBs;
 };
 
 #endif // _XNV_CLICKABLE_VIRTUAL_PLANE_H_

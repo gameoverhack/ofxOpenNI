@@ -15,6 +15,11 @@
 
 class XnVBorderScrollController1D;
 
+class XnVIntSpecificEvent;
+class XnVIntDirectionSpecificEvent;
+class XnVFloatSpecificEvent;
+class XnVDirectionSpecificEvent;
+
 /**
 * A Selectable slider is a 1D slider (along any of the x, y or axes) with a number of cells and borders,
 * where the items can be selected by moving off axis.
@@ -332,10 +337,11 @@ protected:
 	XnCallbackHandle m_hSecondarySliderOffAxis;
 	XnCallbackHandle m_hSecondarySliderValueChange;
 
-	XnVIntSpecificEvent m_ItemHoverCBs;
-	XnVIntDirectionSpecificEvent m_ItemSelectCBs;
-	XnVFloatSpecificEvent m_ScrollCBs, m_ValueChangeCBs;
-	XnVDirectionSpecificEvent m_OffAxisMovementCBs;
+	XnVIntSpecificEvent* m_pItemHoverCBs;
+	XnVIntDirectionSpecificEvent* m_pItemSelectCBs;
+	XnVFloatSpecificEvent* m_pScrollCBs;
+	XnVFloatSpecificEvent* m_pValueChangeCBs;
+	XnVDirectionSpecificEvent* m_pOffAxisMovementCBs;
 }; // XnVSelectableSlider1D
 
 #endif // _XNV_SELECTABLE_SLIDER_1D_H_

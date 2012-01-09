@@ -10,7 +10,9 @@
 #define _XNV_MULTIPLE_HANDS_H_
 
 #include "XnVHandPointContext.h"
-#include "XnVNiteEvents.h"
+
+class XnVIntHash;
+class XnVIntList;
 
 /**
 * A XnVMultipleHands holds all the known hands in the system.
@@ -271,6 +273,42 @@ public:
 		Iterator(XnVMultipleHands* pHands, XnUInt32 nPosition);
 	};
 
+	class XNV_NITE_API ConstIteratorOld
+	{
+	public:
+		friend class XnVMultipleHands;
+		ConstIteratorOld(const ConstIteratorOld& other);
+		ConstIteratorOld& operator++();
+		ConstIteratorOld operator++(int);
+		XnBool operator==(const ConstIteratorOld& other) const;
+		XnBool operator!=(const ConstIteratorOld& other) const;
+		XnUInt32 operator*() const;
+	protected:
+		ConstIteratorOld(const XnVIntList* pList);
+		ConstIteratorOld(const XnVIntList* pList, XnUInt32 nPosition);
+
+		const XnVIntList* m_pList;
+		XnUInt32 m_nPosition;
+		XnBool m_bValid;
+		XnUInt32 m_nSize;
+	};
+
+	/**
+	* Enable olditeration over old hands. This is the non-const version of the iterator.
+	*/
+	class XNV_NITE_API IteratorOld : public ConstIteratorOld
+	{
+	public:
+		friend class XnVMultipleHands;
+
+		IteratorOld(const IteratorOld& other);
+		IteratorOld& operator++();
+		IteratorOld operator++(int);
+	protected:
+		IteratorOld(XnVIntList* pList);
+		IteratorOld(XnVIntList* pList, XnUInt32 nPosition);
+	};
+
 	/**
 	* Get an iterator to the first Hand Point Context
 	*
@@ -342,25 +380,25 @@ public:
 	*
 	* @return	An iterator to the first old ID. Will be equal to end() if list is empty
 	*/
-	XnVIntList::Iterator beginOld();
+	IteratorOld beginOld();
 	/**
 	* Get a const iterator to the first item in the 'Old' list
 	*
 	* @return	A const iterator to the first old ID. Will be equal to end() if list is empty
 	*/
-	XnVIntList::ConstIterator beginOld() const;
+	ConstIteratorOld beginOld() const;
 	/**
 	* Get an iterator after the last item in the 'Old list
 	*
 	* @return	An iterator to after the last old ID
 	*/
-	XnVIntList::Iterator endOld();
+	IteratorOld endOld();
 	/**
 	* Get a const iterator after the last item in the 'Old list
 	*
 	* @return	A const iterator to after the last old ID
 	*/
-	XnVIntList::ConstIterator endOld() const;
+	ConstIteratorOld endOld() const;
 
 	/**
 	* Pick a new Single Interesting Point
@@ -383,11 +421,10 @@ private:
 	XnVHandPointContext m_Hands[32];
 	XnUInt32 m_nNextAvailable;
 	XnUInt32 m_nAvailable;
-	XnVIntHash m_Id2Position;
 
-	XnVIntList m_ActiveIDs;
-	XnVIntList m_NewIDs;
-	XnVIntList m_OldIDs;
+	XnVIntList* m_pActiveIDs;
+	XnVIntList* m_pNewIDs;
+	XnVIntList* m_pOldIDs;
 
 	XnUInt32 m_nPrimaryID;
 
