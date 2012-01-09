@@ -1,6 +1,6 @@
 /****************************************************************************
 *                                                                           *
-*  OpenNI 1.1 Alpha                                                         *
+*  OpenNI 1.x Alpha                                                         *
 *  Copyright (C) 2011 PrimeSense Ltd.                                       *
 *                                                                           *
 *  This file is part of OpenNI.                                             *
@@ -712,6 +712,11 @@ protected:
 			if (nRetVal != XN_STATUS_OK) return (nRetVal);										\
 			Translator::FreeValue(val);															\
 			return XN_STATUS_OK;																\
+		}																						\
+		inline XnStatus Remove(Type const& value)												\
+		{																						\
+			Iterator it = Find(value);															\
+			return Remove(it);																	\
 		}																						\
 		inline Iterator begin() { return XnList::begin(); }										\
 		inline ConstIterator begin() const { return XnList::begin(); }							\

@@ -14,6 +14,7 @@
 
 struct XnVNiteMultiprocessData;
 class XnVMultiprocessWriteSynchronizer;
+class XnVIntHash;
 
 /**
 * XnVMultiProcessFlowServer is both a XnVPointControl and a SessionListener. When placed into a NITE flow
@@ -82,7 +83,7 @@ private:
 	XnUInt32 m_nWriteCount;
 	XnVMultiprocessWriteSynchronizer* m_pWritingLock;
 	XnVNiteMultiprocessData* m_pCurrentState;
-	XnVIntHash m_IdToIndex;
+	XnVIntHash* m_pIdToIndex;
 	XnBool m_bFocusStartSinceUpdate;
 
 	const XnVMultipleHands* m_pCurrentHands;

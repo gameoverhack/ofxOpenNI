@@ -10,7 +10,6 @@
 #define _XNV_SESSION_LISTENER_H_
 
 #include "XnVNiteDefs.h"
-#include "XnVNiteEvents.h"
 
 /**
 * A Session Listener will register to a Session Generator, which will call it when a Session event happens

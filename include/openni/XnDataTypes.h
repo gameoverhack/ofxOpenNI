@@ -1,6 +1,6 @@
 /****************************************************************************
 *                                                                           *
-*  OpenNI 1.1 Alpha                                                         *
+*  OpenNI 1.x Alpha                                                         *
 *  Copyright (C) 2011 PrimeSense Ltd.                                       *
 *                                                                           *
 *  This file is part of OpenNI.                                             *
@@ -43,6 +43,8 @@ typedef void* XnValue;
 	class decl ClassName												\
 	{																	\
 	public:																\
+		XN_PRAGMA_START_DISABLED_WARNING_SECTION(XN_CONDITION_IS_CONST_WARNING_ID)	\
+																		\
 		static XnValue CreateValueCopy(Type const& orig)				\
 		{																\
 			if (sizeof(Type) > sizeof(XnValue))							\
@@ -104,6 +106,7 @@ typedef void* XnValue;
 				return *p;												\
 			}															\
 		}																\
+		XN_PRAGMA_STOP_DISABLED_WARNING_SECTION							\
 	};
 
 /** 

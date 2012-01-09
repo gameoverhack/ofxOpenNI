@@ -12,6 +12,8 @@
 #include "XnVDeviceFilter.h"
 #include "XnVMultipleHands.h"
 
+class XnVIntList;
+
 /**
 * A XnVPointTracker is a Context Filter, which is a Context Control and a Message Generator.
 * It receives Context Messages (as a Context Control), and creates Point Messages to send on
@@ -50,7 +52,7 @@ public:
 	virtual void Clear();
 
 protected:
-	XnVIntList m_LostPoints;
+	XnVIntList* m_pLostPoints;
 };
 
 #endif

@@ -10,8 +10,11 @@
 #define _XNV_MESSAGE_LISTENER_H_
 
 #include <XnThreadSafeQueue.h>
-#include "XnVNiteEvents.h"
 #include "XnVMessage.h"
+
+class XnVMessageQueue;
+class XnVMessageSpecificEvent;
+class XnVEvent;
 
 /**
 * A XnVMessageListener is a general listener, that received Messages and handles them.
@@ -166,8 +169,6 @@ public:
 	 */
 	virtual void ClearQueue();
 protected:
-	XN_DECLARE_THREAD_SAFE_QUEUE_DECL(XNV_NITE_API, XnVMessage*, XnVMessageQueue);
-	XN_DECLARE_EVENT_1ARG(XnVMessageSpecificEvent, XnVMessageEvent, XnVMessage*, pMessage);
 
 	XnBool IsInActivityThread() const;
 
@@ -184,11 +185,11 @@ protected:
 
 	static const XnUInt32 ms_nSessionDefaultLength;
 
-	XnVMessageQueue m_MessageQueue;
+	XnVMessageQueue* m_pMessageQueue;
 
-	XnVMessageSpecificEvent m_UpdateCBs;
-	XnVEvent m_ActivateCBs;
-	XnVEvent m_DeactivateCBs;
+	XnVMessageSpecificEvent* m_pUpdateCBs;
+	XnVEvent* m_pActivateCBs;
+	XnVEvent* m_pDeactivateCBs;
 
 	XnChar* m_strListenerName;
 

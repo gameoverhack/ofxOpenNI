@@ -11,9 +11,10 @@
 
 #include "XnVNiteDefs.h"
 #include "XnVDirection.h"
-#include "XnVNiteEvents.h"
 
 class XnVPointBuffer;
+class XnVFloatSpecificEvent;
+class XnVDirectionSpecificEvent;
 
 /**
 * This is a simple slider. It receives a point,
@@ -232,8 +233,8 @@ protected:
 
 	XnVPointBuffer* m_pPointBuffer;
 
-	XnVFloatSpecificEvent m_ValueChangeCBs;
-	XnVDirectionSpecificEvent m_OffAxisMovementCBs;
+	XnVFloatSpecificEvent* m_pValueChangeCBs;
+	XnVDirectionSpecificEvent* m_pOffAxisMovementCBs;
 };
 
 #endif // _XNV_SLIDER_1D_H_

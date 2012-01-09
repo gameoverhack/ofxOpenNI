@@ -1,6 +1,6 @@
 /****************************************************************************
 *                                                                           *
-*  OpenNI 1.1 Alpha                                                         *
+*  OpenNI 1.x Alpha                                                         *
 *  Copyright (C) 2011 PrimeSense Ltd.                                       *
 *                                                                           *
 *  This file is part of OpenNI.                                             *
@@ -114,5 +114,15 @@
 		{												\
 			return (XN_STATUS_OUTPUT_BUFFER_OVERFLOW);	\
 		}
+
+/** Disables Copy ctor and assignment operator. Should be placed under "private:" section. */
+#define XN_DISABLE_COPY_AND_ASSIGN(TypeName)			\
+	TypeName(const TypeName&);							\
+	void operator=(const TypeName&)
+
+/** Disables the "local variable is initialized but not referenced" warning (if you need
+    to use this variable in an assert */
+#define XN_REFERENCE_VARIABLE(x)						\
+	((void)x)
 
 #endif //_XN_MACROS_H_

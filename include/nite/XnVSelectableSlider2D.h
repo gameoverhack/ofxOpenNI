@@ -19,6 +19,11 @@
 #include "XnVMultiItemHysteresis1D.h"
 
 class XnVBorderScrollController2D;
+class XnVIntIntSpecificEvent;
+class XnVFloatFloatSpecificEvent;
+class XnVFloatFloatSpecificEvent;
+class XnVItemSelectSpecificEvent;
+class XnVDirectionSpecificEvent;
 
 /**
 * A Selectable slider 2D is a 2D slider (on the x/y plane) with a number of cells and borders in both axis,
@@ -261,8 +266,6 @@ public:
 	*/
 	XnFloat GetHysteresisRatio() const;
 protected:
-	XN_DECLARE_EVENT_3ARG(XnVItemSelectSpecificEvent, XnVItemSelectEvent, XnInt32, nItemX, XnInt32, nItemY, XnVDirection, eDir);
-
 	void UpdateSlider(XnFloat fXValue, XnFloat fYValue);
 
 	void PointDeleted(XnBool bReason);
@@ -317,11 +320,11 @@ protected:
 	XnCallbackHandle m_hSecondarySliderValueChange;
 	XnCallbackHandle m_hSecondarySliderOffAxis;
 
-	XnVIntIntSpecificEvent m_ItemHoverCBs;
-	XnVFloatFloatSpecificEvent m_ScrollCBs;
-	XnVFloatFloatSpecificEvent m_ValueChangeCBs;
-	XnVItemSelectSpecificEvent m_ItemSelectCBs;
-	XnVDirectionSpecificEvent m_OffAxisMovementCBs;
+	XnVIntIntSpecificEvent* m_pItemHoverCBs;
+	XnVFloatFloatSpecificEvent* m_pScrollCBs;
+	XnVFloatFloatSpecificEvent* m_pValueChangeCBs;
+	XnVItemSelectSpecificEvent* m_pItemSelectCBs;
+	XnVDirectionSpecificEvent* m_pOffAxisMovementCBs;
 };
 
 #endif // _XNV_SELECTABLE_SLIDER_2D_H_

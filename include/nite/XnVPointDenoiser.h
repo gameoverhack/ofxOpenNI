@@ -11,6 +11,8 @@
 
 #include "XnVPointFilter.h"
 
+struct XnVDenoisingLocalContext;
+struct XnVIntLocalHash;
 
 /**
 * The XnVPointDenoiser holds its own XnVMultipleHands object.
@@ -95,23 +97,13 @@ public:
 	void SetFarRatio(XnFloat fFarRatio);
 
 protected:
-#define XNV_SMOOTHER_AVERAGE_SIZE 3
-	struct LocalContext
-	{
-		XnPoint3D ptBuffer[XNV_SMOOTHER_AVERAGE_SIZE];
-		XnUInt32 nCount;
-		XnUInt32 nNextIndex;
-	};
-
-	XN_DECLARE_DEFAULT_HASH_DECL(XNV_NITE_API, XnUInt32, LocalContext*, XnVIntLocalHash);
-
-	LocalContext* GetLocalContext(XnUInt32 nID);
+	XnVDenoisingLocalContext* GetLocalContext(XnUInt32 nID);
 	XnFloat Distance(XnPoint3D& pt1, XnPoint3D& pt2) const;
 	void UpdatePointDenoise(XnPoint3D& ptToChange, const XnPoint3D& ptDontChange);
 
 	void Clear();
 
-	XnVIntLocalHash m_ActivePoints;
+	XnVIntLocalHash* m_pActivePoints;
 
 	static const XnFloat ms_fDefaultDistanceThreshold;	//	= 10
 	static const XnFloat ms_fDefaultCloseRatio;		// = 0.0

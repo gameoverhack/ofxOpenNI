@@ -1,0 +1,10 @@
+<Modules>
+    <Module path="../../../data/openni/lib/libnimMockNodes.dylib" />
+    <Module path="../../../data/openni/lib/libnimCodecs.dylib" />
+    <Module path="../../../data/openni/lib/libnimRecorder.dylib" />
+    <Module path="../../../data/openni/lib/libXnVCNITE_1_5_2.dylib" configDir="../../../data/openni/config/" />
+    <Module path="../../../data/openni/lib/libXnVFeatures_1_5_2.dylib" configDir="../../../data/openni/config/" />
+    <Module path="../../../data/openni/lib/libXnVHandGenerator_1_5_2.dylib" configDir="../../../data/openni/config/" />
+    <Module path="../../../data/openni/lib/libXnDeviceSensorV2KM.dylib" configDir="../../../data/openni/config/" />
+    <Module path="../../../data/openni/lib/libXnDeviceFile.dylib" configDir="../../../data/openni/config/" />
+</Modules>

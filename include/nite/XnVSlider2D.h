@@ -10,10 +10,11 @@
 #define _XNV_SLIDER_2D_H_
 
 #include "XnVNiteDefs.h"
-#include "XnVNiteEvents.h"
 #include "XnVDirection.h"
 
 class XnVPointBuffer;
+class XnVFloatFloatSpecificEvent;
+class XnVDirectionSpecificEvent;
 
 /**
 * This is a simple 2D slider. It receives a point,
@@ -147,8 +148,8 @@ protected:
 	void ValueChange(XnFloat fXValue, XnFloat fYValue); // go over list and call all functions
 	void OffAxisMovement(XnVDirection eDir);
 
-	XnVFloatFloatSpecificEvent m_ValueChangeCBs;
-	XnVDirectionSpecificEvent m_OffAxisMovementCBs;
+	XnVFloatFloatSpecificEvent* m_pValueChangeCBs;
+	XnVDirectionSpecificEvent* m_pOffAxisMovementCBs;
 
 	static const XnFloat ms_fOffAxisDefaultMininumVelocity;	// = 0.17 m/s
 	static const XnFloat ms_fOffAxisDefaultDetectionAngle;		// = 60.0f
