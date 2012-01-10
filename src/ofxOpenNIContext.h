@@ -26,31 +26,6 @@
  *
  */
 
-#ifndef _H_SINGLETON
-#define _H_SINGLETON
-#include "assert.h"
-#include <cstdlib>
-#include "ofTypes.h"
-template <class T>
-class Singleton {
-public:
-	static ofPtr<T> Instance() {
-		if(!m_pInstance) m_pInstance = ofPtr<T>(new T);
-		assert(m_pInstance !=NULL);
-		return m_pInstance;
-	}
-protected:
-	Singleton();
-	~Singleton();
-private:
-	Singleton(Singleton const&);
-	Singleton& operator=(Singleton const&);
-	static ofPtr<T> m_pInstance;
-};
-template <class T> ofPtr<T> Singleton<T>::m_pInstance=NULL;
-#endif
-//typedef Singleton<ofxOpenNIContext> ofxOpenNIContextSingleton;
-//static ofPtr<ofxOpenNIContext> openNIContext = ofPtr<ofxOpenNIContext>(ofxOpenNIContextSingleton::Instance());
 #ifndef	_H_OFXOPENNICONTEXT
 #define _H_OFXOPENNICONTEXT
 
@@ -129,7 +104,33 @@ private:
 	//vector<xn::Player> g_Player;
 	
 };
+
+
+// Singleton class and ofxOpenNIContext static singleton type defintion
+#ifndef _H_SINGLETON
+#define _H_SINGLETON
+#include "assert.h"
+#include <cstdlib>
+#include "ofTypes.h"
+template <class T>
+class Singleton {
+public:
+	static ofPtr<T> Instance() {
+		if(!m_pInstance) m_pInstance = ofPtr<T>(new T);
+		assert(m_pInstance !=NULL);
+		return m_pInstance;
+	}
+protected:
+	Singleton(){m_pInstance = NULL;};
+	~Singleton();
+private:
+	Singleton(Singleton const&);
+	Singleton& operator=(Singleton const&);
+	static ofPtr<T> m_pInstance;
+};
+template <class T> ofPtr<T> Singleton<T>::m_pInstance; // = NULL;
+#endif
+
 typedef Singleton<ofxOpenNIContext> ofxOpenNIContextSingleton;
 static ofPtr<ofxOpenNIContext> openNIContext = ofxOpenNIContextSingleton::Instance();
-//static ofPtr<ofxOpenNIContext> openNIContext = ofPtr<ofxOpenNIContext>(new ofxOpenNIContext()); // not sure this is the right way to do this???
 #endif

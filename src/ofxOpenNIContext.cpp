@@ -29,17 +29,17 @@
 #include "ofxOpenNIContext.h"
 
 string ofxOpenNIContext::LOG_NAME = "ofxOpenNIContext";
-static int counter = 0;
+
 //--------------------------------------------------------------
 ofxOpenNIContext::ofxOpenNIContext() {
+    //ofLogVerbose(LOG_NAME) << "Creating ofxOpenNI context singleton";
 	bIsContextReady = false;
 	g_pPrimary = NULL;
-	counter++;
 }
 
 //--------------------------------------------------------------
 ofxOpenNIContext::~ofxOpenNIContext() {
-	ofLogVerbose(LOG_NAME) << "Shuting down singleton context" << counter;
+	ofLogVerbose(LOG_NAME) << "Shutting down ofxOpenNI context singleton";
 	stopThread();
 	for (int deviceID = 0; deviceID < numDevices; deviceID++) {
 		g_Depth[deviceID].Release();
