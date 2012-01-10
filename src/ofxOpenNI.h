@@ -116,7 +116,7 @@ public:
 	xn::IRMetaData& getIRMetaData();
 	xn::AudioMetaData& getAudioMetaData();
 	
-	static string LOG_NAME;
+    string LOG_NAME;
 	
 protected:
 	

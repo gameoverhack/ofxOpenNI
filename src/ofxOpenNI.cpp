@@ -28,7 +28,6 @@
 
 #include "ofxOpenNI.h"
 
-string ofxOpenNI::LOG_NAME = "ofxOpenNI";
 static bool rainbowPalletInit = false;
 static int instanceCount = -1;
 
@@ -80,6 +79,8 @@ ofxOpenNI::ofxOpenNI() {
 	instanceCount++;
 	instanceID = instanceCount; // TODO: this should be replaced/combined with a listDevices and setDeviceID methods
 	
+    LOG_NAME = "ofxOpenNIDevice[" + ofToString(instanceID) + "]";
+    
 	numDevices = 0;
 	bIsThreaded = false;
 	
@@ -112,10 +113,7 @@ ofxOpenNI::~ofxOpenNI() {
 //--------------------------------------------------------------
 bool ofxOpenNI::setup(bool threaded) {
 
-	XnStatus nRetVal;
-	
-	//	nRetVal = g_Context.StopGeneratingAll();
-	//	ofLogVerbose(LOG_NAME) << "Stop ALL generators:" << xnGetStatusString(nRetVal);
+	XnStatus nRetVal = XN_STATUS_OK;
 	
 	bIsThreaded = threaded;
 	
@@ -126,9 +124,7 @@ bool ofxOpenNI::setup(bool threaded) {
 		}
 	}
 	
-	//initDevice();
-	
-	if (openNIContext->getNumDevices() > 0) {
+	if (openNIContext->getNumDevices() > 0 && openNIContext->getNumDevices() > instanceID) {
 		
 		ofLogNotice(LOG_NAME) << "Found" << openNIContext->getNumDevices() << "devices.";
 		
@@ -168,7 +164,7 @@ bool ofxOpenNI::addDepthGenerator() {
 		g_bIsDepthOn = true;
 		allocateDepthBuffers();
 		nRetVal = openNIContext->getDepthGenerator(instanceID).StartGenerating();
-		ofLogVerbose(LOG_NAME) << "Starting depth generator" << xnGetStatusString(nRetVal);
+		SHOW_RC(nRetVal, "Starting depth generator");
 	} else {
 		ofLogError(LOG_NAME) << "Depth generator is invalid!";
 		g_bIsDepthOn = false;
@@ -188,7 +184,7 @@ bool ofxOpenNI::addImageGenerator() {
 		g_bIsImageOn = true;
 		allocateImageBuffers();
 		nRetVal = openNIContext->getImageGenerator(instanceID).StartGenerating();
-		ofLogVerbose() << "Starting image generator" << xnGetStatusString(nRetVal);
+		SHOW_RC(nRetVal, "Starting image generator");
 	} else {
 		ofLogError(LOG_NAME) << "Image generator is invalid!";
 		g_bIsImageOn = false;
@@ -209,7 +205,7 @@ bool ofxOpenNI::addInfraGenerator() {
 		g_bIsIROn = true;
 		allocateIRBuffers();
 		nRetVal = openNIContext->getIRGenerator(instanceID).StartGenerating();
-		ofLogVerbose() << "Starting ir generator" << xnGetStatusString(nRetVal);
+		SHOW_RC(nRetVal, "Starting ir generator");
 	} else {
 		ofLogError(LOG_NAME) << "Image generator is invalid!";
 		g_bIsIROn = false;
@@ -244,7 +240,7 @@ void ofxOpenNI::allocateDepthBuffers() {
 		mapMode.nFPS  = 30;
 		nRetVal = openNIContext->getDepthGenerator(instanceID).SetMapOutputMode(mapMode);
 		maxDepth = openNIContext->getDepthGenerator(instanceID).GetDeviceMaxDepth();
-		ofLogVerbose(LOG_NAME) << "Setting depth resolution:" << xnGetStatusString(nRetVal) << mapMode.nXRes << mapMode.nYRes << maxDepth << mapMode.nFPS;
+		SHOW_RC(nRetVal, "Setting depth resolution: " + ofToString(mapMode.nXRes) + " x " + ofToString(mapMode.nYRes) + " at " + ofToString(mapMode.nFPS) + "fps with max depth of " + ofToString(maxDepth));
 		depthPixels[0].allocate(mapMode.nXRes, mapMode.nYRes, OF_IMAGE_COLOR_ALPHA);
 		depthPixels[1].allocate(mapMode.nXRes, mapMode.nYRes, OF_IMAGE_COLOR_ALPHA);
 		currentDepthPixels = &depthPixels[0];
@@ -265,7 +261,7 @@ void ofxOpenNI::allocateDepthRawBuffers() {
 		mapMode.nFPS  = 30;
 		nRetVal = openNIContext->getDepthGenerator(instanceID).SetMapOutputMode(mapMode);
 		maxDepth = openNIContext->getDepthGenerator(instanceID).GetDeviceMaxDepth();
-		ofLogVerbose(LOG_NAME) << "Setting depth resolution:" << xnGetStatusString(nRetVal) << mapMode.nXRes << mapMode.nYRes << maxDepth << mapMode.nFPS;
+		SHOW_RC(nRetVal, "Setting depth resolution: " + ofToString(mapMode.nXRes) + " x " + ofToString(mapMode.nYRes) + " at " + ofToString(mapMode.nFPS) + "fps with max depth of " + ofToString(maxDepth));
 		depthRawPixels[0].allocate(mapMode.nXRes, mapMode.nYRes, OF_PIXELS_MONO);
 		depthRawPixels[1].allocate(mapMode.nXRes, mapMode.nYRes, OF_PIXELS_MONO);
 		currentDepthRawPixels = &depthRawPixels[0];
@@ -284,7 +280,7 @@ void ofxOpenNI::allocateImageBuffers() {
 		mapMode.nYRes = XN_VGA_Y_RES;
 		mapMode.nFPS  = 30;
 		nRetVal = openNIContext->getImageGenerator(instanceID).SetMapOutputMode(mapMode);
-		ofLogVerbose(LOG_NAME) << "Setting image resolution:" << xnGetStatusString(nRetVal) << mapMode.nXRes << mapMode.nYRes << mapMode.nFPS;
+		SHOW_RC(nRetVal, "Setting image resolution: " + ofToString(mapMode.nXRes) + " x " + ofToString(mapMode.nYRes) + " at " + ofToString(mapMode.nFPS) + "fps");
 		imagePixels[0].allocate(mapMode.nXRes, mapMode.nYRes, OF_IMAGE_COLOR);
 		imagePixels[1].allocate(mapMode.nXRes, mapMode.nYRes, OF_IMAGE_COLOR);
 		currentImagePixels = &imagePixels[0];
@@ -304,7 +300,7 @@ void ofxOpenNI::allocateIRBuffers() {
 		mapMode.nYRes = XN_VGA_Y_RES;
 		mapMode.nFPS  = 30;
 		nRetVal = openNIContext->getIRGenerator(instanceID).SetMapOutputMode(mapMode);
-		ofLogVerbose(LOG_NAME) << "Setting ir resolution:" << xnGetStatusString(nRetVal) << mapMode.nXRes << mapMode.nYRes << mapMode.nFPS;
+		SHOW_RC(nRetVal, "Setting ir resolution: " + ofToString(mapMode.nXRes) + " x " + ofToString(mapMode.nYRes) + " at " + ofToString(mapMode.nFPS) + "fps");
 		imagePixels[0].allocate(mapMode.nXRes, mapMode.nYRes, OF_IMAGE_GRAYSCALE);
 		imagePixels[1].allocate(mapMode.nXRes, mapMode.nYRes, OF_IMAGE_GRAYSCALE);
 		currentImagePixels = &imagePixels[0];
@@ -476,7 +472,7 @@ bool ofxOpenNI::enableCalibratedRGBDepth() {
 	if (openNIContext->getDepthGenerator(instanceID).IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT)) {
 		
 		XnStatus nRetVal = openNIContext->getDepthGenerator(instanceID).GetAlternativeViewPointCap().SetViewPoint(openNIContext->getImageGenerator(instanceID));
-		ofLogVerbose(LOG_NAME) << "Register viewpoint depth to RGB:" << xnGetStatusString(nRetVal);
+		SHOW_RC(nRetVal, "Register viewpoint depth to RGB")
 		if (nRetVal!=XN_STATUS_OK) return false;
 	} else {
 		ofLogVerbose(LOG_NAME) << "Alternative viewpoint not supported";
@@ -492,7 +488,7 @@ bool ofxOpenNI::disableCalibratedRGBDepth() {
 	// Unregister view point from (image) any map
 	if (openNIContext->getDepthGenerator(instanceID).IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT)) {
 		XnStatus nRetVal = openNIContext->getDepthGenerator(instanceID).GetAlternativeViewPointCap().ResetViewPoint();
-		ofLogVerbose(LOG_NAME) << "Unregister viewpoint depth to RGB:" << xnGetStatusString(nRetVal);
+		SHOW_RC(nRetVal, "Unregister viewpoint depth to RGB");
 		if (nRetVal!=XN_STATUS_OK) return false;
 	} else {
 		ofLogVerbose(LOG_NAME) << "Alternative viewpoint not supported";

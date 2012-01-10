@@ -31,17 +31,17 @@
 string ofxOpenNIContext::LOG_NAME = "ofxOpenNIContext";
 
 //--------------------------------------------------------------
-ofxOpenNIContext::ofxOpenNIContext() {
+ofxOpenNIContext::ofxOpenNIContext(){
     //ofLogVerbose(LOG_NAME) << "Creating ofxOpenNI context singleton";
 	bIsContextReady = false;
 	g_pPrimary = NULL;
 }
 
 //--------------------------------------------------------------
-ofxOpenNIContext::~ofxOpenNIContext() {
+ofxOpenNIContext::~ofxOpenNIContext(){
 	ofLogVerbose(LOG_NAME) << "Shutting down ofxOpenNI context singleton";
 	stopThread();
-	for (int deviceID = 0; deviceID < numDevices; deviceID++) {
+	for (int deviceID = 0; deviceID < numDevices; deviceID++){
 		g_Depth[deviceID].Release();
 		g_Image[deviceID].Release();
 		g_IR[deviceID].Release();
@@ -52,26 +52,21 @@ ofxOpenNIContext::~ofxOpenNIContext() {
 }
 
 //--------------------------------------------------------------
-bool ofxOpenNIContext::initContext() {
+bool ofxOpenNIContext::initContext(){
 	
-	ofLogWarning(LOG_NAME) << "THIS IS EXPERIMENTAL CODE!! USES A SINGLE CONEXT FOR MULTIPLE DEVICES. THIS WORKS BUT SEEMS ODD...";
-	
-	XnStatus nRetVal;
-	
-	//setLogLevel(XN_LOG_VERBOSE);
-
+	XnStatus nRetVal = XN_STATUS_OK;
 	string path = ofToDataPath(""); // crazily this is necessary or else enumeration of devices fails!!!
                                     // took me hours/days to figure it out...but for some reason the
                                     // oF rootPath needs to be set it would seem...
 	
 	nRetVal = g_Context.Init();
-	ofLogVerbose(LOG_NAME) << "OpenNI Context initilized:" << xnGetStatusString(nRetVal);
+	SHOW_RC(nRetVal, "OpenNI Context initilized");
 
 	addLicence("PrimeSense", "0KOIk2JeIBYClPWVnMoRKn5cdY4=");
 
 	numDevices = enumerateAndCreateXnNode(XN_NODE_TYPE_DEVICE, g_Device);
 	
-	if (numDevices > 0) {
+	if (numDevices > 0){
 		enumerateAndCreateXnNode(XN_NODE_TYPE_DEPTH, g_Depth);
 		enumerateAndCreateXnNode(XN_NODE_TYPE_IMAGE, g_Image);
 		enumerateAndCreateXnNode(XN_NODE_TYPE_IR, g_IR);
@@ -82,38 +77,33 @@ bool ofxOpenNIContext::initContext() {
 	}
 	
 	startThread(true, false);
-	
-	if (nRetVal == XN_STATUS_OK) {
-		bIsContextReady = true;
-	} else {
-		bIsContextReady =  false;
-	}
+
+	bIsContextReady = (nRetVal == XN_STATUS_OK);
 	return bIsContextReady;
 }
 
 //--------------------------------------------------------------
-int ofxOpenNIContext::enumerateAndCreateXnNode(XnProductionNodeType type, ProductionNode* nodes) {
+int ofxOpenNIContext::enumerateAndCreateXnNode(XnProductionNodeType type, ProductionNode* nodes){
 	
-	NodeInfoList list;
+    NodeInfoList list;
 	xn::EnumerationErrors errors;
 	XnStatus nRetVal;
-	
-	ofLogVerbose(LOG_NAME) << "Enumerating" << getNodeTypeAsString(type) << "nodes...";
+    
 	nRetVal = g_Context.EnumerateProductionTrees(type, NULL, list, &errors);
-	ofLogVerbose(LOG_NAME) << "Enumeration:" << xnGetStatusString(nRetVal);
-	
+    
+    SHOW_RC(nRetVal, "Enumerating node type: " + getNodeTypeAsString(type));
 	if(nRetVal != XN_STATUS_OK) logErrors(errors);
-
+    
 	int nodeIndex = 0;
-	for (NodeInfoList::Iterator it = list.Begin(); it != list.End(); ++it, ++nodeIndex) {
-		NodeInfo nInfo = *it;
+	for (NodeInfoList::Iterator it = list.Begin(); it != list.End(); ++it, ++nodeIndex){
 		
+        NodeInfo nInfo = *it;
 		nInfo.GetInstance(nodes[nodeIndex]);
+        
 		XnBool bExists = nodes[nodeIndex].IsValid();
-		
-		if(!bExists) {
+		if(!bExists){
 			nRetVal = g_Context.CreateProductionTree(nInfo, nodes[nodeIndex]);
-			ofLogVerbose(LOG_NAME) << "Creating node" << xnGetStatusString(nRetVal) << nodeIndex << nodes[nodeIndex].GetName();
+            SHOW_RC(nRetVal, "Creating node " + (string)nodes[nodeIndex].GetName());
 		}
 		
 	}
@@ -125,69 +115,45 @@ void ofxOpenNIContext::threadedFunction(){
 	while(isThreadRunning()){
 		XnStatus nRetVal = XN_STATUS_OK;
 		//lock(); // if I lock here application framerate drops to ~120fps
-		if (g_pPrimary != NULL){
-			nRetVal = g_Context.WaitOneUpdateAll(*g_pPrimary);
-		}else{
-			nRetVal = g_Context.WaitAnyUpdateAll();
-		}
-		
-		if (nRetVal != XN_STATUS_OK){
-			ofLogError(LOG_NAME) << "Error on WaitAnyUpdateAll():" << xnGetStatusString(nRetVal);
-			return;
-		}
+        nRetVal = g_Context.WaitAnyUpdateAll();
+        CHECK_ERR_RC(nRetVal, "Error on WaitAnyUpdateAll()");
 		//unlock();
 	}
 }
 
 //--------------------------------------------------------------
-bool ofxOpenNIContext::addLicence(string sVendor, string sKey) {
-	
-	XnLicense license = {0};
+bool ofxOpenNIContext::addLicence(string sVendor, string sKey){
+	XnLicense license;
 	XnStatus nRetVal = XN_STATUS_OK;
 	bool ok = true;
-	
-	nRetVal = xnOSStrNCopy(license.strVendor, sVendor.c_str(),sVendor.size(), sizeof(license.strVendor));
-	if(nRetVal != XN_STATUS_OK) {
-		ofLogError(LOG_NAME) << "Error creating vendor:" << sVendor;
-		ok = false;
-	}
-	
-	nRetVal = xnOSStrNCopy(license.strKey, sKey.c_str(), sKey.size(), sizeof(license.strKey));
-	if(nRetVal != XN_STATUS_OK) {
-		ofLogError(LOG_NAME) << "Error creating keyy:" << sKey;
-		ok = false;
-	}	
-	
-	nRetVal = g_Context.AddLicense(license);
-	ofLogVerbose(LOG_NAME) << "Adding licence:" << sVendor << sKey << xnGetStatusString(nRetVal);
-	
-	if(nRetVal != XN_STATUS_OK) ok = false;
-	
-	return ok;
-	
-	//xnPrintRegisteredLicenses();
+    nRetVal = xnOSStrNCopy(license.strVendor, sVendor.c_str(),sVendor.size(), sizeof(license.strVendor));
+    ok = (nRetVal == XN_STATUS_OK);
+    CHECK_ERR_RC(nRetVal, "Error creating vendor: " + sVendor);
+    nRetVal = xnOSStrNCopy(license.strKey, sKey.c_str(), sKey.size(), sizeof(license.strKey));
+    ok = (nRetVal == XN_STATUS_OK);
+    CHECK_ERR_RC(nRetVal, "Error creating key: " + sKey);	
+    nRetVal = g_Context.AddLicense(license);
+    ok = (nRetVal == XN_STATUS_OK);
+    SHOW_RC(nRetVal, "Adding licence: " + sVendor + " " + sKey);
+    //xnPrintRegisteredLicenses();
+    return ok;
 }
 
 //--------------------------------------------------------------
-void ofxOpenNIContext::setLogLevel(XnLogSeverity logLevel) {
-	
+void ofxOpenNIContext::setLogLevel(XnLogSeverity logLevel){
 	XnStatus nRetVal = XN_STATUS_OK;
 	nRetVal = xnLogSetConsoleOutput(true);
-	
-	ofLogVerbose(LOG_NAME) << "Set log to console:" << xnGetStatusString(nRetVal);
-	
-	nRetVal = xnLogSetSeverityFilter(logLevel);	// TODO: set different log levels with code; enable and disable functionality
-	ofLogVerbose(LOG_NAME) << "Set log level:" << xnGetStatusString(nRetVal) << logLevel;
-	
+	SHOW_RC(nRetVal, "Set log to console");
+	nRetVal = xnLogSetSeverityFilter(logLevel);
+	SHOW_RC(nRetVal, "Set log level: " + logLevel);
 	xnLogSetMaskState(XN_LOG_MASK_ALL, TRUE);
-	
 }
 
 //--------------------------------------------------------------
 void ofxOpenNIContext::logErrors(xn::EnumerationErrors & errors){
-	for(xn::EnumerationErrors::Iterator it = errors.Begin(); it != errors.End(); ++it) {
+	for(xn::EnumerationErrors::Iterator it = errors.Begin(); it != errors.End(); ++it){
 		XnChar desc[512];
-		xnProductionNodeDescriptionToString(&it.Description(), desc,512);
+		xnProductionNodeDescriptionToString(&it.Description(), desc, 512);
 		ofLog(OF_LOG_ERROR, "%s failed: %s\n", desc, xnGetStatusString(it.Error()));
 	}	
 }
@@ -198,7 +164,7 @@ bool ofxOpenNIContext::getIsContextReady(){
 }
 
 //--------------------------------------------------------------
-int ofxOpenNIContext::getNumDevices() {
+int ofxOpenNIContext::getNumDevices(){
 	return numDevices;
 }
 
