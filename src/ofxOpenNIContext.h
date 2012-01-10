@@ -1,8 +1,7 @@
 /*
  * ofxOpenNIContext.h
  *
- * Copyright 2011 (c) Matthew Gingold http://gingold.com.au
- * Originally forked from a project by roxlu http://www.roxlu.com/ 
+ * Copyright 2011 (c) Matthew Gingold [gameover] http://gingold.com.au
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -27,58 +26,110 @@
  *
  */
 
-#ifndef _H_OFXOPENNICONTEXT
+#ifndef _H_SINGLETON
+#define _H_SINGLETON
+#include "assert.h"
+#include <cstdlib>
+#include "ofTypes.h"
+template <class T>
+class Singleton {
+public:
+	static ofPtr<T> Instance() {
+		if(!m_pInstance) m_pInstance = ofPtr<T>(new T);
+		assert(m_pInstance !=NULL);
+		return m_pInstance;
+	}
+protected:
+	Singleton();
+	~Singleton();
+private:
+	Singleton(Singleton const&);
+	Singleton& operator=(Singleton const&);
+	static ofPtr<T> m_pInstance;
+};
+template <class T> ofPtr<T> Singleton<T>::m_pInstance=NULL;
+#endif
+//typedef Singleton<ofxOpenNIContext> ofxOpenNIContextSingleton;
+//static ofPtr<ofxOpenNIContext> openNIContext = ofPtr<ofxOpenNIContext>(ofxOpenNIContextSingleton::Instance());
+#ifndef	_H_OFXOPENNICONTEXT
 #define _H_OFXOPENNICONTEXT
+
+#define MAX_DEVICES 2
 
 #include <XnOpenNI.h>
 #include <XnCodecIDs.h>
 #include <XnCppWrapper.h>
 #include <XnLog.h>
-#include "ofMain.h"
+#include <XnTypes.h>
+#include "ofxOpenNIUtils.h"
+#include "ofLog.h"
+#include "ofConstants.h"
+#include "ofPixels.h"
+#include "ofTexture.h"
+#include "ofThread.h"
 
-class ofxOpenNIContext {
+using namespace xn;
 
+class ofxOpenNIContext : public ofThread {
+	
 public:
-
+	
 	ofxOpenNIContext();
 	~ofxOpenNIContext();
-
-	bool setup();
-	bool setupUsingRecording(std::string sRecordedFile);
-	bool setupUsingXMLFile(std::string sFile = "");
-
-	void update();
-
-	bool toggleRegisterViewport();
-	bool registerViewport();
-	bool unregisterViewport();
-
-	bool getDepthGenerator(xn::DepthGenerator* depth_generator);
-	bool getImageGenerator(xn::ImageGenerator* image_generator);
-	bool getIRGenerator(xn::IRGenerator* ir_generator);
-	bool getUserGenerator(xn::UserGenerator* user_generator);
-	bool getGestureGenerator(xn::GestureGenerator* gesture_generator);
-	bool getHandsGenerator(xn::HandsGenerator* hands_generator);
-	bool isUsingRecording();
-
-	void enableLogging();
-
-	bool toggleMirror();
-	bool setMirror(XnBool mirroring);
-
-	void shutdown();
-
-	xn::Context& getXnContext();
-
-private:
-
+	
 	bool initContext();
-	void addLicense(std::string sVendor, std::string sKey);
-	void logErrors(xn::EnumerationErrors& rErrors);
+	bool addLicence(string sVendor, string sKey);
+	void setLogLevel(XnLogSeverity logLevel);
+	
+	int getNumDevices();
+	
+	bool getIsContextReady();
+	xn::Context& getContext();
+	
+	xn::Device& getDevice(int deviceID = 0);
+	xn::DepthGenerator& getDepthGenerator(int deviceID = 0);
+	xn::ImageGenerator& getImageGenerator(int deviceID = 0);
+	xn::IRGenerator& getIRGenerator(int deviceID = 0);
+	xn::AudioGenerator& getAudioGenerator(int deviceID = 0);
+	xn::Player& getPlayer(int deviceID = 0);
+	
+	static string LOG_NAME;
+	
+protected:
+	
+	void threadedFunction();
+	
+private:
+	
+	int enumerateAndCreateXnNode(XnProductionNodeType type, ProductionNode *node);
+	void logErrors(xn::EnumerationErrors & errors);
+	int numDevices;
+	bool bIsContextReady;
+	
+	// generators/nodes
+	xn::Context g_Context;
 
-	bool is_using_recording;
-	xn::Context context;
-
+	xn::Device g_Device[MAX_DEVICES];
+	xn::DepthGenerator g_Depth[MAX_DEVICES];
+	xn::ImageGenerator g_Image[MAX_DEVICES];
+	xn::IRGenerator g_IR[MAX_DEVICES];
+	xn::UserGenerator g_User[MAX_DEVICES];
+	xn::AudioGenerator g_Audio[MAX_DEVICES];
+	xn::Player g_Player[MAX_DEVICES];
+	
+	xn::ProductionNode *g_pPrimary;
+	
+	// TODO: use vectors -> although makes enumerateAndCreateXnNodes a little different/harder maybe
+	//vector<xn::Device> g_Device;
+	//vector<xn::DepthGenerator> g_Depth;
+	//vector<xn::ImageGenerator> g_Image;
+	//vector<xn::IRGenerator> g_IR;
+	//vector<xn::UserGenerator> g_User;
+	//vector<xn::AudioGenerator> g_Audio;
+	//vector<xn::Player> g_Player;
+	
 };
-
+typedef Singleton<ofxOpenNIContext> ofxOpenNIContextSingleton;
+static ofPtr<ofxOpenNIContext> openNIContext = ofxOpenNIContextSingleton::Instance();
+//static ofPtr<ofxOpenNIContext> openNIContext = ofPtr<ofxOpenNIContext>(new ofxOpenNIContext()); // not sure this is the right way to do this???
 #endif

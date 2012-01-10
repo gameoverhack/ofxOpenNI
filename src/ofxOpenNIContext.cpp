@@ -1,8 +1,7 @@
 /*
  * ofxOpenNIContext.cpp
  *
- * Copyright 2011 (c) Matthew Gingold http://gingold.com.au
- * Originally forked from a project by roxlu http://www.roxlu.com/ 
+ * Copyright 2011 (c) Matthew Gingold [gameover] http://gingold.com.au
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -28,264 +27,212 @@
  */
 
 #include "ofxOpenNIContext.h"
-#include "ofxDepthGenerator.h"
-#include "ofxOpenNIMacros.h"
 
-// Startup
-//----------------------------------------
+string ofxOpenNIContext::LOG_NAME = "ofxOpenNIContext";
+static int counter = 0;
+//--------------------------------------------------------------
 ofxOpenNIContext::ofxOpenNIContext() {
-    string path = ofToDataPath(""); // hack needed to set root path in 007 otherwise openNI isn't working!?!
-	is_using_recording = false;
+	bIsContextReady = false;
+	g_pPrimary = NULL;
+	counter++;
 }
 
-// Just initialize; use this when you"re creating nodes yourself.
-//----------------------------------------
-bool ofxOpenNIContext::initContext(){
-	xn::EnumerationErrors errors;
-	XnStatus result = context.Init();
-	if(result != XN_STATUS_OK) logErrors(errors);
-	BOOL_RC(result, "ofxOpenNIContext.setup()");
+//--------------------------------------------------------------
+ofxOpenNIContext::~ofxOpenNIContext() {
+	ofLogVerbose(LOG_NAME) << "Shuting down singleton context" << counter;
+	stopThread();
+	for (int deviceID = 0; deviceID < numDevices; deviceID++) {
+		g_Depth[deviceID].Release();
+		g_Image[deviceID].Release();
+		g_IR[deviceID].Release();
+		g_User[deviceID].Release();
+		g_Audio[deviceID].Release();
+	}
+	g_Context.Release();
 }
 
-// Initialize using an .ONI recording.
-//----------------------------------------
-bool ofxOpenNIContext::setupUsingRecording(std::string sFileRecording) {
+//--------------------------------------------------------------
+bool ofxOpenNIContext::initContext() {
 	
-	xn::EnumerationErrors errors;
+	ofLogWarning(LOG_NAME) << "THIS IS EXPERIMENTAL CODE!! USES A SINGLE CONEXT FOR MULTIPLE DEVICES. THIS WORKS BUT SEEMS ODD...";
 	
-	initContext();
-	addLicense("PrimeSense", "0KOIk2JeIBYClPWVnMoRKn5cdY4=");
+	XnStatus nRetVal;
 	
-	is_using_recording = true;
-	
-	std::string file_path = ofToDataPath(sFileRecording.c_str(), true);
-	
-	printf("Attempting to open file: %s\n", file_path.c_str());
-	
-	XnStatus result = context.OpenFileRecording(file_path.c_str());
-	
-	if(result != XN_STATUS_OK) logErrors(errors);
-	
-	BOOL_RC(result, "Loading file");
-}
+	//setLogLevel(XN_LOG_VERBOSE);
 
-void ofxOpenNIContext::logErrors(xn::EnumerationErrors& rErrors) {
-	for(xn::EnumerationErrors::Iterator it = rErrors.Begin(); it != rErrors.End(); ++it) {
-		XnChar desc[512];
-		xnProductionNodeDescriptionToString(&it.Description(), desc,512);
-		printf("%s failed: %s\n", desc, xnGetStatusString(it.Error()));
-	}	
-}
-
-// Initialize using code only
-bool ofxOpenNIContext::setup() {
+	string path = ofToDataPath(""); // crazily this is necessary or else enumeration of devices fails!!!
+                                    // took me hours/days to figure it out...but for some reason the
+                                    // oF rootPath needs to be set it would seem...
 	
-	if (initContext()) {
-		addLicense("PrimeSense", "0KOIk2JeIBYClPWVnMoRKn5cdY4=");
-		enableLogging();
-		return true;
-	} else return false;
+	nRetVal = g_Context.Init();
+	ofLogVerbose(LOG_NAME) << "OpenNI Context initilized:" << xnGetStatusString(nRetVal);
 
-}
+	addLicence("PrimeSense", "0KOIk2JeIBYClPWVnMoRKn5cdY4=");
 
-// Initialize using an XML file.
-//----------------------------------------
-bool ofxOpenNIContext::setupUsingXMLFile(std::string sFile) {
+	numDevices = enumerateAndCreateXnNode(XN_NODE_TYPE_DEVICE, g_Device);
 	
-	xn::EnumerationErrors errors;
-	
-	if(sFile == "") sFile = ofToDataPath("openni/config/ofxopenni_config.xml",true);
-	
-	printf("Using file: %s\n", sFile.c_str());
-	
-	XnStatus result = context.InitFromXmlFile(sFile.c_str(), &errors);
-	
-	if(result != XN_STATUS_OK) logErrors(errors);
-	
-	BOOL_RC(result, "ofxOpenNIContext.setupUsingXMLFile()");
-	
-}
-
-// This is used by other nodes (ofxDepthGenerator), which need to 
-// use a different initialization when you"re loading an recording.
-//----------------------------------------
-bool ofxOpenNIContext::isUsingRecording() {
-	return is_using_recording;
-}
-
-// Use these to retrieve references to various node types on the production tree
-// TODO: should these be made static so retrievl is more immediate? Or is this sufficient?
-//----------------------------------------
-bool ofxOpenNIContext::getDepthGenerator(xn::DepthGenerator* depth_generator) {
-	XnStatus result = XN_STATUS_OK;
-	result = context.FindExistingNode(XN_NODE_TYPE_DEPTH, *depth_generator);
-	BOOL_RC(result, "Retrieving depth generator");
-}
-
-bool ofxOpenNIContext::getImageGenerator(xn::ImageGenerator* image_generator) {
-	XnStatus result = XN_STATUS_OK;
-	result = context.FindExistingNode(XN_NODE_TYPE_IMAGE, *image_generator);
-	BOOL_RC(result, "Retrieving image generator");
-}
-
-bool ofxOpenNIContext::getIRGenerator(xn::IRGenerator* ir_generator) {
-	XnStatus result = XN_STATUS_OK;
-	result = context.FindExistingNode(XN_NODE_TYPE_IR, *ir_generator);
-	BOOL_RC(result, "Retrieving ir generator");
-}
-
-bool ofxOpenNIContext::getUserGenerator(xn::UserGenerator* user_generator) {
-	XnStatus result = XN_STATUS_OK;
-	result = context.FindExistingNode(XN_NODE_TYPE_USER, *user_generator);
-	BOOL_RC(result, "Retrieving user generator");
-}
-
-bool ofxOpenNIContext::getGestureGenerator(xn::GestureGenerator* gesture_generator) {
-	XnStatus result = XN_STATUS_OK;
-	result = context.FindExistingNode(XN_NODE_TYPE_GESTURE, *gesture_generator);
-	BOOL_RC(result, "Retrieving gesture generator");
-}
-
-bool ofxOpenNIContext::getHandsGenerator(xn::HandsGenerator* hands_generator) {
-	XnStatus result = XN_STATUS_OK;
-	result = context.FindExistingNode(XN_NODE_TYPE_HANDS, *hands_generator);
-	BOOL_RC(result, "Retrieving hands generator");
-}
-
-// we need to programmatically add a license when playing back a recording
-// file otherwise the skeleton tracker will throw an error and not work
-void ofxOpenNIContext::addLicense(std::string sVendor, std::string sKey) {
-	
-	XnLicense license = {0};
-	XnStatus status = XN_STATUS_OK;
-	
-	status = xnOSStrNCopy(license.strVendor, sVendor.c_str(),sVendor.size(), sizeof(license.strVendor));
-	if(status != XN_STATUS_OK) {
-		printf("ofxOpenNIContext error creating license (vendor)\n");
-		return;
+	if (numDevices > 0) {
+		enumerateAndCreateXnNode(XN_NODE_TYPE_DEPTH, g_Depth);
+		enumerateAndCreateXnNode(XN_NODE_TYPE_IMAGE, g_Image);
+		enumerateAndCreateXnNode(XN_NODE_TYPE_IR, g_IR);
+		enumerateAndCreateXnNode(XN_NODE_TYPE_USER, g_User);
+		enumerateAndCreateXnNode(XN_NODE_TYPE_AUDIO, g_Audio);
+	} else {
+		ofLogError(LOG_NAME) << "No devices found!!!";
 	}
 	
-	status = xnOSStrNCopy(license.strKey, sKey.c_str(), sKey.size(), sizeof(license.strKey));
-	if(status != XN_STATUS_OK) {
-		printf("ofxOpenNIContext error creating license (key)\n");
-		return;
-	}	
+	startThread(true, false);
 	
-	status = context.AddLicense(license);
-	SHOW_RC(status, "AddLicense");
-	
-	xnPrintRegisteredLicenses();
-	
+	if (nRetVal == XN_STATUS_OK) {
+		bIsContextReady = true;
+	} else {
+		bIsContextReady =  false;
+	}
+	return bIsContextReady;
 }
 
-// TODO: check this is working and use it with ONI recordings??
-void ofxOpenNIContext::enableLogging() {
+//--------------------------------------------------------------
+int ofxOpenNIContext::enumerateAndCreateXnNode(XnProductionNodeType type, ProductionNode* nodes) {
 	
-	XnStatus result = xnLogSetConsoleOutput(true);
-	SHOW_RC(result, "Set console output");
+	NodeInfoList list;
+	xn::EnumerationErrors errors;
+	XnStatus nRetVal;
 	
-	result = xnLogSetSeverityFilter(XN_LOG_ERROR);	// TODO: set different log levels with code; enable and disable functionality
-	SHOW_RC(result, "Set log level");
+	ofLogVerbose(LOG_NAME) << "Enumerating" << getNodeTypeAsString(type) << "nodes...";
+	nRetVal = g_Context.EnumerateProductionTrees(type, NULL, list, &errors);
+	ofLogVerbose(LOG_NAME) << "Enumeration:" << xnGetStatusString(nRetVal);
+	
+	if(nRetVal != XN_STATUS_OK) logErrors(errors);
 
+	int nodeIndex = 0;
+	for (NodeInfoList::Iterator it = list.Begin(); it != list.End(); ++it, ++nodeIndex) {
+		NodeInfo nInfo = *it;
+		
+		nInfo.GetInstance(nodes[nodeIndex]);
+		XnBool bExists = nodes[nodeIndex].IsValid();
+		
+		if(!bExists) {
+			nRetVal = g_Context.CreateProductionTree(nInfo, nodes[nodeIndex]);
+			ofLogVerbose(LOG_NAME) << "Creating node" << xnGetStatusString(nRetVal) << nodeIndex << nodes[nodeIndex].GetName();
+		}
+		
+	}
+	return nodeIndex;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNIContext::threadedFunction(){
+	while(isThreadRunning()){
+		XnStatus nRetVal = XN_STATUS_OK;
+		//lock(); // if I lock here application framerate drops to ~120fps
+		if (g_pPrimary != NULL){
+			nRetVal = g_Context.WaitOneUpdateAll(*g_pPrimary);
+		}else{
+			nRetVal = g_Context.WaitAnyUpdateAll();
+		}
+		
+		if (nRetVal != XN_STATUS_OK){
+			ofLogError(LOG_NAME) << "Error on WaitAnyUpdateAll():" << xnGetStatusString(nRetVal);
+			return;
+		}
+		//unlock();
+	}
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNIContext::addLicence(string sVendor, string sKey) {
+	
+	XnLicense license = {0};
+	XnStatus nRetVal = XN_STATUS_OK;
+	bool ok = true;
+	
+	nRetVal = xnOSStrNCopy(license.strVendor, sVendor.c_str(),sVendor.size(), sizeof(license.strVendor));
+	if(nRetVal != XN_STATUS_OK) {
+		ofLogError(LOG_NAME) << "Error creating vendor:" << sVendor;
+		ok = false;
+	}
+	
+	nRetVal = xnOSStrNCopy(license.strKey, sKey.c_str(), sKey.size(), sizeof(license.strKey));
+	if(nRetVal != XN_STATUS_OK) {
+		ofLogError(LOG_NAME) << "Error creating keyy:" << sKey;
+		ok = false;
+	}	
+	
+	nRetVal = g_Context.AddLicense(license);
+	ofLogVerbose(LOG_NAME) << "Adding licence:" << sVendor << sKey << xnGetStatusString(nRetVal);
+	
+	if(nRetVal != XN_STATUS_OK) ok = false;
+	
+	return ok;
+	
+	//xnPrintRegisteredLicenses();
+}
+
+//--------------------------------------------------------------
+void ofxOpenNIContext::setLogLevel(XnLogSeverity logLevel) {
+	
+	XnStatus nRetVal = XN_STATUS_OK;
+	nRetVal = xnLogSetConsoleOutput(true);
+	
+	ofLogVerbose(LOG_NAME) << "Set log to console:" << xnGetStatusString(nRetVal);
+	
+	nRetVal = xnLogSetSeverityFilter(logLevel);	// TODO: set different log levels with code; enable and disable functionality
+	ofLogVerbose(LOG_NAME) << "Set log level:" << xnGetStatusString(nRetVal) << logLevel;
+	
 	xnLogSetMaskState(XN_LOG_MASK_ALL, TRUE);
 	
 }
 
-// Update all nodes, should be call in the ofTestApp::update()
-//----------------------------------------
-void ofxOpenNIContext::update(){
-	XnStatus nRetVal = context.WaitAnyUpdateAll();	
+//--------------------------------------------------------------
+void ofxOpenNIContext::logErrors(xn::EnumerationErrors & errors){
+	for(xn::EnumerationErrors::Iterator it = errors.Begin(); it != errors.End(); ++it) {
+		XnChar desc[512];
+		xnProductionNodeDescriptionToString(&it.Description(), desc,512);
+		ofLog(OF_LOG_ERROR, "%s failed: %s\n", desc, xnGetStatusString(it.Error()));
+	}	
 }
 
-// Allow us to mirror the image_gen/depth_gen
-bool ofxOpenNIContext::toggleMirror() {
-	return setMirror(!context.GetGlobalMirror());
+//--------------------------------------------------------------
+bool ofxOpenNIContext::getIsContextReady(){
+	return bIsContextReady;
 }
 
-bool ofxOpenNIContext::setMirror(XnBool mirroring) {
-	XnStatus result = context.SetGlobalMirror(mirroring);
-	BOOL_RC(result, "Set mirroring");
+//--------------------------------------------------------------
+int ofxOpenNIContext::getNumDevices() {
+	return numDevices;
 }
 
-bool ofxOpenNIContext::toggleRegisterViewport() {
-	
-	// get refs to depth and image generators TODO: make work with IR generator
-	xn::DepthGenerator depth_generator;
-	getDepthGenerator(&depth_generator);
-	
-	xn::ImageGenerator image_generator;
-	if (!getImageGenerator(&image_generator)) {
-		printf("No Image generator found: cannot register viewport");
-		return false;
-	}
-	
-	// Toggle registering view point to image map
-	if (depth_generator.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT))
-	{
-		
-		if(depth_generator.GetAlternativeViewPointCap().IsViewPointAs(image_generator)) {
-			unregisterViewport();
-		} else {
-			registerViewport();
-		}
-		
-	} else return false;
-	
-	return true;
+//--------------------------------------------------------------
+xn::Context& ofxOpenNIContext::getContext(){
+	return g_Context;
 }
 
-bool ofxOpenNIContext::registerViewport() {
-	
-	// get refs to depth and image generators TODO: make work with IR generator
-	xn::DepthGenerator depth_generator;
-	getDepthGenerator(&depth_generator);
-	
-	xn::ImageGenerator image_generator;
-	if (!getImageGenerator(&image_generator)) {
-		printf("No Image generator found: cannot register viewport");
-		return false;
-	}
-	
-	// Register view point to image map
-	if (depth_generator.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT)) {
-		
-		XnStatus result = depth_generator.GetAlternativeViewPointCap().SetViewPoint(image_generator);
-		CHECK_RC(result, "Register viewport");
-		
-	} else return false;
-	
-	return true;
+//--------------------------------------------------------------
+xn::Device& ofxOpenNIContext::getDevice(int deviceID){
+	return g_Device[deviceID];
 }
 
-bool ofxOpenNIContext::unregisterViewport() {
-	
-	// get refs to depth generator
-	xn::DepthGenerator depth_generator;
-	getDepthGenerator(&depth_generator);
-	
-	// Unregister view point from (image) any map	
-	if (depth_generator.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT)) {
-		XnStatus result = depth_generator.GetAlternativeViewPointCap().ResetViewPoint();
-		CHECK_RC(result, "Unregister viewport");
-		
-	} else return false;
-	
-	return true;
+//--------------------------------------------------------------
+xn::DepthGenerator& ofxOpenNIContext::getDepthGenerator(int deviceID){
+	return g_Depth[deviceID];
 }
 
-// Get a reference to the xn::Context.
-//----------------------------------------
-xn::Context& ofxOpenNIContext::getXnContext(){
-	return context;
+//--------------------------------------------------------------
+xn::ImageGenerator& ofxOpenNIContext::getImageGenerator(int deviceID){
+	return g_Image[deviceID];
 }
 
-void ofxOpenNIContext::shutdown() {
-	printf("Shutdown context\n");
-	context.Shutdown();
+//--------------------------------------------------------------
+xn::IRGenerator& ofxOpenNIContext::getIRGenerator(int deviceID){
+	return g_IR[deviceID];
 }
 
-// Shutdown.
-//----------------------------------------
-ofxOpenNIContext::~ofxOpenNIContext(){
-	shutdown();
+//--------------------------------------------------------------
+xn::AudioGenerator& ofxOpenNIContext::getAudioGenerator(int deviceID){
+	return g_Audio[deviceID];
+}
+
+//--------------------------------------------------------------
+xn::Player& ofxOpenNIContext::getPlayer(int deviceID){
+	return g_Player[deviceID];
 }
