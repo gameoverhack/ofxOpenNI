@@ -178,6 +178,10 @@ private:
 	xn::MockDepthGenerator mockDepth;
 	
 	int instanceID;
+    
+    // block copy ctor and assignment operator
+    ofxOpenNI(const ofxOpenNI& other);
+    ofxOpenNI& operator=(const ofxOpenNI&);
 	
 };
 

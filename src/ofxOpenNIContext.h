@@ -29,8 +29,6 @@
 #ifndef	_H_OFXOPENNICONTEXT
 #define _H_OFXOPENNICONTEXT
 
-#define MAX_DEVICES 2
-
 #include <XnOpenNI.h>
 #include <XnCodecIDs.h>
 #include <XnCppWrapper.h>

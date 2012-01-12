@@ -19,10 +19,8 @@ public:
 	void mouseReleased(int x, int y, int button);
 	void windowResized(int w, int h);
 
-	string	generateFileName();
-
-	ofxOpenNI	openNI[2];
-
+	ofxOpenNI openNIDevice;
+    
 };
 
 #endif
