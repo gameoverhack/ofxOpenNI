@@ -124,7 +124,7 @@ bool ofxOpenNI::setup(bool threaded){
 	
 	if (openNIContext->getNumDevices() > 0 && openNIContext->getNumDevices() > instanceID){
         ofLogNotice(LOG_NAME) << "Starting device for instance [" << instanceID << "] of ofxOpenNI";
-		startThread(true, false);
+		if (bIsThreaded) startThread(true, false);
 	} else {
 		ofLogError(LOG_NAME) << "No Devices available for this instance [" << instanceID << "] of ofxOpenNI - have you got a device connected?!?!";
         return false;
@@ -329,38 +329,32 @@ void ofxOpenNI::setDepthColoring(DepthColoring coloring){
 //--------------------------------------------------------------
 void ofxOpenNI::readFrame(){
 	
-	lock(); // with this here I get 350-460 fps with 2 Kinects
+	//if (bIsThreaded) lock(); // with this here I get ~30 fps with 2 Kinects
 	
-	if (g_bIsDepthOn){
-		openNIContext->getDepthGenerator(instanceID).GetMetaData(g_DepthMD);
-		generateDepthPixels();
-	}
+	if (g_bIsDepthOn) openNIContext->getDepthGenerator(instanceID).GetMetaData(g_DepthMD);
+	if (g_bIsImageOn) openNIContext->getImageGenerator(instanceID).GetMetaData(g_ImageMD);
+	if (g_bIsIROn) openNIContext->getIRGenerator(instanceID).GetMetaData(g_IrMD);
 	
-	if (g_bIsImageOn){
-		openNIContext->getImageGenerator(instanceID).GetMetaData(g_ImageMD);
-		generateImagePixels();
-	}
-	
-	if (g_bIsIROn){
-		openNIContext->getIRGenerator(instanceID).GetMetaData(g_IrMD);
-		generateIRPixels();
-	}
-	
-//	if (openNIContext->getAudioGenerator(instanceID).IsValid() && g_bIsAudioOn){
-//		openNIContext->getAudioGenerator(instanceID).GetMetaData(g_AudioMD);
-//	}
-
-//	lock();
-//	
-//	if (g_bIsDepthOn) generateDepthPixels();
-//	if (g_bIsImageOn) generateImagePixels();
-//	if (g_bIsIROn) generateIRPixels();
+    if (bIsThreaded) lock(); // with this her I get ~500+ fps with 2 Kinects!
+    
+    if (g_bIsDepthOn) generateDepthPixels();
+	if (g_bIsImageOn) generateImagePixels();
+	if (g_bIsIROn) generateIRPixels();
 	
 // I really don't think it's necessary to back buffer the image/ir/depth pixels
 // as I understand it the GetMetaData() call is already acting as a back buffer
 // since it is fetching the pixel data from the xn::Context which we then 'copy'
 // during our generateDepth/Image/IRPixels() methods...
-	
+
+// my tests show that it adds between ~10 to ~15 milliseconds to capture <-> screen latency 
+// ie., the time between something occuring in the physical world, it's capture and subsequent display onscreen.
+    
+// without back buffering my tests show 55 to 65ms, avg 61.5ms (consistent frame times, ie., no outliers in small samples)
+// with back buffering my tests show 70 to 80ms, avg 73.8ms (this does not include outliers ie., usually 1 in 7 frames showing 150-275ms latency!)
+
+// NB: the above tests were done with 2 Kinects...with one Kinect (and not using backbuffering) I get between 50-60ms, avg ~53ms 
+// (with some more outliers though one frame 33ms (!) andother 95ms(!))....hmmmm   
+
 //	if (g_bIsDepthOn){
 //		swap(backDepthPixels, currentDepthPixels);
 //		if (g_bIsDepthRawOnOption){
@@ -373,7 +367,7 @@ void ofxOpenNI::readFrame(){
 	
 	bNewPixels = true;
 	
-	unlock();
+	if (bIsThreaded) unlock();
 }
 
 //--------------------------------------------------------------
@@ -392,28 +386,25 @@ void ofxOpenNI::update(){
 	if (!bIsThreaded){
 		readFrame();
 	} else {
-		//lock(); // if I uncomment this I get ~120-180 fps with 2 Kinects 
+		lock();
 	}
 	
 	if (bNewPixels){
 		if (bUseTexture && g_bIsDepthOn){
-			//depthTexture.loadData(*currentDepthPixels);
-			depthTexture.loadData(*backDepthPixels);		// do we need to lock and unlock here?
+			//depthTexture.loadData(*currentDepthPixels); // see note about back buffering above
+			depthTexture.loadData(*backDepthPixels);
 		}
 		if (bUseTexture && (g_bIsImageOn || g_bIsIROn)){
 			//imageTexture.loadData(*currentImagePixels);
 			imageTexture.loadData(*backImagePixels);
 		}
-		if (bIsThreaded) lock(); // is this worthwhile or not?
+
 		bNewPixels = false;
 		bNewFrame = true;
-		if (bIsThreaded) unlock();
+
 	}
-	
-	
-	if (bIsThreaded){
-		//unlock();
-	}
+
+	if (bIsThreaded) unlock();
 }
 
 //--------------------------------------------------------------
@@ -461,7 +452,6 @@ bool ofxOpenNI::enableCalibratedRGBDepth(){
 
 //--------------------------------------------------------------
 bool ofxOpenNI::disableCalibratedRGBDepth(){
-	
 	// Unregister view point from (image) any map
 	if (openNIContext->getDepthGenerator(instanceID).IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT)){
 		XnStatus nRetVal = openNIContext->getDepthGenerator(instanceID).GetAlternativeViewPointCap().ResetViewPoint();
@@ -720,11 +710,13 @@ ofPixels& ofxOpenNI::getImagePixels(){
 
 //--------------------------------------------------------------
 ofTexture& ofxOpenNI::getDepthTextureReference(){
+    Poco::ScopedLock<ofMutex> lock(mutex);
 	return depthTexture;
 }
 
 //--------------------------------------------------------------
 ofTexture& ofxOpenNI::getimageTextureReference(){
+    Poco::ScopedLock<ofMutex> lock(mutex);
 	return imageTexture;
 }
 

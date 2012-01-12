@@ -40,7 +40,9 @@ ofxOpenNIContext::ofxOpenNIContext(){
 //--------------------------------------------------------------
 ofxOpenNIContext::~ofxOpenNIContext(){
 	ofLogNotice(LOG_NAME) << "Shutting down ofxOpenNI context singleton";
-	stopThread();
+    lock(); // to be sure we don't SIGBART on exit!?!
+    stopThread();
+    g_Context.Shutdown();
     g_Depth.clear();
     g_Image.clear();
     g_IR.clear();
@@ -185,10 +187,10 @@ bool ofxOpenNIContext::createXnNode(XnProductionNodeType type, ProductionNode & 
 void ofxOpenNIContext::threadedFunction(){
 	while(isThreadRunning()){
 		XnStatus nRetVal = XN_STATUS_OK;
-		//lock(); // if I lock here application framerate drops to ~120fps
+		lock(); // if I lock here application framerate drops to ~120fps
         nRetVal = g_Context.WaitAnyUpdateAll();
         CHECK_ERR_RC(nRetVal, "Error on WaitAnyUpdateAll()");
-		//unlock();
+		unlock();
 	}
 }
 
@@ -245,35 +247,42 @@ int ofxOpenNIContext::getNumDevices(){
 
 //--------------------------------------------------------------
 xn::Context& ofxOpenNIContext::getContext(){
+    Poco::ScopedLock<ofMutex> lock(mutex);
 	return g_Context;
 }
 
 //--------------------------------------------------------------
 xn::Device& ofxOpenNIContext::getDevice(int deviceID){
+    Poco::ScopedLock<ofMutex> lock(mutex);
 	return g_Device[deviceID];
 }
 
 //--------------------------------------------------------------
 xn::DepthGenerator& ofxOpenNIContext::getDepthGenerator(int deviceID){
+    Poco::ScopedLock<ofMutex> lock(mutex);
 	return g_Depth[deviceID];
 }
 
 //--------------------------------------------------------------
 xn::ImageGenerator& ofxOpenNIContext::getImageGenerator(int deviceID){
+    Poco::ScopedLock<ofMutex> lock(mutex);
 	return g_Image[deviceID];
 }
 
 //--------------------------------------------------------------
 xn::IRGenerator& ofxOpenNIContext::getIRGenerator(int deviceID){
+    Poco::ScopedLock<ofMutex> lock(mutex);
 	return g_IR[deviceID];
 }
 
 //--------------------------------------------------------------
 xn::AudioGenerator& ofxOpenNIContext::getAudioGenerator(int deviceID){
+    Poco::ScopedLock<ofMutex> lock(mutex);
 	return g_Audio[deviceID];
 }
 
 //--------------------------------------------------------------
 xn::Player& ofxOpenNIContext::getPlayer(int deviceID){
+    Poco::ScopedLock<ofMutex> lock(mutex);
 	return g_Player[deviceID];
 }

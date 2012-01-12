@@ -68,7 +68,7 @@ public:
 	xn::IRGenerator& getIRGenerator(int deviceID = 0);
 	xn::AudioGenerator& getAudioGenerator(int deviceID = 0);
 	xn::Player& getPlayer(int deviceID = 0);
-	
+    
 	static string LOG_NAME;
     
 protected:
@@ -102,7 +102,7 @@ private:
 	vector<xn::UserGenerator> g_User;
 	vector<xn::AudioGenerator> g_Audio;
 	vector<xn::Player> g_Player;
-	
+    
 };
 
 // Singleton class and ofxOpenNIContext static singleton type defintion
