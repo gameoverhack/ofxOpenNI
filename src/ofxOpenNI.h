@@ -117,11 +117,11 @@ public:
 	xn::AudioMetaData& getAudioMetaData();
 	
     string LOG_NAME;
-	
+
 protected:
 	
 	void threadedFunction();
-	
+    
 private:
 	
 	//void openCommon();
@@ -136,7 +136,6 @@ private:
 	void allocateImageBuffers();
 	void allocateIRBuffers();
 	
-	int numDevices;
 	bool bIsThreaded;
 	
 	bool g_bIsDepthOn;

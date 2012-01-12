@@ -32,83 +32,154 @@ string ofxOpenNIContext::LOG_NAME = "ofxOpenNIContext";
 
 //--------------------------------------------------------------
 ofxOpenNIContext::ofxOpenNIContext(){
-    //ofLogVerbose(LOG_NAME) << "Creating ofxOpenNI context singleton";
+    //ofLogNotice(LOG_NAME) << "Creating ofxOpenNI context singleton";
+    g_Context = NULL;
 	bIsContextReady = false;
-	g_pPrimary = NULL;
 }
 
 //--------------------------------------------------------------
 ofxOpenNIContext::~ofxOpenNIContext(){
-	ofLogVerbose(LOG_NAME) << "Shutting down ofxOpenNI context singleton";
+	ofLogNotice(LOG_NAME) << "Shutting down ofxOpenNI context singleton";
 	stopThread();
-	for (int deviceID = 0; deviceID < numDevices; deviceID++){
-		g_Depth[deviceID].Release();
-		g_Image[deviceID].Release();
-		g_IR[deviceID].Release();
-		g_User[deviceID].Release();
-		g_Audio[deviceID].Release();
-	}
+    g_Depth.clear();
+    g_Image.clear();
+    g_IR.clear();
+    g_Audio.clear();
+    g_Device.clear();
 	g_Context.Release();
 }
 
 //--------------------------------------------------------------
 bool ofxOpenNIContext::initContext(){
 	
+    if (bIsContextReady) return true;
+    
+    ofLogNotice(LOG_NAME) << "Setting up ofxOpenNI context without XML...";
+    
 	XnStatus nRetVal = XN_STATUS_OK;
-	string path = ofToDataPath(""); // crazily this is necessary or else enumeration of devices fails!!!
-                                    // took me hours/days to figure it out...but for some reason the
-                                    // oF rootPath needs to be set it would seem...
+	string path = ofToDataPath(""); // hack warning: seems we need to call ofSetDataPathRoot(...) before a Context can init in 007!!
 	
 	nRetVal = g_Context.Init();
 	SHOW_RC(nRetVal, "OpenNI Context initilized");
-
-	addLicence("PrimeSense", "0KOIk2JeIBYClPWVnMoRKn5cdY4=");
-
-	numDevices = enumerateAndCreateXnNode(XN_NODE_TYPE_DEVICE, g_Device);
-	
-	if (numDevices > 0){
-		enumerateAndCreateXnNode(XN_NODE_TYPE_DEPTH, g_Depth);
-		enumerateAndCreateXnNode(XN_NODE_TYPE_IMAGE, g_Image);
-		enumerateAndCreateXnNode(XN_NODE_TYPE_IR, g_IR);
-		enumerateAndCreateXnNode(XN_NODE_TYPE_USER, g_User);
-		enumerateAndCreateXnNode(XN_NODE_TYPE_AUDIO, g_Audio);
+    bIsContextReady = (nRetVal == XN_STATUS_OK);
+    
+    addLicence("PrimeSense", "0KOIk2JeIBYClPWVnMoRKn5cdY4=");
+    
+	if (getNumDevices() > 0){
+		ofLogNotice(LOG_NAME) << "OpenNI Context initilized with" << getNumDevices() << "devices";
+        startThread(true, false);
 	} else {
 		ofLogError(LOG_NAME) << "No devices found!!!";
 	}
-	
-	startThread(true, false);
-
-	bIsContextReady = (nRetVal == XN_STATUS_OK);
+    
 	return bIsContextReady;
 }
 
 //--------------------------------------------------------------
-int ofxOpenNIContext::enumerateAndCreateXnNode(XnProductionNodeType type, ProductionNode* nodes){
+int ofxOpenNIContext::initDevices(){
+    int numDevices = 0;
+    if (initContext()){
+        NodeInfoList list;
+        numDevices = enumerateXnNode(XN_NODE_TYPE_DEVICE, list);
+        for (int nodeIndex = 0; nodeIndex < numDevices; nodeIndex++) {
+            addDeviceNode(nodeIndex);
+        }
+    }
+    return numDevices;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNIContext::addDeviceNode(int deviceID){
+    int originalSize = g_Device.size();
+    if (g_Device.size() < deviceID + 1) g_Device.resize(deviceID + 1);
+    bool ok = createXnNode(XN_NODE_TYPE_DEVICE, g_Device[deviceID], deviceID);
+    if (!ok) g_Device.resize(originalSize);
+    return ok;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNIContext::addDepthNode(int deviceID){
+    int originalSize = g_Depth.size();
+    if (g_Depth.size() < deviceID + 1) g_Depth.resize(deviceID + 1);
+    bool ok = createXnNode(XN_NODE_TYPE_DEPTH, g_Depth[deviceID], deviceID);
+    if (!ok) g_Depth.resize(originalSize);
+    return ok;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNIContext::addImageNode(int deviceID){
+    int originalSize = g_Image.size();
+    if (g_Image.size() < deviceID + 1) g_Image.resize(deviceID + 1);
+    bool ok = createXnNode(XN_NODE_TYPE_IMAGE, g_Image[deviceID], deviceID);
+    if (!ok) g_Image.resize(originalSize);
+    return ok;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNIContext::addInfraNode(int deviceID){
+    int originalSize = g_IR.size();
+    if (g_IR.size() < deviceID + 1) g_IR.resize(deviceID + 1);
+    bool ok = createXnNode(XN_NODE_TYPE_IR, g_IR[deviceID], deviceID);
+    if (!ok) g_IR.resize(originalSize);
+    return ok;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNIContext::addAudioNode(int deviceID){
+    int originalSize = g_Audio.size();
+    if (g_Audio.size() < deviceID + 1) g_Audio.resize(deviceID + 1);
+    bool ok = createXnNode(XN_NODE_TYPE_AUDIO, g_Audio[deviceID], deviceID);
+    if (!ok) g_Audio.resize(originalSize);
+    return ok;
+}
+
+//--------------------------------------------------------------
+int ofxOpenNIContext::enumerateXnNode(XnProductionNodeType type, NodeInfoList & list){
 	
-    NodeInfoList list;
-	xn::EnumerationErrors errors;
-	XnStatus nRetVal;
+    XnStatus nRetVal = XN_STATUS_OK;
+	EnumerationErrors errors;
     
 	nRetVal = g_Context.EnumerateProductionTrees(type, NULL, list, &errors);
     
-    SHOW_RC(nRetVal, "Enumerating node type: " + getNodeTypeAsString(type));
+    SHOW_RC(nRetVal, "Enumerated node type: " + getNodeTypeAsString(type));
 	if(nRetVal != XN_STATUS_OK) logErrors(errors);
     
-	int nodeIndex = 0;
-	for (NodeInfoList::Iterator it = list.Begin(); it != list.End(); ++it, ++nodeIndex){
-		
-        NodeInfo nInfo = *it;
-		nInfo.GetInstance(nodes[nodeIndex]);
-        
-		XnBool bExists = nodes[nodeIndex].IsValid();
-		if(!bExists){
-			nRetVal = g_Context.CreateProductionTree(nInfo, nodes[nodeIndex]);
-            SHOW_RC(nRetVal, "Creating node " + (string)nodes[nodeIndex].GetName());
-		}
-		
+	int nodeCount = 0;
+	for (NodeInfoList::Iterator it = list.Begin(); it != list.End(); ++it){
+		nodeCount++;
 	}
-	return nodeIndex;
+    
+	return nodeCount;
 }
+
+//--------------------------------------------------------------
+bool ofxOpenNIContext::createXnNode(XnProductionNodeType type, ProductionNode & node, int nodeIndex){
+	
+    XnStatus nRetVal = XN_STATUS_OK;
+    NodeInfoList list;
+	EnumerationErrors errors;
+    
+	int nodeCount = enumerateXnNode(type, list);
+
+    if (nodeIndex + 1 > nodeCount){
+        ofLogError(LOG_NAME) << "Requested nodeIndex" << nodeIndex << "> total nodeCount for" << getNodeTypeAsString(type);
+        return false;
+    }
+    
+    NodeInfoList::Iterator it = list.Begin();
+    for (int i = 0; i < nodeIndex; i++) it++;
+    
+    NodeInfo nInfo = *it;
+    nInfo.GetInstance(node);
+    
+    XnBool bExists = node.IsValid();
+    if(!bExists){
+        nRetVal = g_Context.CreateProductionTree(nInfo, node);
+        SHOW_RC(nRetVal, "Creating node " + (string)node.GetName());
+    }
+    return (nRetVal == XN_STATUS_OK);
+}
+
 
 //--------------------------------------------------------------
 void ofxOpenNIContext::threadedFunction(){
@@ -123,6 +194,7 @@ void ofxOpenNIContext::threadedFunction(){
 
 //--------------------------------------------------------------
 bool ofxOpenNIContext::addLicence(string sVendor, string sKey){
+    ofLogNotice(LOG_NAME) << "Adding licence...";
 	XnLicense license;
 	XnStatus nRetVal = XN_STATUS_OK;
 	bool ok = true;
@@ -135,7 +207,7 @@ bool ofxOpenNIContext::addLicence(string sVendor, string sKey){
     nRetVal = g_Context.AddLicense(license);
     ok = (nRetVal == XN_STATUS_OK);
     SHOW_RC(nRetVal, "Adding licence: " + sVendor + " " + sKey);
-    //xnPrintRegisteredLicenses();
+    xnPrintRegisteredLicenses();
     return ok;
 }
 
@@ -165,7 +237,10 @@ bool ofxOpenNIContext::getIsContextReady(){
 
 //--------------------------------------------------------------
 int ofxOpenNIContext::getNumDevices(){
-	return numDevices;
+    if (g_Device.size() == 0) {
+        initDevices();
+    }
+	return g_Device.size();
 }
 
 //--------------------------------------------------------------

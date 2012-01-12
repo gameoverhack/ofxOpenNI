@@ -45,6 +45,7 @@
 
 using namespace xn;
 
+class ofxOpenNI;
 class ofxOpenNIContext : public ofThread {
 	
 public:
@@ -69,42 +70,40 @@ public:
 	xn::Player& getPlayer(int deviceID = 0);
 	
 	static string LOG_NAME;
-	
+    
 protected:
 	
 	void threadedFunction();
-	
+    
 private:
-	
-	int enumerateAndCreateXnNode(XnProductionNodeType type, ProductionNode *node);
+    
+    friend class ofxOpenNI;
+    
+    bool addDeviceNode(int deviceID);
+	bool addDepthNode(int deviceID);
+    bool addImageNode(int deviceID);
+    bool addInfraNode(int deviceID);
+    bool addAudioNode(int deviceID);
+    
+    int initDevices();
+	int enumerateAndCreateXnNode(XnProductionNodeType type, ProductionNode *node, int deviceID = -1);
+    int enumerateXnNode(XnProductionNodeType type, NodeInfoList & list);
+    bool createXnNode(XnProductionNodeType type, ProductionNode & node, int nodeIndex);
 	void logErrors(xn::EnumerationErrors & errors);
-	int numDevices;
+
 	bool bIsContextReady;
 	
 	// generators/nodes
 	xn::Context g_Context;
-
-	xn::Device g_Device[MAX_DEVICES];
-	xn::DepthGenerator g_Depth[MAX_DEVICES];
-	xn::ImageGenerator g_Image[MAX_DEVICES];
-	xn::IRGenerator g_IR[MAX_DEVICES];
-	xn::UserGenerator g_User[MAX_DEVICES];
-	xn::AudioGenerator g_Audio[MAX_DEVICES];
-	xn::Player g_Player[MAX_DEVICES];
-	
-	xn::ProductionNode *g_pPrimary;
-	
-	// TODO: use vectors -> although makes enumerateAndCreateXnNodes a little different/harder maybe
-	//vector<xn::Device> g_Device;
-	//vector<xn::DepthGenerator> g_Depth;
-	//vector<xn::ImageGenerator> g_Image;
-	//vector<xn::IRGenerator> g_IR;
-	//vector<xn::UserGenerator> g_User;
-	//vector<xn::AudioGenerator> g_Audio;
-	//vector<xn::Player> g_Player;
+	vector<xn::Device> g_Device;
+	vector<xn::DepthGenerator> g_Depth;
+	vector<xn::ImageGenerator> g_Image;
+	vector<xn::IRGenerator> g_IR;
+	vector<xn::UserGenerator> g_User;
+	vector<xn::AudioGenerator> g_Audio;
+	vector<xn::Player> g_Player;
 	
 };
-
 
 // Singleton class and ofxOpenNIContext static singleton type defintion
 #ifndef _H_SINGLETON

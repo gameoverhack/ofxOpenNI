@@ -81,7 +81,6 @@ ofxOpenNI::ofxOpenNI(){
 	
     LOG_NAME = "ofxOpenNIDevice[" + ofToString(instanceID) + "]";
     
-	numDevices = 0;
 	bIsThreaded = false;
 	
 	g_bIsDepthOn = false;
@@ -114,7 +113,6 @@ ofxOpenNI::~ofxOpenNI(){
 bool ofxOpenNI::setup(bool threaded){
 
 	XnStatus nRetVal = XN_STATUS_OK;
-	
 	bIsThreaded = threaded;
 	
 	if (!openNIContext->getIsContextReady()){
@@ -125,41 +123,26 @@ bool ofxOpenNI::setup(bool threaded){
 	}
 	
 	if (openNIContext->getNumDevices() > 0 && openNIContext->getNumDevices() > instanceID){
-		
-		ofLogNotice(LOG_NAME) << "Found" << openNIContext->getNumDevices() << "devices.";
-		
-		//		nRetVal = g_Context.StartGeneratingAll();
-		//		ofLogVerbose(LOG_NAME) << "Start ALL generators:" << xnGetStatusString(nRetVal);
-		
-		//startThread(false, false);
+        ofLogNotice(LOG_NAME) << "Starting device for instance [" << instanceID << "] of ofxOpenNI";
 		startThread(true, false);
-		
-		return true;
 	} else {
-		ofLogNotice(LOG_NAME) << "No Devices found!"; //Set up player...??
-		//		numDevices = enumerateAndCreate(XN_NODE_TYPE_PLAYER, g_Player);
-		//		if (numDevices > 0){
-		//			if (bIsThreaded) startThread(false, false);
-		//			nRetVal = g_Context.StartGeneratingAll();
-		//			ofLogVerbose(LOG_NAME) << "Start ALL generators:" << xnGetStatusString(nRetVal);
-		//			
-		//			return true;
-		//		} else {
-		//			ofLogError(LOG_NAME) << "Could not setup Players!";
-		//			return false;
-		//		}
+		ofLogError(LOG_NAME) << "No Devices available for this instance [" << instanceID << "] of ofxOpenNI - have you got a device connected?!?!";
+        return false;
 	}
-	
+	return true;
 }
 
 //--------------------------------------------------------------
 bool ofxOpenNI::addDepthGenerator(){
-	XnStatus nRetVal;
-	ofLogVerbose(LOG_NAME) << "Add depth generator...";
+	XnStatus nRetVal = XN_STATUS_OK;
+    g_bIsDepthOn = false;
+	ofLogNotice(LOG_NAME) << "Adding depth generator...";
 	if (!openNIContext->getIsContextReady()){
 		ofLogError(LOG_NAME) << "Context is not setup - please call ofxOpenNI::setup() first";
-		g_bIsDepthOn = false;
 	}
+    if (!openNIContext->addDepthNode(instanceID)){
+        ofLogError(LOG_NAME) << "Could not add depth generator node to context";
+    }
 	if (openNIContext->getDepthGenerator(instanceID).IsValid()){
         allocateDepthBuffers();
 		nRetVal = openNIContext->getDepthGenerator(instanceID).StartGenerating();
@@ -167,19 +150,21 @@ bool ofxOpenNI::addDepthGenerator(){
         g_bIsDepthOn = (nRetVal == XN_STATUS_OK);
 	} else {
 		ofLogError(LOG_NAME) << "Depth generator is invalid!";
-		g_bIsDepthOn = false;
 	}
 	return g_bIsDepthOn;
 }
 
 //--------------------------------------------------------------
 bool ofxOpenNI::addImageGenerator(){
-	XnStatus nRetVal;
-	ofLogVerbose(LOG_NAME) << "Add image generator...";
+	XnStatus nRetVal = XN_STATUS_OK;
+    g_bIsImageOn = false;
+	ofLogNotice(LOG_NAME) << "Adding image generator...";
 	if (!openNIContext->getIsContextReady()){
 		ofLogError(LOG_NAME) << "Context is not setup - please call ofxOpenNI::setup() first";
-		g_bIsImageOn = false;
 	}
+    if (!openNIContext->addImageNode(instanceID)){
+        ofLogError(LOG_NAME) << "Could not add image generator node to context";
+    }
 	if (openNIContext->getImageGenerator(instanceID).IsValid()){
         allocateImageBuffers();
 		nRetVal = openNIContext->getImageGenerator(instanceID).StartGenerating();
@@ -187,20 +172,21 @@ bool ofxOpenNI::addImageGenerator(){
         g_bIsImageOn = (nRetVal == XN_STATUS_OK);
 	} else {
 		ofLogError(LOG_NAME) << "Image generator is invalid!";
-		g_bIsImageOn = false;
 	}
 	return g_bIsImageOn;
 }
 
 //--------------------------------------------------------------
 bool ofxOpenNI::addInfraGenerator(){
-	XnStatus nRetVal;
-	ofLogVerbose(LOG_NAME) << "Add ir generator...";
-	ofLogWarning(LOG_NAME) << "IR GENERATOR IS NOT QUITE WORKING YET!";
+	XnStatus nRetVal = XN_STATUS_OK;
+    g_bIsIROn = false;
+	ofLogNotice(LOG_NAME) << "Adding ir generator...";
 	if (!openNIContext->getIsContextReady()){
 		ofLogError(LOG_NAME) << "Context is not setup - please call ofxOpenNI::setup() first";
-		g_bIsIROn = false;
 	}
+    if (!openNIContext->addInfraNode(instanceID)){
+        ofLogError(LOG_NAME) << "Could not add infra generator node to context";
+    }
 	if (openNIContext->getIRGenerator(instanceID).IsValid()){
         allocateIRBuffers();
 		nRetVal = openNIContext->getIRGenerator(instanceID).StartGenerating();
@@ -208,7 +194,6 @@ bool ofxOpenNI::addInfraGenerator(){
         g_bIsIROn = (nRetVal == XN_STATUS_OK);
 	} else {
 		ofLogError(LOG_NAME) << "Image generator is invalid!";
-		g_bIsIROn = false;
 	}
 	return g_bIsIROn;
 }
@@ -230,21 +215,21 @@ bool ofxOpenNI::addPlayerGenerator(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::allocateDepthBuffers(){
-		// make new map mode -> default to 640 x 480 @ 30fps
-		// TODO: shift this to a setSize or make part of int/setup request
-		XnMapOutputMode mapMode;
-		XnStatus nRetVal;
-		mapMode.nXRes = XN_VGA_X_RES;
-		mapMode.nYRes = XN_VGA_Y_RES;
-		mapMode.nFPS  = 30;
-		nRetVal = openNIContext->getDepthGenerator(instanceID).SetMapOutputMode(mapMode);
-		maxDepth = openNIContext->getDepthGenerator(instanceID).GetDeviceMaxDepth();
-		SHOW_RC(nRetVal, "Setting depth resolution: " + ofToString(mapMode.nXRes) + " x " + ofToString(mapMode.nYRes) + " at " + ofToString(mapMode.nFPS) + "fps with max depth of " + ofToString(maxDepth));
-		depthPixels[0].allocate(mapMode.nXRes, mapMode.nYRes, OF_IMAGE_COLOR_ALPHA);
-		depthPixels[1].allocate(mapMode.nXRes, mapMode.nYRes, OF_IMAGE_COLOR_ALPHA);
-		currentDepthPixels = &depthPixels[0];
-		backDepthPixels = &depthPixels[1];
-		if (bUseTexture) depthTexture.allocate(mapMode.nXRes, mapMode.nYRes, GL_RGBA);
+    // make new map mode -> default to 640 x 480 @ 30fps
+    // TODO: shift this to a setSize or make part of int/setup request
+    XnMapOutputMode mapMode;
+    XnStatus nRetVal;
+    mapMode.nXRes = XN_VGA_X_RES;
+    mapMode.nYRes = XN_VGA_Y_RES;
+    mapMode.nFPS  = 30;
+    nRetVal = openNIContext->getDepthGenerator(instanceID).SetMapOutputMode(mapMode);
+    maxDepth = openNIContext->getDepthGenerator(instanceID).GetDeviceMaxDepth();
+    SHOW_RC(nRetVal, "Setting depth resolution: " + ofToString(mapMode.nXRes) + " x " + ofToString(mapMode.nYRes) + " at " + ofToString(mapMode.nFPS) + "fps with max depth of " + ofToString(maxDepth));
+    depthPixels[0].allocate(mapMode.nXRes, mapMode.nYRes, OF_IMAGE_COLOR_ALPHA);
+    depthPixels[1].allocate(mapMode.nXRes, mapMode.nYRes, OF_IMAGE_COLOR_ALPHA);
+    currentDepthPixels = &depthPixels[0];
+    backDepthPixels = &depthPixels[1];
+    if (bUseTexture) depthTexture.allocate(mapMode.nXRes, mapMode.nYRes, GL_RGBA);
 }
 
 //--------------------------------------------------------------
@@ -346,17 +331,17 @@ void ofxOpenNI::readFrame(){
 	
 	lock(); // with this here I get 350-460 fps with 2 Kinects
 	
-	if (openNIContext->getDepthGenerator(instanceID).IsValid() && g_bIsDepthOn){
+	if (g_bIsDepthOn){
 		openNIContext->getDepthGenerator(instanceID).GetMetaData(g_DepthMD);
 		generateDepthPixels();
 	}
 	
-	if (openNIContext->getImageGenerator(instanceID).IsValid() && g_bIsImageOn){
+	if (g_bIsImageOn){
 		openNIContext->getImageGenerator(instanceID).GetMetaData(g_ImageMD);
 		generateImagePixels();
 	}
 	
-	if (openNIContext->getIRGenerator(instanceID).IsValid() && g_bIsIROn){
+	if (g_bIsIROn){
 		openNIContext->getIRGenerator(instanceID).GetMetaData(g_IrMD);
 		generateIRPixels();
 	}
@@ -839,5 +824,5 @@ void ofxOpenNI::cameraToWorld(const vector<ofVec2f>& c, vector<ofVec3f>& w){
 
 //--------------------------------------------------------------
 int ofxOpenNI::getNumDevices(){
-	return numDevices;
+	return openNIContext->getNumDevices();
 }
