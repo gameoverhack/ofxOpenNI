@@ -28,50 +28,8 @@
 
 #include "ofxOpenNI.h"
 
-static bool rainbowPalletInit = false;
 static int instanceCount = -1;
-
-XnUInt8 PalletIntsR [256] = {0};
-XnUInt8 PalletIntsG [256] = {0};
-XnUInt8 PalletIntsB [256] = {0};
-
-//--------------------------------------------------------------
-static void CreateRainbowPallet(){
-	if (rainbowPalletInit) return;
-	
-	unsigned char r, g, b;
-	for (int i=1; i<255; i++){
-		if (i<=29){
-			r = (unsigned char)(129.36-i*4.36);
-			g = 0;
-			b = (unsigned char)255;
-		}
-		else if (i<=86){
-			r = 0;
-			g = (unsigned char)(-133.54+i*4.52);
-			b = (unsigned char)255;
-		}
-		else if (i<=141){
-			r = 0;
-			g = (unsigned char)255;
-			b = (unsigned char)(665.83-i*4.72);
-		}
-		else if (i<=199){
-			r = (unsigned char)(-635.26+i*4.47);
-			g = (unsigned char)255;
-			b = 0;
-		}
-		else {
-			r = (unsigned char)255;
-			g = (unsigned char)(1166.81-i*4.57);
-			b = 0;
-		}
-		PalletIntsR[i] = r;
-		PalletIntsG[i] = g;
-		PalletIntsB[i] = b;
-	}
-	rainbowPalletInit = true;
-}
+static string CALLBACK_LOG_NAME = "ofxOpenNIUserCB";
 
 //--------------------------------------------------------------
 ofxOpenNI::ofxOpenNI(){
@@ -87,6 +45,7 @@ ofxOpenNI::ofxOpenNI(){
 	g_bIsDepthRawOnOption = false;
 	g_bIsImageOn = false;
 	g_bIsIROn = false;
+    g_bIsUserOn = false;
 	g_bIsAudioOn = false;
 	g_bIsPlayerOn = false;
 	
@@ -103,15 +62,41 @@ ofxOpenNI::ofxOpenNI(){
 //--------------------------------------------------------------
 ofxOpenNI::~ofxOpenNI(){
 	ofLogVerbose(LOG_NAME) << "Shuting down device:" << instanceID;
+    Poco::ScopedLock<ofMutex> unlock(mutex);
+    if (g_bIsUserOn) {
+        g_bIsUserOn = false;
+        openNIContext->stopUserNode(instanceID);
+    }
+    if (g_bIsDepthOn) {
+        g_bIsDepthOn = false;
+        openNIContext->stopDepthNode(instanceID);
+    }
+	if (g_bIsImageOn) {
+        g_bIsImageOn = false;
+        openNIContext->stopImageNode(instanceID);
+    }
+	if (g_bIsIROn) {
+        g_bIsIROn = false;
+        openNIContext->stopInfraNode(instanceID);
+    }
+    
+    g_bIsDepthOn = false;
+	g_bIsDepthRawOnOption = false;
+	g_bIsImageOn = false;
+	g_bIsIROn = false;
+    g_bIsUserOn = false;
+	g_bIsAudioOn = false;
+	g_bIsPlayerOn = false;
+    
 	if (bIsThreaded){
-		lock();
+		//lock();
 		stopThread();
 	}
+
 }
 
 //--------------------------------------------------------------
 bool ofxOpenNI::setup(bool threaded){
-
 	XnStatus nRetVal = XN_STATUS_OK;
 	bIsThreaded = threaded;
 	
@@ -199,12 +184,30 @@ bool ofxOpenNI::addInfraGenerator(){
 }
 
 //--------------------------------------------------------------
-bool ofxOpenNI::addAudioGenerator(){
-	ofLogWarning(LOG_NAME) << "Not yet implimented";
+bool ofxOpenNI::addUserGenerator(){
+	ofLogWarning(LOG_NAME) << "Experimental!!";
+    XnStatus nRetVal = XN_STATUS_OK;
+    g_bIsUserOn = false;
+    ofLogNotice(LOG_NAME) << "Adding user generator...";
+    if (!openNIContext->getIsContextReady()){
+		ofLogError(LOG_NAME) << "Context is not setup - please call ofxOpenNI::setup() first";
+	}
+    if (!openNIContext->addUserNode(instanceID)){
+        ofLogError(LOG_NAME) << "Could not add user generator node to context";
+    }
+    if (openNIContext->getUserGenerator(instanceID).IsValid()){
+        allocateUsers();
+		nRetVal = openNIContext->getUserGenerator(instanceID).StartGenerating();
+		SHOW_RC(nRetVal, "Starting user generator");
+        g_bIsUserOn = (nRetVal == XN_STATUS_OK);
+	} else {
+		ofLogError(LOG_NAME) << "User generator is invalid!";
+	}
+	return g_bIsUserOn;
 }
 
 //--------------------------------------------------------------
-bool ofxOpenNI::addUserGenerator(){
+bool ofxOpenNI::addAudioGenerator(){
 	ofLogWarning(LOG_NAME) << "Not yet implimented";
 }
 
@@ -284,6 +287,20 @@ void ofxOpenNI::allocateIRBuffers(){
     currentImagePixels = &imagePixels[0];
     backImagePixels = &imagePixels[1];
     if (bUseTexture) imageTexture.allocate(mapMode.nXRes, mapMode.nYRes, GL_LUMINANCE);
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::allocateUsers(){
+    // set to verbose for now
+    ofSetLogLevel(CALLBACK_LOG_NAME, OF_LOG_VERBOSE);
+    
+    // register user callbacks
+    XnCallbackHandle User_CallbackHandler;
+    XnCallbackHandle Calibration_CallbackHandler;
+	openNIContext->getUserGenerator(instanceID).RegisterUserCallbacks(User_NewUser, User_LostUser, this, User_CallbackHandler);
+	openNIContext->getUserGenerator(instanceID).GetSkeletonCap().RegisterToCalibrationStart(UserCalibration_CalibrationStart, this, Calibration_CallbackHandler);
+	openNIContext->getUserGenerator(instanceID).GetSkeletonCap().RegisterToCalibrationComplete(UserCalibration_CalibrationEnd, this, Calibration_CallbackHandler);
+    
 }
 
 //--------------------------------------------------------------
@@ -817,4 +834,55 @@ void ofxOpenNI::cameraToWorld(const vector<ofVec2f>& c, vector<ofVec3f>& w){
 //--------------------------------------------------------------
 int ofxOpenNI::getNumDevices(){
 	return openNIContext->getNumDevices();
+}
+
+// CALLBACKS
+// =============================================================================
+
+//----------------------------------------
+void XN_CALLBACK_TYPE ofxOpenNI::User_NewUser(xn::UserGenerator& rGenerator, XnUserID nID, void* pCookie){
+	ofLogVerbose(CALLBACK_LOG_NAME) << "New User" << nID;
+//	ofxOpenNITracker* tracker = static_cast<ofxOpenNITracker*>(pCookie);
+//	if(tracker->needsPoseForCalibration()) {
+//		tracker->startPoseDetection(nID);
+//	} else {
+//		tracker->requestCalibration(nID);
+//	}
+}
+
+//----------------------------------------
+void XN_CALLBACK_TYPE ofxOpenNI::User_LostUser(xn::UserGenerator& rGenerator, XnUserID nID, void* pCookie){
+	ofLogVerbose(CALLBACK_LOG_NAME) << "Lost user" << nID;
+	rGenerator.GetSkeletonCap().Reset(nID);
+    
+}
+
+//----------------------------------------
+void XN_CALLBACK_TYPE ofxOpenNI::UserPose_PoseDetected(xn::PoseDetectionCapability& rCapability, const XnChar* strPose, XnUserID nID, void* pCookie){
+	ofLogVerbose(CALLBACK_LOG_NAME) << "Pose" << strPose << "detected for user" << nID;
+//    ofxOpenNITracker* tracker = static_cast<ofxOpenNITracker*>(pCookie);
+//	tracker->requestCalibration(nID);
+//	tracker->stopPoseDetection(nID);
+}
+
+
+//----------------------------------------
+void XN_CALLBACK_TYPE ofxOpenNI::UserCalibration_CalibrationStart(xn::SkeletonCapability& capability, XnUserID nID, void* pCookie){
+	ofLogVerbose(CALLBACK_LOG_NAME) << "Calibration started for user" << nID;
+}
+
+
+//----------------------------------------
+void XN_CALLBACK_TYPE ofxOpenNI::UserCalibration_CalibrationEnd(xn::SkeletonCapability& rCapability, XnUserID nID, XnCalibrationStatus bSuccess, void* pCookie){
+//	ofxOpenNITracker* tracker = static_cast<ofxOpenNITracker*>(pCookie);
+//	if(bSuccess == XN_CALIBRATION_STATUS_OK) {
+//		ofLogVerbose(LOG_NAME) << "+++++++++++++++++++++++ Succesfully tracked user:" << nID;
+//		tracker->startTracking(nID);
+//	} else {
+//		if(tracker->needsPoseForCalibration()) {
+//			tracker->startPoseDetection(nID);
+//		} else {
+//			tracker->requestCalibration(nID);
+//		}
+//	}
 }

@@ -40,15 +40,17 @@ ofxOpenNIContext::ofxOpenNIContext(){
 //--------------------------------------------------------------
 ofxOpenNIContext::~ofxOpenNIContext(){
 	ofLogNotice(LOG_NAME) << "Shutting down ofxOpenNI context singleton";
-    lock(); // to be sure we don't SIGBART on exit!?!
+    lock();
+    g_Context.StopGeneratingAll();
     stopThread();
-    g_Context.Shutdown();
     g_Depth.clear();
     g_Image.clear();
     g_IR.clear();
+    g_User.clear();
     g_Audio.clear();
     g_Device.clear();
-	g_Context.Release();
+//    g_Context.Shutdown();
+//    g_Context.Release();
 }
 
 //--------------------------------------------------------------
@@ -63,6 +65,7 @@ bool ofxOpenNIContext::initContext(){
 	
 	nRetVal = g_Context.Init();
 	SHOW_RC(nRetVal, "OpenNI Context initilized");
+    
     bIsContextReady = (nRetVal == XN_STATUS_OK);
     
     addLicence("PrimeSense", "0KOIk2JeIBYClPWVnMoRKn5cdY4=");
@@ -127,12 +130,75 @@ bool ofxOpenNIContext::addInfraNode(int deviceID){
 }
 
 //--------------------------------------------------------------
+bool ofxOpenNIContext::addUserNode(int deviceID){
+    int originalSize = g_User.size();
+    if (g_Audio.size() < deviceID + 1) g_User.resize(deviceID + 1);
+    bool ok = createXnNode(XN_NODE_TYPE_USER, g_User[deviceID], deviceID);
+    if (!ok) g_User.resize(originalSize);
+    return ok;
+}
+
+//--------------------------------------------------------------
 bool ofxOpenNIContext::addAudioNode(int deviceID){
     int originalSize = g_Audio.size();
     if (g_Audio.size() < deviceID + 1) g_Audio.resize(deviceID + 1);
     bool ok = createXnNode(XN_NODE_TYPE_AUDIO, g_Audio[deviceID], deviceID);
     if (!ok) g_Audio.resize(originalSize);
     return ok;
+}
+
+bool ofxOpenNIContext::stopDepthNode(int deviceID){
+    if (deviceID > g_Depth.size()) return false;
+    XnStatus nRetVal = XN_STATUS_OK;
+    //Poco::ScopedLock<ofMutex> lock(mutex);
+    nRetVal = g_Depth[deviceID].StopGenerating();
+    SHOW_RC(nRetVal, "Stop generating depth");
+    g_Depth[deviceID].Release();
+    return (nRetVal == XN_STATUS_OK);
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNIContext::stopImageNode(int deviceID){
+    if (deviceID > g_Image.size()) return false;
+    XnStatus nRetVal = XN_STATUS_OK;
+    //Poco::ScopedLock<ofMutex> lock(mutex);
+    nRetVal = g_Image[deviceID].StopGenerating();
+    SHOW_RC(nRetVal, "Stop generating image");
+    g_Image[deviceID].Release();
+    return (nRetVal == XN_STATUS_OK);
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNIContext::stopInfraNode(int deviceID){
+    if (deviceID > g_IR.size()) return false;
+    XnStatus nRetVal = XN_STATUS_OK;
+    //Poco::ScopedLock<ofMutex> lock(mutex);
+    nRetVal = g_IR[deviceID].StopGenerating();
+    SHOW_RC(nRetVal, "Stop generating infra");
+    g_IR[deviceID].Release();
+    return (nRetVal == XN_STATUS_OK);
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNIContext::stopUserNode(int deviceID){
+    if (deviceID > g_User.size()) return false;
+    XnStatus nRetVal = XN_STATUS_OK;
+    //Poco::ScopedLock<ofMutex> lock(mutex);
+    nRetVal = g_User[deviceID].StopGenerating();
+    SHOW_RC(nRetVal, "Stop generating user");
+    g_User[deviceID].Release();
+    return (nRetVal == XN_STATUS_OK);
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNIContext::stopAudioNode(int deviceID){
+    if (deviceID > g_Audio.size()) return false;
+    XnStatus nRetVal = XN_STATUS_OK;
+    //Poco::ScopedLock<ofMutex> lock(mutex);
+    nRetVal = g_Audio[deviceID].StopGenerating();
+    SHOW_RC(nRetVal, "Stop generating audio");
+    g_Audio[deviceID].Release();
+    return (nRetVal == XN_STATUS_OK);
 }
 
 //--------------------------------------------------------------
@@ -279,6 +345,12 @@ xn::IRGenerator& ofxOpenNIContext::getIRGenerator(int deviceID){
 xn::AudioGenerator& ofxOpenNIContext::getAudioGenerator(int deviceID){
     Poco::ScopedLock<ofMutex> lock(mutex);
 	return g_Audio[deviceID];
+}
+
+//--------------------------------------------------------------
+xn::UserGenerator& ofxOpenNIContext::getUserGenerator(int deviceID){
+    Poco::ScopedLock<ofMutex> lock(mutex);
+	return g_User[deviceID];
 }
 
 //--------------------------------------------------------------

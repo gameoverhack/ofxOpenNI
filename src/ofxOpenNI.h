@@ -31,6 +31,7 @@
 
 #include "ofxOpenNIContext.h"
 #include "ofxOpenNIUtils.h"
+#include "ofxOpenNIUser.h"
 
 #include "ofThread.h"
 
@@ -135,12 +136,14 @@ private:
 	void allocateDepthRawBuffers();
 	void allocateImageBuffers();
 	void allocateIRBuffers();
+    void allocateUsers();
 	
 	bool bIsThreaded;
 	
 	bool g_bIsDepthOn;
 	bool g_bIsImageOn;
 	bool g_bIsIROn;
+    bool g_bIsUserOn;
 	bool g_bIsAudioOn;
 	bool g_bIsPlayerOn;
 	bool g_bIsDepthRawOnOption;
@@ -148,7 +151,7 @@ private:
 	bool bUseTexture;
 	bool bNewPixels;
 	bool bNewFrame;
-	
+    
 	// depth
 	ofTexture depthTexture;
 	ofPixels depthPixels[2];
@@ -177,6 +180,13 @@ private:
 	// generators/nodes
 	xn::MockDepthGenerator mockDepth;
 	
+    // user callback handlers
+    static void XN_CALLBACK_TYPE User_NewUser(xn::UserGenerator& rGenerator, XnUserID nID, void* pCookie);
+    static void XN_CALLBACK_TYPE User_LostUser(xn::UserGenerator& rGenerator, XnUserID nID, void* pCookie);
+    static void XN_CALLBACK_TYPE UserPose_PoseDetected(xn::PoseDetectionCapability& rCapability, const XnChar* strPose, XnUserID nID, void* pCookie);
+    static void XN_CALLBACK_TYPE UserCalibration_CalibrationStart(xn::SkeletonCapability& capability, XnUserID nID, void* pCookie);
+    static void XN_CALLBACK_TYPE UserCalibration_CalibrationEnd(xn::SkeletonCapability& rCapability, XnUserID nID, XnCalibrationStatus bSuccess, void* pCookie);
+    
 	int instanceID;
     
     // block copy ctor and assignment operator

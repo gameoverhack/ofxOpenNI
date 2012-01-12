@@ -51,24 +51,14 @@ public:
 	ofxOpenNIContext();
 	~ofxOpenNIContext();
 	
-	bool initContext();
-	bool addLicence(string sVendor, string sKey);
+    bool initContext();
 	void setLogLevel(XnLogSeverity logLevel);
 	
 	int getNumDevices();
-	
 	bool getIsContextReady();
-	xn::Context& getContext();
-	
-	xn::Device& getDevice(int deviceID = 0);
-	xn::DepthGenerator& getDepthGenerator(int deviceID = 0);
-	xn::ImageGenerator& getImageGenerator(int deviceID = 0);
-	xn::IRGenerator& getIRGenerator(int deviceID = 0);
-	xn::AudioGenerator& getAudioGenerator(int deviceID = 0);
-	xn::Player& getPlayer(int deviceID = 0);
     
 	static string LOG_NAME;
-    
+    bool stopUserNode(int deviceID);
 protected:
 	
 	void threadedFunction();
@@ -77,11 +67,30 @@ private:
     
     friend class ofxOpenNI;
     
+	bool addLicence(string sVendor, string sKey);
+    
+    xn::Context& getContext();
+	
+	xn::Device& getDevice(int deviceID);
+	xn::DepthGenerator& getDepthGenerator(int deviceID);
+	xn::ImageGenerator& getImageGenerator(int deviceID);
+	xn::IRGenerator& getIRGenerator(int deviceID);
+	xn::AudioGenerator& getAudioGenerator(int deviceID);
+    xn::UserGenerator& getUserGenerator(int deviceID);
+	xn::Player& getPlayer(int deviceID);
+    
     bool addDeviceNode(int deviceID);
 	bool addDepthNode(int deviceID);
     bool addImageNode(int deviceID);
     bool addInfraNode(int deviceID);
+    bool addUserNode(int deviceID);
     bool addAudioNode(int deviceID);
+    
+    bool stopDepthNode(int deviceID);
+    bool stopImageNode(int deviceID);
+    bool stopInfraNode(int deviceID);
+    
+    bool stopAudioNode(int deviceID);
     
     int initDevices();
 	int enumerateAndCreateXnNode(XnProductionNodeType type, ProductionNode *node, int deviceID = -1);

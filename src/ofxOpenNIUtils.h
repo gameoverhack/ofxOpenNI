@@ -32,6 +32,50 @@
 #include <XnTypes.h>
 #include "ofPoint.h"
 
+static bool rainbowPalletInit = false;
+
+static XnUInt8 PalletIntsR [256] = {0};
+static XnUInt8 PalletIntsG [256] = {0};
+static XnUInt8 PalletIntsB [256] = {0};
+
+//--------------------------------------------------------------
+static void CreateRainbowPallet(){
+	if (rainbowPalletInit) return;
+	
+	unsigned char r, g, b;
+	for (int i=1; i<255; i++){
+		if (i<=29){
+			r = (unsigned char)(129.36-i*4.36);
+			g = 0;
+			b = (unsigned char)255;
+		}
+		else if (i<=86){
+			r = 0;
+			g = (unsigned char)(-133.54+i*4.52);
+			b = (unsigned char)255;
+		}
+		else if (i<=141){
+			r = 0;
+			g = (unsigned char)255;
+			b = (unsigned char)(665.83-i*4.72);
+		}
+		else if (i<=199){
+			r = (unsigned char)(-635.26+i*4.47);
+			g = (unsigned char)255;
+			b = 0;
+		}
+		else {
+			r = (unsigned char)255;
+			g = (unsigned char)(1166.81-i*4.57);
+			b = 0;
+		}
+		PalletIntsR[i] = r;
+		PalletIntsG[i] = g;
+		PalletIntsB[i] = b;
+	}
+	rainbowPalletInit = true;
+}
+
 void YUV422ToRGB888(const XnUInt8* pYUVImage, XnUInt8* pRGBImage, XnUInt32 nYUVSize, XnUInt32 nRGBSize);
 
 #define SHOW_RC(rc, what)                                               \
