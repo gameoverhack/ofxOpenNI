@@ -35,6 +35,11 @@
 
 #include "ofThread.h"
 
+#include <set.h>
+#include <map.h>
+
+#define MAX_NUMBER_USERS 20
+
 using namespace xn;
 
 class ofxOpenNI : public ofThread {
@@ -75,6 +80,9 @@ public:
 	void drawImage(float x, float y);
 	void drawImage(float x, float y, float w, float h);
 	
+    void drawUsers();
+    void drawUser(int nID);
+    
 	float getWidth();
 	float getHeight();
 	
@@ -85,6 +93,12 @@ public:
 	void setUseTexture(bool useTexture);
 	void setDepthColoring(DepthColoring coloring);
 	
+    void setUseMaskPixels(bool b);
+	void setUsePointClouds(bool b);
+    
+	void setSmoothing(float smooth);
+	float getSmoothing();
+    
 	bool toggleCalibratedRGBDepth();
 	bool enableCalibratedRGBDepth();
 	bool disableCalibratedRGBDepth();
@@ -130,16 +144,22 @@ private:
 	
 	//void openCommon();
 	//void initConstants();
-	void readFrame();
-	void generateDepthPixels();
-	void generateImagePixels();
-	void generateIRPixels();
-	
+    
+	void updateFrame();
+    void updateUsers();
+    
+    void updateUserPixels(ofxOpenNIUser & user);
+	void updatePointClouds(ofxOpenNIUser & user);
+    
 	void allocateDepthBuffers();
 	void allocateDepthRawBuffers();
 	void allocateImageBuffers();
 	void allocateIRBuffers();
     void allocateUsers();
+    
+    void generateDepthPixels();
+	void generateImagePixels();
+	void generateIRPixels();
 	
 	bool bIsThreaded;
 	
@@ -155,6 +175,8 @@ private:
 	bool bUseTexture;
 	bool bNewPixels;
 	bool bNewFrame;
+    bool bUsePointClouds;
+    bool bUseMaskPixels;
     
 	// depth
 	ofTexture depthTexture;
@@ -198,6 +220,12 @@ private:
     void requestCalibration(XnUserID nID);
     void startTracking(XnUserID nID);
     bool needsPoseForCalibration();
+    
+    // user storage
+	map<XnUserID,ofxOpenNIUser> currentTrackedUsers;
+    set<XnUserID> previousTrackedUserIDs;
+	vector<XnUserID> currentTrackedUserIDs;
+    float userSmoothFactor;
     
 	int instanceID;
     

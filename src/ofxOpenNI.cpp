@@ -342,6 +342,32 @@ void ofxOpenNI::allocateUsers(){
     
 }
 
+
+//--------------------------------------------------------------
+void ofxOpenNI::setUseMaskPixels(bool b){
+	bUseMaskPixels = b;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setUsePointClouds(bool b){
+	bUsePointClouds = b;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setSmoothing(float smooth){
+	if (smooth > 0.0f && smooth < 1.0f) {
+		userSmoothFactor = smooth;
+		if (g_bIsUserOn) {
+			openNIContext->getUserGenerator(instanceID).GetSkeletonCap().SetSmoothing(smooth);
+		}
+	}
+}
+
+//--------------------------------------------------------------
+float ofxOpenNI::getSmoothing(){
+	return userSmoothFactor;
+}
+
 //--------------------------------------------------------------
 void ofxOpenNI::startPoseDetection(XnUserID nID){
     XnStatus nRetVal = XN_STATUS_OK;
@@ -381,43 +407,134 @@ bool ofxOpenNI::needsPoseForCalibration(){
 	return bNeedsPose;
 }
 
-//--------------------------------------------------------------
-void ofxOpenNI::drawDepth(){
-	if (bUseTexture) drawDepth(0, 0, getWidth(), getHeight());
+//----------------------------------------
+void ofxOpenNI::updateUsers(){
+    
+    if (!g_bIsUserOn) return;
+    
+    // get user generator reference
+    xn::UserGenerator& userGenerator = openNIContext->getUserGenerator(instanceID);
+    
+	vector<XnUserID> userIDs(MAX_NUMBER_USERS);
+	XnUInt16 maxNumUsers = MAX_NUMBER_USERS;
+	userGenerator.GetUsers(&userIDs[0], maxNumUsers);
+    
+	set<XnUserID> trackedUserIDs;
+    
+	for (int i = 0; i < MAX_NUMBER_USERS; ++i) {
+		if (userGenerator.GetSkeletonCap().IsTracking(userIDs[i])) {
+			ofxOpenNIUser & user = currentTrackedUsers[userIDs[i]];
+			user.id = userIDs[i];
+			XnPoint3D center;
+			userGenerator.GetCoM(userIDs[i], center);
+			user.center = toOf(center);
+            
+			for (int j=0; j<ofxOpenNIUser::NumLimbs; j++){
+				XnSkeletonJointPosition a,b;
+				userGenerator.GetSkeletonCap().GetSkeletonJointPosition(user.id, user.limbs[j].start_joint, a);
+				userGenerator.GetSkeletonCap().GetSkeletonJointPosition(user.id, user.limbs[j].end_joint, b);
+				userGenerator.GetSkeletonCap().GetSkeletonJointOrientation(user.id,user.limbs[j].start_joint, user.limbs[j].orientation);
+				if (a.fConfidence < 0.3f || b.fConfidence < 0.3f){
+					user.limbs[j].found = false;
+					continue;
+				}
+                
+				user.limbs[j].found = true;
+				user.limbs[j].begin = worldToProjective(a.position);
+				user.limbs[j].end = worldToProjective(b.position);
+				user.limbs[j].worldBegin = toOf(a.position);
+				user.limbs[j].worldEnd = toOf(b.position);
+			}
+            
+			if (bUsePointClouds) updatePointClouds(user);
+			if (bUseMaskPixels) updateUserPixels(user);
+            
+			trackedUserIDs.insert(user.id);
+		}
+	}
+    
+	set<XnUserID>::iterator it;
+	for (it = previousTrackedUserIDs.begin(); it != previousTrackedUserIDs.end(); it++){
+		if (trackedUserIDs.find(*it) == trackedUserIDs.end()){
+			currentTrackedUsers.erase(*it);
+		}
+	}
+
+	previousTrackedUserIDs = trackedUserIDs;
+	currentTrackedUserIDs.assign(previousTrackedUserIDs.begin(), previousTrackedUserIDs.end());
+    
+	//if (useMaskPixels) updateUserPixels();
 }
 
 //--------------------------------------------------------------
-void ofxOpenNI::drawDepth(float x, float y){
-	if (bUseTexture) drawDepth(x, y, getWidth(), getHeight());
+void ofxOpenNI::updatePointClouds(ofxOpenNIUser & user){
+    
+	const XnRGB24Pixel*	pColor;
+	const XnDepthPixel*	pDepth = g_DepthMD.Data();
+    
+	bool hasImageGenerator = openNIContext->getImageGenerator(instanceID).IsValid();
+    
+	if (hasImageGenerator) {
+		pColor = g_ImageMD.RGB24Data();
+	}
+    
+	xn::SceneMetaData smd;
+	unsigned short *userPix;
+    
+	if (openNIContext->getUserGenerator(instanceID).GetUserPixels(user.id, smd) == XN_STATUS_OK) {
+		userPix = (unsigned short*)smd.Data();
+	}
+    
+	int step = 1;
+	int nIndex = 0;
+    
+	user.pointCloud.getVertices().clear();
+	user.pointCloud.getColors().clear();
+	user.pointCloud.setMode(OF_PRIMITIVE_POINTS);
+    
+	for (int nY = 0; nY < getHeight(); nY += step) {
+		for (int nX = 0; nX < getWidth(); nX += step, nIndex += step) {
+			if (userPix[nIndex] == user.id) {
+				user.pointCloud.addVertex(ofPoint( nX,nY,pDepth[nIndex] ));
+				ofColor color;
+				if(hasImageGenerator){
+					user.pointCloud.addColor(ofColor(pColor[nIndex].nRed,pColor[nIndex].nGreen,pColor[nIndex].nBlue));
+				}else{
+					user.pointCloud.addColor(ofFloatColor(1,1,1));
+				}
+			}
+		}
+	}
 }
 
 //--------------------------------------------------------------
-void ofxOpenNI::drawDepth(float x, float y, float w, float h){
-	if (bUseTexture) depthTexture.draw(x, y, w, h);
+void ofxOpenNI::updateUserPixels(ofxOpenNIUser & user){
+    
+	xn::SceneMetaData smd;
+	unsigned short *userPix;
+    
+	if (openNIContext->getUserGenerator(instanceID).GetUserPixels(user.id, smd) == XN_STATUS_OK) { //	GetUserPixels is supposed to take a user ID number,
+		userPix = (unsigned short*)smd.Data();					//  but you get the same data no matter what you pass.
+	}															//	userPix actually contains an array where each value
+    //  corresponds to the user being tracked.
+    //  Ie.,	if userPix[i] == 0 then it's not being tracked -> it's the background!
+    //			if userPix[i] > 0 then the pixel belongs to the user who's value IS userPix[i]
+    //  // (many thanks to ascorbin who's code made this apparent to me)
+    
+	user.maskPixels.allocate(getWidth(), getHeight(), OF_IMAGE_GRAYSCALE);
+    
+	for (int i =0 ; i < getWidth() * getHeight(); i++) {
+		if (userPix[i] == user.id) {
+			user.maskPixels[i] = 255;
+		} else {
+			user.maskPixels[i] = 0;
+		}
+        
+	}
 }
 
 //--------------------------------------------------------------
-void ofxOpenNI::drawImage(){
-	if (bUseTexture) drawImage(0, 0, getWidth(), getHeight());
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::drawImage(float x, float y){
-	if (bUseTexture) drawImage(x, y, getWidth(), getHeight());
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::drawImage(float x, float y, float w, float h){
-	if (bUseTexture) imageTexture.draw(x, y, w, h);
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::setDepthColoring(DepthColoring coloring){
-	depthColoring = coloring;
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::readFrame(){
+void ofxOpenNI::updateFrame(){
     
 	//if (bIsThreaded) lock(); // with this here I get ~30 fps with 2 Kinects
 	
@@ -461,22 +578,10 @@ void ofxOpenNI::readFrame(){
 }
 
 //--------------------------------------------------------------
-bool ofxOpenNI::isNewFrame(){
-	return bNewFrame;
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::threadedFunction(){
-	while(isThreadRunning()){
-		readFrame();
-	}
-}
-
-//--------------------------------------------------------------
 void ofxOpenNI::update(){
 
 	if (!bIsThreaded){
-		readFrame();
+		updateFrame();
 	} else {
 		lock();
 	}
@@ -497,6 +602,19 @@ void ofxOpenNI::update(){
 	}
 
 	if (bIsThreaded) unlock();
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::isNewFrame(){
+	return bNewFrame;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::threadedFunction(){
+	while(isThreadRunning()){
+		updateFrame();
+        updateUsers();
+	}
 }
 
 //--------------------------------------------------------------
@@ -555,6 +673,59 @@ bool ofxOpenNI::disableCalibratedRGBDepth(){
 	}
 	
 	return true;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawDepth(){
+	if (bUseTexture) drawDepth(0, 0, getWidth(), getHeight());
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawDepth(float x, float y){
+	if (bUseTexture) drawDepth(x, y, getWidth(), getHeight());
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawDepth(float x, float y, float w, float h){
+	if (bUseTexture) depthTexture.draw(x, y, w, h);
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawImage(){
+	if (bUseTexture) drawImage(0, 0, getWidth(), getHeight());
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawImage(float x, float y){
+	if (bUseTexture) drawImage(x, y, getWidth(), getHeight());
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawImage(float x, float y, float w, float h){
+	if (bUseTexture) imageTexture.draw(x, y, w, h);
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawUsers(){
+	ofPushStyle();
+    //	if (currentTrackedUsers.size() > 0) {
+    //    }
+    // draw all the users
+    for(int i = 0;  i < (int)currentTrackedUserIDs.size(); ++i) {
+        drawUser(i);
+    }
+	ofPopStyle();
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawUser(int nID) {
+	if(nID - 1 > (int)currentTrackedUserIDs.size()) return;
+	currentTrackedUsers[currentTrackedUserIDs[nID]].debugDraw();
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setDepthColoring(DepthColoring coloring){
+	depthColoring = coloring;
 }
 
 //--------------------------------------------------------------
