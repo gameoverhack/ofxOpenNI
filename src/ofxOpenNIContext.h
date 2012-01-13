@@ -63,8 +63,10 @@ public:
     void setPaused(bool b);
     void togglePaused();
     
-	static string LOG_NAME;
     xn::Context& getContext();
+    
+	static string LOG_NAME;
+    
 protected:
 	
 	void threadedFunction();
@@ -74,8 +76,6 @@ private:
     friend class ofxOpenNI;
     
 	bool addLicence(string sVendor, string sKey);
-    
-    
 	
 	xn::Device& getDevice(int deviceID);
 	xn::DepthGenerator& getDepthGenerator(int deviceID);

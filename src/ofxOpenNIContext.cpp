@@ -32,6 +32,10 @@
 
 string ofxOpenNIContext::LOG_NAME = "ofxOpenNIContext";
 
+// need this because when using xn::UserGenerator's I'm getting SIGSEV's on exit at WaitAnyUpdateAll...
+// ... it's proving very difficult to get a lock and to destroy nodes etc ...
+// ... this solution only works about 50% of the time, as we often get crash BEFORE dtors are called
+// AND before even the aexit() functions ... after a day and half I'm bored with it!!!
 static void onExitKillContext(){
     cout << "killing the context on exit";
     openNIContext->setPaused(true);
@@ -96,7 +100,7 @@ bool ofxOpenNIContext::initContext(){
 	if (getNumDevices() > 0){
 		ofLogNotice(LOG_NAME) << "OpenNI Context initilized with" << getNumDevices() << "devices";
         startThread(true, false);
-        std::atexit (onExitKillContext);
+        std::atexit (onExitKillContext); // see not above about exit/crash/frustration!
 	} else {
 		ofLogError(LOG_NAME) << "No devices found!!!";
 	}
