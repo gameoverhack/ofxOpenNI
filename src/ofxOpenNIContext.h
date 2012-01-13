@@ -41,6 +41,8 @@
 #include "ofTexture.h"
 #include "ofThread.h"
 
+static ofMutex openNIMutex;
+
 using namespace xn;
 
 class ofxOpenNI;
@@ -57,8 +59,12 @@ public:
 	int getNumDevices();
 	bool getIsContextReady();
     
+    bool getPaused();
+    void setPaused(bool b);
+    void togglePaused();
+    
 	static string LOG_NAME;
-    bool stopUserNode(int deviceID);
+    xn::Context& getContext();
 protected:
 	
 	void threadedFunction();
@@ -69,7 +75,7 @@ private:
     
 	bool addLicence(string sVendor, string sKey);
     
-    xn::Context& getContext();
+    
 	
 	xn::Device& getDevice(int deviceID);
 	xn::DepthGenerator& getDepthGenerator(int deviceID);
@@ -89,7 +95,7 @@ private:
     bool stopDepthNode(int deviceID);
     bool stopImageNode(int deviceID);
     bool stopInfraNode(int deviceID);
-    
+    bool stopUserNode(int deviceID);
     bool stopAudioNode(int deviceID);
     
     int initDevices();
@@ -98,6 +104,7 @@ private:
     bool createXnNode(XnProductionNodeType type, ProductionNode & node, int nodeIndex);
 	void logErrors(xn::EnumerationErrors & errors);
 
+    bool bPaused;
 	bool bIsContextReady;
 	
 	// generators/nodes
@@ -140,3 +147,32 @@ template <class T> ofPtr<T> Singleton<T>::m_pInstance; // = NULL;
 typedef Singleton<ofxOpenNIContext> ofxOpenNIContextSingleton;
 static ofPtr<ofxOpenNIContext> openNIContext = ofxOpenNIContextSingleton::Instance();
 #endif
+
+// Singleton class and ofxOpenNIContext static singleton type defintion
+//#ifndef _H_SINGLETON
+//#define _H_SINGLETON
+//#include "assert.h"
+//#include <cstdlib>
+////#include "ofTypes.h"
+//template <class T>
+//class Singleton {
+//public:
+//	static T* Instance() {
+//		if(!m_pInstance) m_pInstance = new T;
+//		assert(m_pInstance !=NULL);
+//		return m_pInstance;
+//	}
+//protected:
+//	Singleton();
+//	~Singleton();
+//private:
+//	Singleton(Singleton const&);
+//	Singleton& operator=(Singleton const&);
+//	static T* m_pInstance;
+//};
+//template <class T> T* Singleton<T>::m_pInstance = NULL;
+//#endif
+//
+//typedef Singleton<ofxOpenNIContext> ofxOpenNIContextSingleton;
+//static ofxOpenNIContext * openNIContext = ofxOpenNIContextSingleton::Instance();
+//#endif

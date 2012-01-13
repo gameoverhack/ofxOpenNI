@@ -105,10 +105,13 @@ public:
 	ofPoint cameraToWorld(const ofVec2f& c);
 	void cameraToWorld(const vector<ofVec2f>& c, vector<ofVec3f>& w);
 	
+    int getDeviceID();
 	xn::Device& getDevice();
+    
 	xn::DepthGenerator& getDepthGenerator();
 	xn::ImageGenerator& getImageGenerator();
 	xn::IRGenerator& getIRGenerator();
+    xn::UserGenerator& getUserGenerator();
 	xn::AudioGenerator& getAudioGenerator();
 	xn::Player& getPlayer();
 	
@@ -148,6 +151,7 @@ private:
 	bool g_bIsPlayerOn;
 	bool g_bIsDepthRawOnOption;
 	
+    bool bNeedsPose;
 	bool bUseTexture;
 	bool bNewPixels;
 	bool bNewFrame;
@@ -186,6 +190,14 @@ private:
     static void XN_CALLBACK_TYPE UserPose_PoseDetected(xn::PoseDetectionCapability& rCapability, const XnChar* strPose, XnUserID nID, void* pCookie);
     static void XN_CALLBACK_TYPE UserCalibration_CalibrationStart(xn::SkeletonCapability& capability, XnUserID nID, void* pCookie);
     static void XN_CALLBACK_TYPE UserCalibration_CalibrationEnd(xn::SkeletonCapability& rCapability, XnUserID nID, XnCalibrationStatus bSuccess, void* pCookie);
+    
+    // user pose functions
+    XnChar	userCalibrationPose[20];
+    void startPoseDetection(XnUserID nID);
+    void stopPoseDetection(XnUserID nID);
+    void requestCalibration(XnUserID nID);
+    void startTracking(XnUserID nID);
+    bool needsPoseForCalibration();
     
 	int instanceID;
     

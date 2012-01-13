@@ -26,9 +26,20 @@
  *
  */
 
+#include <stdio.h>
+#include <stdlib.h>
 #include "ofxOpenNIContext.h"
 
 string ofxOpenNIContext::LOG_NAME = "ofxOpenNIContext";
+
+static void onExitKillContext(){
+    cout << "killing the context on exit";
+    openNIContext->setPaused(true);
+    openNIContext->lock();
+    openNIContext->stopThread();
+    openNIContext->getContext().StopGeneratingAll();
+    openNIContext->unlock();
+}
 
 //--------------------------------------------------------------
 ofxOpenNIContext::ofxOpenNIContext(){
@@ -37,20 +48,30 @@ ofxOpenNIContext::ofxOpenNIContext(){
 	bIsContextReady = false;
 }
 
+
 //--------------------------------------------------------------
 ofxOpenNIContext::~ofxOpenNIContext(){
-	ofLogNotice(LOG_NAME) << "Shutting down ofxOpenNI context singleton";
-    lock();
+	
+    bPaused = true;
+    
     g_Context.StopGeneratingAll();
-    stopThread();
-    g_Depth.clear();
-    g_Image.clear();
-    g_IR.clear();
-    g_User.clear();
-    g_Audio.clear();
-    g_Device.clear();
-//    g_Context.Shutdown();
-//    g_Context.Release();
+    
+    if (isThreadRunning()){
+        lock();
+        stopThread();
+	}
+    
+    if (g_Depth.size() > 0) g_Depth.clear();
+    if (g_Image.size() > 0) g_Image.clear();
+    if (g_IR.size() > 0) g_IR.clear();
+    if (g_User.size() > 0) g_User.clear();
+    if (g_Audio.size() > 0) g_Audio.clear();
+    if (g_Device.size() > 0) g_Device.clear();
+    
+    //g_Context.Shutdown();
+    //g_Context.Release();
+    
+     ofLogNotice(LOG_NAME) << "Shut down ofxOpenNI context singleton"; // strange if I call at top of dtor I crash!?!?!
 }
 
 //--------------------------------------------------------------
@@ -70,9 +91,12 @@ bool ofxOpenNIContext::initContext(){
     
     addLicence("PrimeSense", "0KOIk2JeIBYClPWVnMoRKn5cdY4=");
     
+    bPaused = true;
+    
 	if (getNumDevices() > 0){
 		ofLogNotice(LOG_NAME) << "OpenNI Context initilized with" << getNumDevices() << "devices";
         startThread(true, false);
+        std::atexit (onExitKillContext);
 	} else {
 		ofLogError(LOG_NAME) << "No devices found!!!";
 	}
@@ -99,6 +123,7 @@ bool ofxOpenNIContext::addDeviceNode(int deviceID){
     if (g_Device.size() < deviceID + 1) g_Device.resize(deviceID + 1);
     bool ok = createXnNode(XN_NODE_TYPE_DEVICE, g_Device[deviceID], deviceID);
     if (!ok) g_Device.resize(originalSize);
+    if (ok) bPaused = false;
     return ok;
 }
 
@@ -108,6 +133,7 @@ bool ofxOpenNIContext::addDepthNode(int deviceID){
     if (g_Depth.size() < deviceID + 1) g_Depth.resize(deviceID + 1);
     bool ok = createXnNode(XN_NODE_TYPE_DEPTH, g_Depth[deviceID], deviceID);
     if (!ok) g_Depth.resize(originalSize);
+    if (ok) bPaused = false;
     return ok;
 }
 
@@ -117,6 +143,7 @@ bool ofxOpenNIContext::addImageNode(int deviceID){
     if (g_Image.size() < deviceID + 1) g_Image.resize(deviceID + 1);
     bool ok = createXnNode(XN_NODE_TYPE_IMAGE, g_Image[deviceID], deviceID);
     if (!ok) g_Image.resize(originalSize);
+    if (ok) bPaused = false;
     return ok;
 }
 
@@ -126,6 +153,7 @@ bool ofxOpenNIContext::addInfraNode(int deviceID){
     if (g_IR.size() < deviceID + 1) g_IR.resize(deviceID + 1);
     bool ok = createXnNode(XN_NODE_TYPE_IR, g_IR[deviceID], deviceID);
     if (!ok) g_IR.resize(originalSize);
+    if (ok) bPaused = false;
     return ok;
 }
 
@@ -135,6 +163,7 @@ bool ofxOpenNIContext::addUserNode(int deviceID){
     if (g_Audio.size() < deviceID + 1) g_User.resize(deviceID + 1);
     bool ok = createXnNode(XN_NODE_TYPE_USER, g_User[deviceID], deviceID);
     if (!ok) g_User.resize(originalSize);
+    if (ok) bPaused = false;
     return ok;
 }
 
@@ -144,6 +173,7 @@ bool ofxOpenNIContext::addAudioNode(int deviceID){
     if (g_Audio.size() < deviceID + 1) g_Audio.resize(deviceID + 1);
     bool ok = createXnNode(XN_NODE_TYPE_AUDIO, g_Audio[deviceID], deviceID);
     if (!ok) g_Audio.resize(originalSize);
+    if (ok) bPaused = false;
     return ok;
 }
 
@@ -248,15 +278,31 @@ bool ofxOpenNIContext::createXnNode(XnProductionNodeType type, ProductionNode & 
     return (nRetVal == XN_STATUS_OK);
 }
 
+//--------------------------------------------------------------
+bool ofxOpenNIContext::getPaused(){
+    return bPaused;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNIContext::setPaused(bool b){
+    bPaused = true;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNIContext::togglePaused(){
+    bPaused = !bPaused;
+}
 
 //--------------------------------------------------------------
 void ofxOpenNIContext::threadedFunction(){
 	while(isThreadRunning()){
-		XnStatus nRetVal = XN_STATUS_OK;
-		lock(); // if I lock here application framerate drops to ~120fps
-        nRetVal = g_Context.WaitAnyUpdateAll();
-        CHECK_ERR_RC(nRetVal, "Error on WaitAnyUpdateAll()");
-		unlock();
+        if (!bPaused) {
+            lock();
+            XnStatus nRetVal = XN_STATUS_OK;
+            nRetVal = g_Context.WaitAnyUpdateAll();
+            CHECK_ERR_RC(nRetVal, "Error on WaitAnyUpdateAll()");
+            unlock();
+        }
 	}
 }
 
@@ -313,48 +359,48 @@ int ofxOpenNIContext::getNumDevices(){
 
 //--------------------------------------------------------------
 xn::Context& ofxOpenNIContext::getContext(){
-    Poco::ScopedLock<ofMutex> lock(mutex);
+    //Poco::ScopedLock<ofMutex> lock(mutex);
 	return g_Context;
 }
 
 //--------------------------------------------------------------
 xn::Device& ofxOpenNIContext::getDevice(int deviceID){
-    Poco::ScopedLock<ofMutex> lock(mutex);
+    //Poco::ScopedLock<ofMutex> lock(mutex);
 	return g_Device[deviceID];
 }
 
 //--------------------------------------------------------------
 xn::DepthGenerator& ofxOpenNIContext::getDepthGenerator(int deviceID){
-    Poco::ScopedLock<ofMutex> lock(mutex);
+    //Poco::ScopedLock<ofMutex> lock(mutex);
 	return g_Depth[deviceID];
 }
 
 //--------------------------------------------------------------
 xn::ImageGenerator& ofxOpenNIContext::getImageGenerator(int deviceID){
-    Poco::ScopedLock<ofMutex> lock(mutex);
+    //Poco::ScopedLock<ofMutex> lock(mutex);
 	return g_Image[deviceID];
 }
 
 //--------------------------------------------------------------
 xn::IRGenerator& ofxOpenNIContext::getIRGenerator(int deviceID){
-    Poco::ScopedLock<ofMutex> lock(mutex);
+    //Poco::ScopedLock<ofMutex> lock(mutex);
 	return g_IR[deviceID];
 }
 
 //--------------------------------------------------------------
 xn::AudioGenerator& ofxOpenNIContext::getAudioGenerator(int deviceID){
-    Poco::ScopedLock<ofMutex> lock(mutex);
+    //Poco::ScopedLock<ofMutex> lock(mutex);
 	return g_Audio[deviceID];
 }
 
 //--------------------------------------------------------------
 xn::UserGenerator& ofxOpenNIContext::getUserGenerator(int deviceID){
-    Poco::ScopedLock<ofMutex> lock(mutex);
+    //Poco::ScopedLock<ofMutex> lock(mutex);
 	return g_User[deviceID];
 }
 
 //--------------------------------------------------------------
 xn::Player& ofxOpenNIContext::getPlayer(int deviceID){
-    Poco::ScopedLock<ofMutex> lock(mutex);
+    //Poco::ScopedLock<ofMutex> lock(mutex);
 	return g_Player[deviceID];
 }

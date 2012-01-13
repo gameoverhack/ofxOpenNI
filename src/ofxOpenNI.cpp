@@ -51,6 +51,7 @@ ofxOpenNI::ofxOpenNI(){
 	
 	depthColoring = COLORING_RAINBOW;
 	
+    bNeedsPose = true;
 	bUseTexture = true;
 	bNewPixels = false;
 	bNewFrame = false;	
@@ -61,37 +62,34 @@ ofxOpenNI::ofxOpenNI(){
 
 //--------------------------------------------------------------
 ofxOpenNI::~ofxOpenNI(){
-	ofLogVerbose(LOG_NAME) << "Shuting down device:" << instanceID;
-    Poco::ScopedLock<ofMutex> unlock(mutex);
-    if (g_bIsUserOn) {
-        g_bIsUserOn = false;
-        openNIContext->stopUserNode(instanceID);
-    }
-    if (g_bIsDepthOn) {
-        g_bIsDepthOn = false;
-        openNIContext->stopDepthNode(instanceID);
-    }
-	if (g_bIsImageOn) {
-        g_bIsImageOn = false;
-        openNIContext->stopImageNode(instanceID);
-    }
-	if (g_bIsIROn) {
-        g_bIsIROn = false;
-        openNIContext->stopInfraNode(instanceID);
-    }
     
-    g_bIsDepthOn = false;
-	g_bIsDepthRawOnOption = false;
-	g_bIsImageOn = false;
-	g_bIsIROn = false;
-    g_bIsUserOn = false;
-	g_bIsAudioOn = false;
-	g_bIsPlayerOn = false;
+    //openNIContext->setPaused(true);
     
-	if (bIsThreaded){
-		//lock();
-		stopThread();
+    if (isThreadRunning()){
+        lock();
+        stopThread();
 	}
+    
+    //ofLogVerbose(LOG_NAME) << "Shut down device:" << instanceID; // strange if I call at top of dtor I crash!?!?!
+    
+    //openNIContext->setPaused(false);
+    
+//    if (g_bIsUserOn) {
+//        g_bIsUserOn = false;
+//        openNIContext->stopUserNode(instanceID);
+//    }
+//    if (g_bIsDepthOn) {
+//        g_bIsDepthOn = false;
+//        openNIContext->stopDepthNode(instanceID);
+//    }
+//	if (g_bIsImageOn) {
+//        g_bIsImageOn = false;
+//        openNIContext->stopImageNode(instanceID);
+//    }
+//	if (g_bIsIROn) {
+//        g_bIsIROn = false;
+//        openNIContext->stopInfraNode(instanceID);
+//    }
 
 }
 
@@ -137,6 +135,11 @@ bool ofxOpenNI::addDepthGenerator(){
 		ofLogError(LOG_NAME) << "Depth generator is invalid!";
 	}
 	return g_bIsDepthOn;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::setup(string xmlFilePath, bool threaded){
+	ofLogWarning(LOG_NAME) << "Not yet implimented";
 }
 
 //--------------------------------------------------------------
@@ -221,7 +224,7 @@ void ofxOpenNI::allocateDepthBuffers(){
     // make new map mode -> default to 640 x 480 @ 30fps
     // TODO: shift this to a setSize or make part of int/setup request
     XnMapOutputMode mapMode;
-    XnStatus nRetVal;
+    XnStatus nRetVal = XN_STATUS_OK;
     mapMode.nXRes = XN_VGA_X_RES;
     mapMode.nYRes = XN_VGA_Y_RES;
     mapMode.nFPS  = 30;
@@ -240,7 +243,7 @@ void ofxOpenNI::allocateDepthRawBuffers(){
     // make new map mode -> default to 640 x 480 @ 30fps
     // TODO: shift this to a setSize or make part of int/setup request
     XnMapOutputMode mapMode;
-    XnStatus nRetVal;
+    XnStatus nRetVal = XN_STATUS_OK;
     mapMode.nXRes = XN_VGA_X_RES;
     mapMode.nYRes = XN_VGA_Y_RES;
     mapMode.nFPS  = 30;
@@ -258,7 +261,7 @@ void ofxOpenNI::allocateImageBuffers(){
     // make new map mode -> default to 640 x 480 @ 30fps
     // TODO: shift this to a setSize or make part of int/setup request
     XnMapOutputMode mapMode;
-    XnStatus nRetVal;
+    XnStatus nRetVal = XN_STATUS_OK;
     mapMode.nXRes = XN_VGA_X_RES;
     mapMode.nYRes = XN_VGA_Y_RES;
     mapMode.nFPS  = 30;
@@ -276,7 +279,7 @@ void ofxOpenNI::allocateIRBuffers(){
     // make new map mode -> default to 640 x 480 @ 30fps
     // TODO: shift this to a setSize or make part of int/setup request
     XnMapOutputMode mapMode;
-    XnStatus nRetVal;
+    XnStatus nRetVal = XN_STATUS_OK;
     mapMode.nXRes = XN_VGA_X_RES;
     mapMode.nYRes = XN_VGA_Y_RES;
     mapMode.nFPS  = 30;
@@ -291,21 +294,91 @@ void ofxOpenNI::allocateIRBuffers(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::allocateUsers(){
+    
+    XnStatus nRetVal = XN_STATUS_OK;
+    
     // set to verbose for now
     ofSetLogLevel(CALLBACK_LOG_NAME, OF_LOG_VERBOSE);
+    
+    // get user generator reference
+    xn::UserGenerator& userGenerator = openNIContext->getUserGenerator(instanceID);
     
     // register user callbacks
     XnCallbackHandle User_CallbackHandler;
     XnCallbackHandle Calibration_CallbackHandler;
-	openNIContext->getUserGenerator(instanceID).RegisterUserCallbacks(User_NewUser, User_LostUser, this, User_CallbackHandler);
-	openNIContext->getUserGenerator(instanceID).GetSkeletonCap().RegisterToCalibrationStart(UserCalibration_CalibrationStart, this, Calibration_CallbackHandler);
-	openNIContext->getUserGenerator(instanceID).GetSkeletonCap().RegisterToCalibrationComplete(UserCalibration_CalibrationEnd, this, Calibration_CallbackHandler);
+    
+	nRetVal = userGenerator.RegisterUserCallbacks(User_NewUser, User_LostUser, this, User_CallbackHandler);
+    CHECK_ERR_RC(nRetVal, "Register user New/Lost callbacks");
+    
+	nRetVal = userGenerator.GetSkeletonCap().RegisterToCalibrationStart(UserCalibration_CalibrationStart, this, Calibration_CallbackHandler);
+    CHECK_ERR_RC(nRetVal, "Register user Calibration Start callback");
+    
+	nRetVal = userGenerator.GetSkeletonCap().RegisterToCalibrationComplete(UserCalibration_CalibrationEnd, this, Calibration_CallbackHandler);
+    CHECK_ERR_RC(nRetVal, "Register user Calibration End callback");
+    
+    // check need for calibration
+    if (userGenerator.GetSkeletonCap().NeedPoseForCalibration()){
+        ofLogNotice(LOG_NAME) << "User generator DOES require pose for calibration";
+        bNeedsPose = true;
+        if(!userGenerator.IsCapabilitySupported(XN_CAPABILITY_POSE_DETECTION)) {
+			ofLogError(LOG_NAME) << "Pose required, but not supported";
+		}
+        XnCallbackHandle Pose_CallbackHandler;
+        nRetVal = userGenerator.GetPoseDetectionCap().RegisterToPoseDetected(UserPose_PoseDetected, this, Pose_CallbackHandler);
+        CHECK_ERR_RC(nRetVal, "Register user Pose Detected callback");
+        
+        nRetVal = userGenerator.GetSkeletonCap().GetCalibrationPose(userCalibrationPose);
+        CHECK_ERR_RC(nRetVal, "Get calibration pose");
+        
+        //userGenerator.GetPoseDetectionCap().StartPoseDetection("Psi", user); 
+    } else {
+        ofLogNotice(LOG_NAME) << "User generator DOES NOT require pose for calibration";
+        bNeedsPose = false;
+        //userGenerator.GetSkeletonCap().RequestCalibration(user, TRUE); 
+    } 
+    
+	nRetVal = userGenerator.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_ALL);
+    CHECK_ERR_RC(nRetVal, "Set skeleton profile");
     
 }
 
 //--------------------------------------------------------------
-bool ofxOpenNI::setup(string xmlFilePath, bool threaded){
-	ofLogWarning(LOG_NAME) << "Not yet implimented";
+void ofxOpenNI::startPoseDetection(XnUserID nID){
+    XnStatus nRetVal = XN_STATUS_OK;
+	ofLogNotice(LOG_NAME) << "Start pose detection for user" << nID;
+	nRetVal = openNIContext->getUserGenerator(instanceID).GetPoseDetectionCap().StartPoseDetection(userCalibrationPose, nID);
+    SHOW_RC(nRetVal, "Get pose detection capability - start");
+}
+
+
+//--------------------------------------------------------------
+void ofxOpenNI::stopPoseDetection(XnUserID nID){
+    XnStatus nRetVal = XN_STATUS_OK;
+    ofLogNotice(LOG_NAME) << "Stop pose detection for user" << nID;
+	nRetVal = openNIContext->getUserGenerator(instanceID).GetPoseDetectionCap().StopPoseDetection(nID);
+    CHECK_ERR_RC(nRetVal, "Get pose detection capability - stop");
+}
+
+
+//--------------------------------------------------------------
+void ofxOpenNI::requestCalibration(XnUserID nID){
+    XnStatus nRetVal = XN_STATUS_OK;
+	ofLogNotice(LOG_NAME) << "Calibration requested for user" << nID;
+	nRetVal = openNIContext->getUserGenerator(instanceID).GetSkeletonCap().RequestCalibration(nID, TRUE);
+    CHECK_ERR_RC(nRetVal, "Get skeleton capability - request calibration");
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::startTracking(XnUserID nID){
+    XnStatus nRetVal = XN_STATUS_OK;
+    ofLogNotice(LOG_NAME) << "Start tracking user" << nID;
+	nRetVal = openNIContext->getUserGenerator(instanceID).GetSkeletonCap().StartTracking(nID);
+    CHECK_ERR_RC(nRetVal, "Get skeleton capability - start tracking");
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::needsPoseForCalibration(){
+	return bNeedsPose;
 }
 
 //--------------------------------------------------------------
@@ -345,7 +418,7 @@ void ofxOpenNI::setDepthColoring(DepthColoring coloring){
 
 //--------------------------------------------------------------
 void ofxOpenNI::readFrame(){
-	
+    
 	//if (bIsThreaded) lock(); // with this here I get ~30 fps with 2 Kinects
 	
 	if (g_bIsDepthOn) openNIContext->getDepthGenerator(instanceID).GetMetaData(g_DepthMD);
@@ -392,6 +465,7 @@ bool ofxOpenNI::isNewFrame(){
 	return bNewFrame;
 }
 
+//--------------------------------------------------------------
 void ofxOpenNI::threadedFunction(){
 	while(isThreadRunning()){
 		readFrame();
@@ -400,6 +474,7 @@ void ofxOpenNI::threadedFunction(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::update(){
+
 	if (!bIsThreaded){
 		readFrame();
 	} else {
@@ -501,7 +576,6 @@ void ofxOpenNI::generateImagePixels(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::generateDepthPixels(){
-	
 	// get the pixels
 	const XnDepthPixel* depth = g_DepthMD.Data();
 	
@@ -654,9 +728,19 @@ void ofxOpenNI::generateDepthPixels(){
 }
 
 //--------------------------------------------------------------
-//xn::Device& ofxOpenNI::getDevice(){
-//	return g_Device;
-//}
+int ofxOpenNI::getNumDevices(){
+	return openNIContext->getNumDevices();
+}
+
+//--------------------------------------------------------------
+int ofxOpenNI::getDeviceID(){
+	return instanceID;
+}
+
+//--------------------------------------------------------------
+xn::Device& ofxOpenNI::getDevice(){
+	return openNIContext->getDevice(instanceID);
+}
 
 //--------------------------------------------------------------
 xn::DepthGenerator& ofxOpenNI::getDepthGenerator(){
@@ -671,6 +755,11 @@ xn::ImageGenerator& ofxOpenNI::getImageGenerator(){
 //--------------------------------------------------------------
 xn::IRGenerator& ofxOpenNI::getIRGenerator(){
 	return openNIContext->getIRGenerator(instanceID);;
+}
+
+//--------------------------------------------------------------
+xn::UserGenerator& ofxOpenNI::getUserGenerator(){
+	return openNIContext->getUserGenerator(instanceID);;
 }
 
 //--------------------------------------------------------------
@@ -831,58 +920,56 @@ void ofxOpenNI::cameraToWorld(const vector<ofVec2f>& c, vector<ofVec3f>& w){
 	
 }
 
+// USER GENERATOR CALLBACKS
+// =============================================================
+
 //--------------------------------------------------------------
-int ofxOpenNI::getNumDevices(){
-	return openNIContext->getNumDevices();
-}
-
-// CALLBACKS
-// =============================================================================
-
-//----------------------------------------
 void XN_CALLBACK_TYPE ofxOpenNI::User_NewUser(xn::UserGenerator& rGenerator, XnUserID nID, void* pCookie){
-	ofLogVerbose(CALLBACK_LOG_NAME) << "New User" << nID;
-//	ofxOpenNITracker* tracker = static_cast<ofxOpenNITracker*>(pCookie);
-//	if(tracker->needsPoseForCalibration()) {
-//		tracker->startPoseDetection(nID);
-//	} else {
-//		tracker->requestCalibration(nID);
-//	}
+    ofxOpenNI* openNI = static_cast<ofxOpenNI*>(pCookie);
+	ofLogVerbose(CALLBACK_LOG_NAME) << "Device[" << openNI->getDeviceID() << "]" << "New User" << nID;
+	if(openNI->needsPoseForCalibration()) {
+		openNI->startPoseDetection(nID);
+	} else {
+		openNI->requestCalibration(nID);
+	}
 }
 
-//----------------------------------------
+//--------------------------------------------------------------
 void XN_CALLBACK_TYPE ofxOpenNI::User_LostUser(xn::UserGenerator& rGenerator, XnUserID nID, void* pCookie){
 	ofLogVerbose(CALLBACK_LOG_NAME) << "Lost user" << nID;
 	rGenerator.GetSkeletonCap().Reset(nID);
     
 }
 
-//----------------------------------------
+//--------------------------------------------------------------
 void XN_CALLBACK_TYPE ofxOpenNI::UserPose_PoseDetected(xn::PoseDetectionCapability& rCapability, const XnChar* strPose, XnUserID nID, void* pCookie){
-	ofLogVerbose(CALLBACK_LOG_NAME) << "Pose" << strPose << "detected for user" << nID;
-//    ofxOpenNITracker* tracker = static_cast<ofxOpenNITracker*>(pCookie);
-//	tracker->requestCalibration(nID);
-//	tracker->stopPoseDetection(nID);
+    ofxOpenNI* openNI = static_cast<ofxOpenNI*>(pCookie);
+	ofLogVerbose(CALLBACK_LOG_NAME) << "Device[" << openNI->getDeviceID() << "]" << "Pose" << strPose << "detected for user" << nID;
+	openNI->requestCalibration(nID);
+	openNI->stopPoseDetection(nID);
 }
 
 
-//----------------------------------------
+//--------------------------------------------------------------
 void XN_CALLBACK_TYPE ofxOpenNI::UserCalibration_CalibrationStart(xn::SkeletonCapability& capability, XnUserID nID, void* pCookie){
-	ofLogVerbose(CALLBACK_LOG_NAME) << "Calibration started for user" << nID;
+    ofxOpenNI* openNI = static_cast<ofxOpenNI*>(pCookie);
+	ofLogVerbose(CALLBACK_LOG_NAME) << "Device[" << openNI->getDeviceID() << "]" << "Calibration start for user" << nID;
 }
 
 
-//----------------------------------------
+//--------------------------------------------------------------
 void XN_CALLBACK_TYPE ofxOpenNI::UserCalibration_CalibrationEnd(xn::SkeletonCapability& rCapability, XnUserID nID, XnCalibrationStatus bSuccess, void* pCookie){
-//	ofxOpenNITracker* tracker = static_cast<ofxOpenNITracker*>(pCookie);
-//	if(bSuccess == XN_CALIBRATION_STATUS_OK) {
-//		ofLogVerbose(LOG_NAME) << "+++++++++++++++++++++++ Succesfully tracked user:" << nID;
-//		tracker->startTracking(nID);
-//	} else {
-//		if(tracker->needsPoseForCalibration()) {
-//			tracker->startPoseDetection(nID);
-//		} else {
-//			tracker->requestCalibration(nID);
-//		}
-//	}
+    ofxOpenNI* openNI = static_cast<ofxOpenNI*>(pCookie);
+	ofLogVerbose(CALLBACK_LOG_NAME) << "Device[" << openNI->getDeviceID() << "]" << "Calibration end for user..." << nID;
+	if(bSuccess == XN_CALIBRATION_STATUS_OK) {
+		ofLogVerbose(CALLBACK_LOG_NAME) << "Device[" << openNI->getDeviceID() << "]" << "...success" << nID;
+		openNI->startTracking(nID);
+	} else {
+        ofLogVerbose(CALLBACK_LOG_NAME) << "Device[" << openNI->getDeviceID() << "]" << "...fail" << nID;
+		if(openNI->needsPoseForCalibration()) {
+			openNI->startPoseDetection(nID);
+		} else {
+			openNI->requestCalibration(nID);
+		}
+	}
 }
