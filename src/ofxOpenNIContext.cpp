@@ -164,7 +164,8 @@ bool ofxOpenNIContext::addInfraNode(int deviceID){
 //--------------------------------------------------------------
 bool ofxOpenNIContext::addUserNode(int deviceID){
     int originalSize = g_User.size();
-    if (g_Audio.size() < deviceID + 1) g_User.resize(deviceID + 1);
+    if (g_User.size() < deviceID + 1) g_User.resize(deviceID + 1);
+    //int nodeHack = (deviceID == 1 ? 4 : deviceID); // see http://openni-discussions.979934.n3.nabble.com/OpenNI-dev-Skeleton-tracking-with-multiple-kinects-not-solved-with-new-OpenNI-td2832613.html but didn't work for me
     bool ok = createXnNode(XN_NODE_TYPE_USER, g_User[deviceID], deviceID);
     if (!ok) g_User.resize(originalSize);
     if (ok) bPaused = false;
@@ -251,6 +252,8 @@ int ofxOpenNIContext::enumerateXnNode(XnProductionNodeType type, NodeInfoList & 
 		nodeCount++;
 	}
     
+    ofLogVerbose(LOG_NAME) << "Found" << nodeCount << "nodes of type:" << getNodeTypeAsString(type);
+    
 	return nodeCount;
 }
 
@@ -277,8 +280,9 @@ bool ofxOpenNIContext::createXnNode(XnProductionNodeType type, ProductionNode & 
     XnBool bExists = node.IsValid();
     if(!bExists){
         nRetVal = g_Context.CreateProductionTree(nInfo, node);
-        SHOW_RC(nRetVal, "Creating node " + (string)node.GetName());
+        SHOW_RC(nRetVal, "Creating node " + (string)node.GetName() + " with nodeIndex " + ofToString(nodeIndex));
     }
+    
     return (nRetVal == XN_STATUS_OK);
 }
 

@@ -188,7 +188,14 @@ bool ofxOpenNI::addInfraGenerator(){
 
 //--------------------------------------------------------------
 bool ofxOpenNI::addUserGenerator(){
-	ofLogWarning(LOG_NAME) << "Experimental!!";
+	
+    if (instanceID > 0) {
+        ofLogWarning(LOG_NAME) << "Currently it seems only possible to have a user generator on one device!!";
+        // some people say it could be done like thus: http://openni-discussions.979934.n3.nabble.com/OpenNI-dev-Skeleton-tracking-with-multiple-kinects-not-solved-with-new-OpenNI-td2832613.html ... but itdidn't work for me .... yet ;-)
+        return false;   // uncomment this to see what happens -> not the weird error where 10 (!) user generators are enumerated with my current method
+                        // if I create them all at once then I get 4 like in the above link, but still no dice...hrmph!
+    }
+    
     XnStatus nRetVal = XN_STATUS_OK;
     g_bIsUserOn = false;
     ofLogNotice(LOG_NAME) << "Adding user generator...";
@@ -1107,7 +1114,8 @@ void XN_CALLBACK_TYPE ofxOpenNI::User_NewUser(xn::UserGenerator& rGenerator, XnU
 
 //--------------------------------------------------------------
 void XN_CALLBACK_TYPE ofxOpenNI::User_LostUser(xn::UserGenerator& rGenerator, XnUserID nID, void* pCookie){
-	ofLogVerbose(CALLBACK_LOG_NAME) << "Lost user" << nID;
+    ofxOpenNI* openNI = static_cast<ofxOpenNI*>(pCookie);
+	ofLogVerbose(CALLBACK_LOG_NAME) << "Device[" << openNI->getDeviceID() << "]" << "Lost user" << nID;
 	rGenerator.GetSkeletonCap().Reset(nID);
     
 }
