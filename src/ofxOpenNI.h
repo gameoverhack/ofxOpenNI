@@ -29,14 +29,24 @@
 #ifndef	_H_OFXOPENNI
 #define _H_OFXOPENNI
 
-#include "ofxOpenNIContext.h"
-#include "ofxOpenNIUtils.h"
-#include "ofxOpenNIUser.h"
-
-#include "ofThread.h"
-
 #include <set.h>
 #include <map.h>
+
+#include <XnOpenNI.h>
+#include <XnCodecIDs.h>
+#include <XnCppWrapper.h>
+#include <XnLog.h>
+#include <XnTypes.h>
+
+#include "ofLog.h"
+#include "ofConstants.h"
+#include "ofPixels.h"
+#include "ofTexture.h"
+#include "ofThread.h"
+#include "ofAppRunner.h"
+
+#include "ofxOpenNIUser.h"
+#include "ofxOpenNIUtils.h"
 
 #define MAX_NUMBER_USERS 20
 
@@ -63,6 +73,8 @@ public:
 	bool setup(bool threaded = true);
 	bool setup(string xmlFilePath, bool threaded = true);
 	
+    void stop();
+    
 	bool addDepthGenerator();
 	bool addImageGenerator();
 	bool addInfraGenerator();
@@ -70,6 +82,13 @@ public:
 	bool addUserGenerator();
 	bool addPlayerGenerator();
 
+    bool removeDepthGenerator();
+    bool removeImageGenerator();
+    bool removeInfraGenerator();
+    bool removeUserGenerator();
+    bool removeAudioGenerator();
+    bool removePlayerGenerator();
+    
 	void update();
 	
 	void drawDepth();
@@ -86,8 +105,11 @@ public:
 	float getWidth();
 	float getHeight();
 	
+    void setLogLevel(XnLogSeverity logLevel);
+    
 	int getNumDevices();
 	
+    bool isContextReady();
 	bool isNewFrame();
 	
 	void setUseTexture(bool useTexture);
@@ -120,8 +142,10 @@ public:
 	void cameraToWorld(const vector<ofVec2f>& c, vector<ofVec3f>& w);
 	
     int getDeviceID();
-	xn::Device& getDevice();
     
+    xn::Context& getContext();
+	xn::Device& getDevice();
+   
 	xn::DepthGenerator& getDepthGenerator();
 	xn::ImageGenerator& getImageGenerator();
 	xn::IRGenerator& getIRGenerator();
@@ -144,6 +168,11 @@ private:
 	
 	//void openCommon();
 	//void initConstants();
+    bool initContext();
+    bool initDevice();
+    
+    bool addLicence(string sVendor, string sKey);
+    void logErrors(xn::EnumerationErrors & errors);
     
 	void updateFrame();
     void updateUsers();
@@ -171,12 +200,15 @@ private:
 	bool g_bIsPlayerOn;
 	bool g_bIsDepthRawOnOption;
 	
+    bool bIsContextReady;
     bool bNeedsPose;
 	bool bUseTexture;
 	bool bNewPixels;
 	bool bNewFrame;
     bool bUsePointClouds;
     bool bUseMaskPixels;
+    
+    int numDevices;
     
 	// depth
 	ofTexture depthTexture;
@@ -197,6 +229,16 @@ private:
 	ofPixels* backImagePixels;
 	ofPixels* currentImagePixels;
 	
+    // generators
+    xn::Context g_Context;
+	xn::Device g_Device;
+	xn::DepthGenerator g_Depth;
+	xn::ImageGenerator g_Image;
+	xn::IRGenerator g_IR;
+	xn::UserGenerator g_User;
+	xn::AudioGenerator g_Audio;
+	xn::Player g_Player;
+    
 	// meta data
 	xn::DepthMetaData g_DepthMD;
 	xn::ImageMetaData g_ImageMD;

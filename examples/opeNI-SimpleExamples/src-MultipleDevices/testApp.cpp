@@ -3,9 +3,7 @@
 //--------------------------------------------------------------
 void testApp::setup() {
 
-	ofSetLogLevel(ofxOpenNIContext::LOG_NAME, OF_LOG_NOTICE);
-
-    numDevices = openNIContext->getNumDevices();
+    numDevices = openNIDevices[0].getNumDevices();
     
     for (int deviceID = 0; deviceID < numDevices; deviceID++){
         ofSetLogLevel(openNIDevices[deviceID].LOG_NAME, OF_LOG_NOTICE);
