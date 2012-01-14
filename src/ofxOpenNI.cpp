@@ -58,17 +58,18 @@ ofxOpenNI::ofxOpenNI(){
 	bNewPixels = false;
 	bNewFrame = false;
 	
+    width = XN_VGA_X_RES;
+    height = XN_VGA_Y_RES;
+    fps = 30;
+    
 	CreateRainbowPallet();
 	
 }
 
 //--------------------------------------------------------------
 ofxOpenNI::~ofxOpenNI(){
-    if (bIsThreaded) {
-        shutdown = true;
-    } else {
-        stop();
-    }
+    shutdown = true;
+    stop();
 }
 
 //--------------------------------------------------------------
@@ -107,7 +108,7 @@ bool ofxOpenNI::setup(string xmlFilePath, bool threaded){
 
 //--------------------------------------------------------------
 void ofxOpenNI::stop(){
-    
+
     if (!bIsContextReady) return;
     
     if (bIsThreaded) {
@@ -144,9 +145,8 @@ void ofxOpenNI::stop(){
     g_Audio.Release();
     g_Player.Release();
     g_Context.Release();
-
-    ofLogVerbose(LOG_NAME) << "Stopping ofxOpenNI instance" << instanceID;
     
+    ofLogVerbose(LOG_NAME) << "Stopped ofxOpenNI instance" << instanceID;
 }
 
 //--------------------------------------------------------------
@@ -217,6 +217,12 @@ void ofxOpenNI::setLogLevel(XnLogSeverity logLevel){
 	nRetVal = xnLogSetSeverityFilter(logLevel);
 	SHOW_RC(nRetVal, "Set log level: " + logLevel);
 	xnLogSetMaskState(XN_LOG_MASK_ALL, TRUE);
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setLogLevel(ofLogLevel logLevel){
+    LOG_NAME = "ofxOpenNIDevice[" + ofToString(instanceID) + "]";
+    ofSetLogLevel(LOG_NAME, logLevel);
 }
 
 //--------------------------------------------------------------
@@ -401,80 +407,56 @@ bool ofxOpenNI::removePlayerGenerator(){
 }
 
 //--------------------------------------------------------------
-void ofxOpenNI::allocateDepthBuffers(){
-    // make new map mode -> default to 640 x 480 @ 30fps
-    // TODO: shift this to a setSize or make part of int/setup request
-    XnMapOutputMode mapMode;
-    XnStatus nRetVal = XN_STATUS_OK;
-    mapMode.nXRes = XN_VGA_X_RES;
-    mapMode.nYRes = XN_VGA_Y_RES;
-    mapMode.nFPS  = 30;
-    nRetVal = g_Depth.SetMapOutputMode(mapMode);
+bool ofxOpenNI::allocateDepthBuffers(){
+    bool ok = setGeneratorResolution(g_Depth, width, height, fps);
+    if (!ok) return false;
     maxDepth = g_Depth.GetDeviceMaxDepth();
-    SHOW_RC(nRetVal, "Setting depth resolution: " + ofToString(mapMode.nXRes) + " x " + ofToString(mapMode.nYRes) + " at " + ofToString(mapMode.nFPS) + "fps with max depth of " + ofToString(maxDepth));
-    depthPixels[0].allocate(mapMode.nXRes, mapMode.nYRes, OF_IMAGE_COLOR_ALPHA);
-    depthPixels[1].allocate(mapMode.nXRes, mapMode.nYRes, OF_IMAGE_COLOR_ALPHA);
+    depthPixels[0].allocate(width, height, OF_IMAGE_COLOR_ALPHA);
+    depthPixels[1].allocate(width, height, OF_IMAGE_COLOR_ALPHA);
     currentDepthPixels = &depthPixels[0];
     backDepthPixels = &depthPixels[1];
-    if (bUseTexture) depthTexture.allocate(mapMode.nXRes, mapMode.nYRes, GL_RGBA);
+    if (bUseTexture) depthTexture.allocate(width, height, GL_RGBA);
+    return ok;
 }
 
 //--------------------------------------------------------------
-void ofxOpenNI::allocateDepthRawBuffers(){
-    // make new map mode -> default to 640 x 480 @ 30fps
-    // TODO: shift this to a setSize or make part of int/setup request
-    XnMapOutputMode mapMode;
-    XnStatus nRetVal = XN_STATUS_OK;
-    mapMode.nXRes = XN_VGA_X_RES;
-    mapMode.nYRes = XN_VGA_Y_RES;
-    mapMode.nFPS  = 30;
-    nRetVal = g_Depth.SetMapOutputMode(mapMode);
+bool ofxOpenNI::allocateDepthRawBuffers(){
+    bool ok = setGeneratorResolution(g_Depth, width, height, fps);
+    if (!ok) return false;
     maxDepth = g_Depth.GetDeviceMaxDepth();
-    SHOW_RC(nRetVal, "Setting depth resolution: " + ofToString(mapMode.nXRes) + " x " + ofToString(mapMode.nYRes) + " at " + ofToString(mapMode.nFPS) + "fps with max depth of " + ofToString(maxDepth));
-    depthRawPixels[0].allocate(mapMode.nXRes, mapMode.nYRes, OF_PIXELS_MONO);
-    depthRawPixels[1].allocate(mapMode.nXRes, mapMode.nYRes, OF_PIXELS_MONO);
+    depthRawPixels[0].allocate(width, height, OF_PIXELS_MONO);
+    depthRawPixels[1].allocate(width, height, OF_PIXELS_MONO);
     currentDepthRawPixels = &depthRawPixels[0];
     backDepthRawPixels = &depthRawPixels[1];
+    return ok;
 }
 
 //--------------------------------------------------------------
-void ofxOpenNI::allocateImageBuffers(){
-    // make new map mode -> default to 640 x 480 @ 30fps
-    // TODO: shift this to a setSize or make part of int/setup request
-    XnMapOutputMode mapMode;
-    XnStatus nRetVal = XN_STATUS_OK;
-    mapMode.nXRes = XN_VGA_X_RES;
-    mapMode.nYRes = XN_VGA_Y_RES;
-    mapMode.nFPS  = 30;
-    nRetVal = g_Image.SetMapOutputMode(mapMode);
-    SHOW_RC(nRetVal, "Setting image resolution: " + ofToString(mapMode.nXRes) + " x " + ofToString(mapMode.nYRes) + " at " + ofToString(mapMode.nFPS) + "fps");
-    imagePixels[0].allocate(mapMode.nXRes, mapMode.nYRes, OF_IMAGE_COLOR);
-    imagePixels[1].allocate(mapMode.nXRes, mapMode.nYRes, OF_IMAGE_COLOR);
+bool ofxOpenNI::allocateImageBuffers(){
+    bool ok = setGeneratorResolution(g_Image, width, height, fps);
+    if (!ok) return false;
+    imagePixels[0].allocate(width, height, OF_IMAGE_COLOR);
+    imagePixels[1].allocate(width, height, OF_IMAGE_COLOR);
     currentImagePixels = &imagePixels[0];
     backImagePixels = &imagePixels[1];
-    if (bUseTexture) imageTexture.allocate(mapMode.nXRes, mapMode.nYRes, GL_RGB);
+    if (bUseTexture) imageTexture.allocate(width, height, GL_RGB);
+    return ok;
 }
 
 //--------------------------------------------------------------
-void ofxOpenNI::allocateIRBuffers(){
-    // make new map mode -> default to 640 x 480 @ 30fps
-    // TODO: shift this to a setSize or make part of int/setup request
-    XnMapOutputMode mapMode;
-    XnStatus nRetVal = XN_STATUS_OK;
-    mapMode.nXRes = XN_VGA_X_RES;
-    mapMode.nYRes = XN_VGA_Y_RES;
-    mapMode.nFPS  = 30;
-    nRetVal = g_IR.SetMapOutputMode(mapMode);
-    SHOW_RC(nRetVal, "Setting ir resolution: " + ofToString(mapMode.nXRes) + " x " + ofToString(mapMode.nYRes) + " at " + ofToString(mapMode.nFPS) + "fps");
-    imagePixels[0].allocate(mapMode.nXRes, mapMode.nYRes, OF_IMAGE_GRAYSCALE);
-    imagePixels[1].allocate(mapMode.nXRes, mapMode.nYRes, OF_IMAGE_GRAYSCALE);
+bool ofxOpenNI::allocateIRBuffers(){
+    bool ok = setGeneratorResolution(g_IR, width, height, fps);
+    if (!ok) return false;
+    imagePixels[0].allocate(width, height, OF_IMAGE_GRAYSCALE);
+    imagePixels[1].allocate(width, height, OF_IMAGE_GRAYSCALE);
     currentImagePixels = &imagePixels[0];
     backImagePixels = &imagePixels[1];
-    if (bUseTexture) imageTexture.allocate(mapMode.nXRes, mapMode.nYRes, GL_LUMINANCE);
+    if (bUseTexture) imageTexture.allocate(width, height, GL_LUMINANCE);
+    return ok;
 }
 
 //--------------------------------------------------------------
-void ofxOpenNI::allocateUsers(){
+bool ofxOpenNI::allocateUsers(){
     
     XnStatus nRetVal = XN_STATUS_OK;
     
@@ -489,13 +471,13 @@ void ofxOpenNI::allocateUsers(){
     XnCallbackHandle Calibration_CallbackHandler;
     
 	nRetVal = userGenerator.RegisterUserCallbacks(User_NewUser, User_LostUser, this, User_CallbackHandler);
-    CHECK_ERR_RC(nRetVal, "Register user New/Lost callbacks");
-    
+    BOOL_RC(nRetVal, "Register user New/Lost callbacks");
+
 	nRetVal = userGenerator.GetSkeletonCap().RegisterToCalibrationStart(UserCalibration_CalibrationStart, this, Calibration_CallbackHandler);
-    CHECK_ERR_RC(nRetVal, "Register user Calibration Start callback");
+    BOOL_RC(nRetVal, "Register user Calibration Start callback");
     
 	nRetVal = userGenerator.GetSkeletonCap().RegisterToCalibrationComplete(UserCalibration_CalibrationEnd, this, Calibration_CallbackHandler);
-    CHECK_ERR_RC(nRetVal, "Register user Calibration End callback");
+    BOOL_RC(nRetVal, "Register user Calibration End callback");
     
     // check need for calibration
     if (userGenerator.GetSkeletonCap().NeedPoseForCalibration()){
@@ -506,10 +488,10 @@ void ofxOpenNI::allocateUsers(){
 		}
         XnCallbackHandle Pose_CallbackHandler;
         nRetVal = userGenerator.GetPoseDetectionCap().RegisterToPoseDetected(UserPose_PoseDetected, this, Pose_CallbackHandler);
-        CHECK_ERR_RC(nRetVal, "Register user Pose Detected callback");
+        BOOL_RC(nRetVal, "Register user Pose Detected callback");
         
         nRetVal = userGenerator.GetSkeletonCap().GetCalibrationPose(userCalibrationPose);
-        CHECK_ERR_RC(nRetVal, "Get calibration pose");
+        BOOL_RC(nRetVal, "Get calibration pose");
         
         //userGenerator.GetPoseDetectionCap().StartPoseDetection("Psi", user); 
     } else {
@@ -519,7 +501,7 @@ void ofxOpenNI::allocateUsers(){
     } 
     
 	nRetVal = userGenerator.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_ALL);
-    CHECK_ERR_RC(nRetVal, "Set skeleton profile");
+    BOOL_RC(nRetVal, "Set skeleton profile");
     
 }
 
@@ -1180,13 +1162,13 @@ xn::AudioMetaData& ofxOpenNI::getAudioMetaData(){
 
 //--------------------------------------------------------------
 ofPixels& ofxOpenNI::getDepthPixels(){
-	Poco::ScopedLock<ofMutex> lock(mutex);
+	if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(ofxOpenNIMutex);
 	return *currentDepthPixels;
 }
 
 //--------------------------------------------------------------
 ofShortPixels& ofxOpenNI::getDepthRawPixels(){
-	Poco::ScopedLock<ofMutex> lock(mutex);
+	if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(ofxOpenNIMutex);
 	if (!g_bIsDepthRawOnOption){
 		ofLogWarning(LOG_NAME) << "g_bIsDepthRawOnOption was disabled, enabling raw pixels";
 		g_bIsDepthRawOnOption = true;
@@ -1196,20 +1178,82 @@ ofShortPixels& ofxOpenNI::getDepthRawPixels(){
 
 //--------------------------------------------------------------
 ofPixels& ofxOpenNI::getImagePixels(){
-	Poco::ScopedLock<ofMutex> lock(mutex);
+	if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(ofxOpenNIMutex);
 	return *currentImagePixels;
 }
 
 //--------------------------------------------------------------
 ofTexture& ofxOpenNI::getDepthTextureReference(){
-    Poco::ScopedLock<ofMutex> lock(mutex);
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(ofxOpenNIMutex);
 	return depthTexture;
 }
 
 //--------------------------------------------------------------
 ofTexture& ofxOpenNI::getimageTextureReference(){
-    Poco::ScopedLock<ofMutex> lock(mutex);
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(ofxOpenNIMutex);
 	return imageTexture;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::setResolution(int w, int h, int f){
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(ofxOpenNIMutex);
+    
+    ofLogWarning(LOG_NAME) << "This is still experimental...for now not implimented";
+    return false; // uncomment to give it a try
+    
+    XnResolution m_Res = xnResolutionGetFromXYRes(w, h);
+    string resolutionType = xnResolutionGetName(m_Res);
+    ofLogNotice(LOG_NAME) << "Requested resolution of" << w << " x " << h << "is" << resolutionType << "at" << f << "fps";
+    
+    int oW = width; int oH = height; int oF = fps;
+    width = w; height = h; fps = f;
+    
+    bool ok = !bIsContextReady;
+    if (g_bIsDepthOn) {
+        ok = allocateDepthBuffers();
+        if(!ok) {
+            width = oW; height = oH; fps = oF;
+            allocateDepthBuffers();
+        }
+    }
+    
+    if (g_bIsImageOn) {
+        ok = allocateImageBuffers();
+        if(!ok) {
+            width = oW; height = oH; fps = oF;
+            allocateImageBuffers();
+        }
+    }
+    
+    if (g_bIsIROn) {
+        ok = allocateIRBuffers();
+        if(!ok) {
+            width = oW; height = oH; fps = oF;
+            allocateIRBuffers();
+        }
+    }
+    
+    return ok;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::setGeneratorResolution(MapGenerator & generator, int w, int h, int f){
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(ofxOpenNIMutex);
+    
+    XnMapOutputMode mapMode;
+    XnStatus nRetVal = XN_STATUS_OK;
+    mapMode.nXRes = w; mapMode.nYRes = h; mapMode.nFPS  = f;
+    
+    if (generator.IsValid()){
+        nRetVal = generator.SetMapOutputMode(mapMode);
+        
+        BOOL_RC(nRetVal, "Setting " + (string)generator.GetName() + " resolution: " + 
+                ofToString(mapMode.nXRes) + " x " + ofToString(mapMode.nYRes) + 
+                " at " + ofToString(mapMode.nFPS) + "fps");
+    } else {
+        ofLogError(LOG_NAME) << "setGeneratorResolution() called on invalid generator!";
+        return false;
+    }
 }
 
 //--------------------------------------------------------------

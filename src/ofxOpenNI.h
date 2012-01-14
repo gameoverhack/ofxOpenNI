@@ -101,10 +101,13 @@ public:
     void drawUsers();
     void drawUser(int nID);
     
+    bool setResolution(int w, int h, int fps);
+
 	float getWidth();
 	float getHeight();
 	
     void setLogLevel(XnLogSeverity logLevel);
+    void setLogLevel(ofLogLevel logLevel);
     
 	int getNumDevices();
 	
@@ -170,6 +173,8 @@ private:
     bool initContext();
     bool initDevice();
     
+    bool setGeneratorResolution(MapGenerator & generator, int w, int h, int f);
+    
     bool addLicence(string sVendor, string sKey);
     void logErrors(xn::EnumerationErrors & errors);
     
@@ -179,11 +184,11 @@ private:
     void updateUserPixels(ofxOpenNIUser & user);
 	void updatePointClouds(ofxOpenNIUser & user);
     
-	void allocateDepthBuffers();
-	void allocateDepthRawBuffers();
-	void allocateImageBuffers();
-	void allocateIRBuffers();
-    void allocateUsers();
+	bool allocateDepthBuffers();
+	bool allocateDepthRawBuffers();
+	bool allocateImageBuffers();
+	bool allocateIRBuffers();
+    bool allocateUsers();
     
     void generateDepthPixels();
 	void generateImagePixels();
@@ -208,6 +213,10 @@ private:
     bool bUseMaskPixels;
     
     int numDevices;
+    
+    int width;
+    int height;
+    int fps;
     
 	// depth
 	ofTexture depthTexture;
