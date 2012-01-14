@@ -2,13 +2,15 @@
 
 //--------------------------------------------------------------
 void testApp::setup() {
-
-    openNIDevice.setup();
-    openNIDevice.setLogLevel(OF_LOG_NOTICE);
-    openNIDevice.addDepthGenerator();
-    openNIDevice.addImageGenerator();   // comment this out
-    //openNIDevice.addInfraGenerator(); // and uncomment this to see infrared generator
     
+	openNIDevice.setLogLevel(OF_LOG_VERBOSE);
+    openNIDevice.setup();
+    
+    openNIDevice.addDepthGenerator();
+    openNIDevice.addImageGenerator();
+    openNIDevice.addUserGenerator();
+    
+    openNIDevice.setUsePointClouds(true);
 }
 
 //--------------------------------------------------------------
@@ -21,9 +23,24 @@ void testApp::draw(){
     
 	ofSetColor(255, 255, 255);
     
-    openNIDevices.drawDebug(); // draws all generators
-    //openNIDevice.drawDepth(0, 0);
-    //openNIDevice.drawImage(640, 0);
+    openNIDevice.drawDebug(); // draws all generators
+//    openNIDevice.drawDepth(0, 0);
+//    openNIDevice.drawImage(640, 0);
+//    openNIDevice.drawUsers(0, 0);
+    
+    // draw point clouds
+    int numUsers = openNIDevice.getNumUsers();
+    for (int nID = 0; nID < numUsers; nID++){
+        ofxOpenNIUser & user = openNIDevice.getUser(nID);
+        glPointSize(2);
+        ofPushMatrix();
+        ofTranslate(0, 0, -1000); // center the points a bit
+        glEnable(GL_DEPTH_TEST);
+        user.pointCloud.drawVertices();
+        glDisable(GL_DEPTH_TEST);
+        ofPopMatrix();
+        
+    }
     
 	ofSetColor(0, 255, 0);
 	string msg = "FPS: " + ofToString(ofGetFrameRate());
@@ -31,6 +48,10 @@ void testApp::draw(){
     
 }
 
+//--------------------------------------------------------------
+void testApp::exit(){
+    openNIDevice.stop(); // not clean yet 'cos dtor does not always fire correctly
+}
 
 //--------------------------------------------------------------
 void testApp::keyPressed(int key){

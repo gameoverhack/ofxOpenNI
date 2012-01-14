@@ -126,8 +126,12 @@ public:
 	void setUseTexture(bool useTexture);
 	void setDepthColoring(DepthColoring coloring);
 	
+    int	getNumUsers();
+    ofxOpenNIUser&	getUser(int nID);
+    
     void setUseMaskPixels(bool b);
 	void setUsePointClouds(bool b);
+    void setUseBackBuffer(bool b);
     
 	void setSmoothing(float smooth);
 	float getSmoothing();
@@ -214,6 +218,7 @@ private:
 	bool g_bIsDepthRawOnOption;
 	
     bool bIsContextReady;
+    bool bUseBackBuffer;
     bool bNeedsPose;
 	bool bUseTexture;
 	bool bNewPixels;

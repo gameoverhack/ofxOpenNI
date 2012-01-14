@@ -30,11 +30,10 @@
 
 static int instanceCount = -1;
 static string CALLBACK_LOG_NAME = "ofxOpenNIUserCB";
-static ofMutex ofxOpenNIMutex;
+//static ofMutex ofxOpenNIMutex;
 static bool shutdown = false;
 //--------------------------------------------------------------
 ofxOpenNI::ofxOpenNI(){
-	
 	instanceCount++;
 	instanceID = instanceCount; // TODO: this should be replaced/combined with a listDevices and setDeviceID methods
 	
@@ -53,6 +52,7 @@ ofxOpenNI::ofxOpenNI(){
 	depthColoring = COLORING_RAINBOW;
 	
     bIsContextReady = false;
+    bUseBackBuffer = false;
     bNeedsPose = true;
 	bUseTexture = true;
 	bNewPixels = false;
@@ -63,7 +63,6 @@ ofxOpenNI::ofxOpenNI(){
     fps = 30;
     
 	CreateRainbowPallet();
-	
 }
 
 //--------------------------------------------------------------
@@ -126,24 +125,11 @@ void ofxOpenNI::stop(){
     }
 
     bIsThreaded = false;
+    bIsContextReady = false;
     
     g_Context.StopGeneratingAll();
 
     instanceCount--; // ok this will probably cause problems when dynamically creating and destroying -> you'd need to do it in order!
-	
-	g_bIsDepthOn = false;
-	g_bIsDepthRawOnOption = false;
-	g_bIsImageOn = false;
-	g_bIsIROn = false;
-    g_bIsUserOn = false;
-	g_bIsAudioOn = false;
-	g_bIsPlayerOn = false;
-	
-    bIsContextReady = false;
-    bNeedsPose = true;
-	bUseTexture = true;
-	bNewPixels = false;
-	bNewFrame = false;
 
     g_Depth.Release();
     g_Image.Release();
@@ -513,6 +499,10 @@ bool ofxOpenNI::allocateUsers(){
     
 }
 
+//--------------------------------------------------------------
+void ofxOpenNI::setUseBackBuffer(bool b){
+	bUseBackBuffer = b;
+}
 
 //--------------------------------------------------------------
 void ofxOpenNI::setUseMaskPixels(bool b){
@@ -578,7 +568,17 @@ bool ofxOpenNI::needsPoseForCalibration(){
 	return bNeedsPose;
 }
 
-//----------------------------------------
+//--------------------------------------------------------------
+int	ofxOpenNI::getNumUsers(){
+    return currentTrackedUserIDs.size();
+}
+
+//--------------------------------------------------------------
+ofxOpenNIUser&	ofxOpenNI::getUser(int nID){
+    return currentTrackedUsers[currentTrackedUserIDs[nID]];
+}
+
+//--------------------------------------------------------------
 void ofxOpenNI::updateUsers(){
     
     if (!g_bIsUserOn) return;
@@ -643,13 +643,13 @@ void ofxOpenNI::updatePointClouds(ofxOpenNIUser & user){
 	const XnRGB24Pixel*	pColor;
 	const XnDepthPixel*	pDepth = g_DepthMD.Data();
     
-	bool hasImageGenerator = g_Image.IsValid();
-    
-	if (hasImageGenerator) {
+	if (g_bIsImageOn) {
 		pColor = g_ImageMD.RGB24Data();
 	}
     
 	xn::SceneMetaData smd;
+    //if (!smd.IsDataNew()) return;
+    
 	unsigned short *userPix;
     
 	if (g_User.GetUserPixels(user.id, smd) == XN_STATUS_OK) {
@@ -667,8 +667,7 @@ void ofxOpenNI::updatePointClouds(ofxOpenNIUser & user){
 		for (int nX = 0; nX < getWidth(); nX += step, nIndex += step) {
 			if (userPix[nIndex] == user.id) {
 				user.pointCloud.addVertex(ofPoint( nX,nY,pDepth[nIndex] ));
-				ofColor color;
-				if(hasImageGenerator){
+				if(g_bIsImageOn){
 					user.pointCloud.addColor(ofColor(pColor[nIndex].nRed,pColor[nIndex].nGreen,pColor[nIndex].nBlue));
 				}else{
 					user.pointCloud.addColor(ofFloatColor(1,1,1));
@@ -707,7 +706,7 @@ void ofxOpenNI::updateUserPixels(ofxOpenNIUser & user){
 //--------------------------------------------------------------
 void ofxOpenNI::updateFrame(){
     
-	//if (bIsThreaded) ofxOpenNIMutex.lock(); // with this here I get ~30 fps with 2 Kinects
+	//if (bIsThreaded) lock(); // with this here I get ~30 fps with 2 Kinects
 	
     if (!bIsContextReady) return;
     
@@ -719,17 +718,20 @@ void ofxOpenNI::updateFrame(){
 //    } else {
 //        g_Context.WaitAnyUpdateAll();
 //    }
+    //if (bIsThreaded) lock(); // with this her I get ~300-400+ fps with 2 Kinects!
     
-	if (g_bIsDepthOn) g_Depth.GetMetaData(g_DepthMD);
-	if (g_bIsImageOn) g_Image.GetMetaData(g_ImageMD);
-	if (g_bIsIROn) g_IR.GetMetaData(g_IrMD);
+	if (g_bIsDepthOn && g_Depth.IsDataNew()) g_Depth.GetMetaData(g_DepthMD);
+	if (g_bIsImageOn && g_Image.IsDataNew()) g_Image.GetMetaData(g_ImageMD);
+	if (g_bIsIROn && g_IR.IsDataNew()) g_IR.GetMetaData(g_IrMD);
 	
-    if (bIsThreaded) ofxOpenNIMutex.lock(); // with this her I get ~500+ fps with 2 Kinects!
+    if (bIsThreaded) lock(); // with this her I get ~400-500+ fps with 2 Kinects!
     
     if (g_bIsDepthOn) generateDepthPixels();
 	if (g_bIsImageOn) generateImagePixels();
 	if (g_bIsIROn) generateIRPixels();
-	
+
+// NB: Below info is from my old single context setup - need to retest with this new multicontext setup!    
+
 // I really don't think it's necessary to back buffer the image/ir/depth pixels
 // as I understand it the GetMetaData() call is already acting as a back buffer
 // since it is fetching the pixel data from the xn::Context which we then 'copy'
@@ -744,19 +746,22 @@ void ofxOpenNI::updateFrame(){
 // NB: the above tests were done with 2 Kinects...with one Kinect (and not using backbuffering) I get between 50-60ms, avg ~53ms 
 // (with some more outliers though one frame 33ms (!) andother 95ms(!))....hmmmm   
 
-//	if (g_bIsDepthOn){
-//		swap(backDepthPixels, currentDepthPixels);
-//		if (g_bIsDepthRawOnOption){
-//			swap(backDepthRawPixels, currentDepthRawPixels);
-//		}
-//	}
-//	if (g_bIsImageOn || g_bIsIROn){
-//		swap(backImagePixels, currentImagePixels);
-//	}
+    if (bUseBackBuffer){
+        if (g_bIsDepthOn){
+            swap(backDepthPixels, currentDepthPixels);
+            if (g_bIsDepthRawOnOption){
+                swap(backDepthRawPixels, currentDepthRawPixels);
+            }
+        }
+        if (g_bIsImageOn || g_bIsIROn){
+            swap(backImagePixels, currentImagePixels);
+        }
+    }
+	
 	
 	bNewPixels = true;
 	
-	if (bIsThreaded) ofxOpenNIMutex.unlock();
+	if (bIsThreaded) unlock();
 }
 
 //--------------------------------------------------------------
@@ -771,44 +776,51 @@ void ofxOpenNI::update(){
         }
 		updateFrame();
 	} else {
-		ofxOpenNIMutex.lock();
+		lock();
 	}
 	
 	if (bNewPixels){
 		if (bUseTexture && g_bIsDepthOn){
-			//depthTexture.loadData(*currentDepthPixels); // see note about back buffering above
-			depthTexture.loadData(*backDepthPixels);
+            if (bUseBackBuffer) {
+                depthTexture.loadData(*currentDepthPixels); // see note about back buffering above
+            } else {
+                depthTexture.loadData(*backDepthPixels);
+            }
 		}
 		if (bUseTexture && (g_bIsImageOn || g_bIsIROn)){
-			//imageTexture.loadData(*currentImagePixels);
-			imageTexture.loadData(*backImagePixels);
+            if (bUseBackBuffer) {
+                imageTexture.loadData(*currentImagePixels);
+            } else {
+                imageTexture.loadData(*backImagePixels);
+            }
 		}
-
+        
+        updateUsers();
+        
 		bNewPixels = false;
 		bNewFrame = true;
 
 	}
 
-	if (bIsThreaded) ofxOpenNIMutex.unlock();
-}
-
-//--------------------------------------------------------------
-bool ofxOpenNI::isNewFrame(){
-	return bNewFrame;
+	if (bIsThreaded) unlock();
 }
 
 //--------------------------------------------------------------
 void ofxOpenNI::threadedFunction(){
 	while(isThreadRunning()){
-        ofxOpenNIMutex.lock();
+        lock();
         if (shutdown) {
             stop();
             return;
         }
-        ofxOpenNIMutex.unlock();
+        unlock();
 		updateFrame();
-        updateUsers();
 	}
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::isNewFrame(){
+	return bNewFrame;
 }
 
 //--------------------------------------------------------------
@@ -1236,13 +1248,13 @@ xn::AudioMetaData& ofxOpenNI::getAudioMetaData(){
 
 //--------------------------------------------------------------
 ofPixels& ofxOpenNI::getDepthPixels(){
-	if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(ofxOpenNIMutex);
+	if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(mutex);
 	return *currentDepthPixels;
 }
 
 //--------------------------------------------------------------
 ofShortPixels& ofxOpenNI::getDepthRawPixels(){
-	if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(ofxOpenNIMutex);
+	if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(mutex);
 	if (!g_bIsDepthRawOnOption){
 		ofLogWarning(LOG_NAME) << "g_bIsDepthRawOnOption was disabled, enabling raw pixels";
 		g_bIsDepthRawOnOption = true;
@@ -1252,25 +1264,25 @@ ofShortPixels& ofxOpenNI::getDepthRawPixels(){
 
 //--------------------------------------------------------------
 ofPixels& ofxOpenNI::getImagePixels(){
-	if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(ofxOpenNIMutex);
+	if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(mutex);
 	return *currentImagePixels;
 }
 
 //--------------------------------------------------------------
 ofTexture& ofxOpenNI::getDepthTextureReference(){
-    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(ofxOpenNIMutex);
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(mutex);
 	return depthTexture;
 }
 
 //--------------------------------------------------------------
 ofTexture& ofxOpenNI::getimageTextureReference(){
-    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(ofxOpenNIMutex);
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(mutex);
 	return imageTexture;
 }
 
 //--------------------------------------------------------------
 bool ofxOpenNI::setResolution(int w, int h, int f){
-    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(ofxOpenNIMutex);
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(mutex);
     
     ofLogWarning(LOG_NAME) << "This is still experimental...for now not implimented";
     return false; // uncomment to give it a try
@@ -1312,7 +1324,7 @@ bool ofxOpenNI::setResolution(int w, int h, int f){
 
 //--------------------------------------------------------------
 bool ofxOpenNI::setGeneratorResolution(MapGenerator & generator, int w, int h, int f){
-    //if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(ofxOpenNIMutex);
+    //if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(mutex);
     
     XnMapOutputMode mapMode;
     XnStatus nRetVal = XN_STATUS_OK;
@@ -1403,7 +1415,7 @@ void ofxOpenNI::cameraToWorld(const vector<ofVec2f>& c, vector<ofVec3f>& w){
 	vector<XnPoint3D> projective(nPoints);
 	XnPoint3D *out =&projective[0];
 	
-	//ofxOpenNIMutex.lock();
+	//lock();
 	const XnDepthPixel* d = currentDepthRawPixels->getPixels();
 	unsigned int pixel;
 	for (int i=0; i<nPoints; ++i){
@@ -1415,7 +1427,7 @@ void ofxOpenNI::cameraToWorld(const vector<ofVec2f>& c, vector<ofVec3f>& w){
 		projective[i].Y = c[i].y;
 		projective[i].Z = float(d[pixel]) / 1000.0f;
 	}
-	//ofxOpenNIMutex.unlock();
+	//unlock();
 	
 	g_Depth.ConvertProjectiveToRealWorld(nPoints,&projective[0], (XnPoint3D*)&w[0]);
 	

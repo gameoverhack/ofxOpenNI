@@ -6,7 +6,7 @@ void testApp::setup() {
     numDevices = openNIDevices[0].getNumDevices();
     
     for (int deviceID = 0; deviceID < numDevices; deviceID++){
-        ofSetLogLevel(openNIDevices[deviceID].LOG_NAME, OF_LOG_NOTICE);
+        openNIDevices[deviceID].setLogLevel(OF_LOG_NOTICE);
         openNIDevices[deviceID].setup();
         openNIDevices[deviceID].addDepthGenerator();
         openNIDevices[deviceID].addImageGenerator();
@@ -30,8 +30,9 @@ void testApp::draw(){
     
     for (int deviceID = 0; deviceID < numDevices; deviceID++){
         ofTranslate(0, deviceID * 480);
-        openNIDevices[deviceID].drawDepth(0, 0);
-        openNIDevices[deviceID].drawImage(640, 0);
+        openNIDevices[deviceID].drawDebug(); // draws all generators
+        //openNIDevices[deviceID].drawDepth(0, 0);
+        //openNIDevices[deviceID].drawImage(640, 0);
     }
 	
     ofPopMatrix();
@@ -41,6 +42,12 @@ void testApp::draw(){
 	verdana.drawString(msg, 20, numDevices * 480 - 20);
 }
 
+//--------------------------------------------------------------
+void testApp::exit(){
+    for (int deviceID = 0; deviceID < numDevices; deviceID++){
+        openNIDevices[deviceID].stop(); // this is not always called OR clean! The dtor should work but still has problems...grrr
+    }
+}
 
 //--------------------------------------------------------------
 void testApp::keyPressed(int key){
