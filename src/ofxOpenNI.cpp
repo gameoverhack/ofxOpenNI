@@ -191,7 +191,8 @@ bool ofxOpenNI::addUserGenerator(){
 	
     if (instanceID > 0) {
         ofLogWarning(LOG_NAME) << "Currently it seems only possible to have a user generator on one device!!";
-        // some people say it could be done like thus: http://openni-discussions.979934.n3.nabble.com/OpenNI-dev-Skeleton-tracking-with-multiple-kinects-not-solved-with-new-OpenNI-td2832613.html ... but itdidn't work for me .... yet ;-)
+        // some people say it could be done like thus: http://openni-discussions.979934.n3.nabble.com/OpenNI-dev-Skeleton-tracking-with-multiple-kinects-not-solved-with-new-OpenNI-td2832613.html ... but itdidn't work for me .... 
+        // ok it's not possible according to: http://groups.google.com/group/openni-dev/browse_thread/thread/188a2ac823584117
         return false;   // uncomment this to see what happens -> not the weird error where 10 (!) user generators are enumerated with my current method
                         // if I create them all at once then I get 4 like in the above link, but still no dice...hrmph!
     }

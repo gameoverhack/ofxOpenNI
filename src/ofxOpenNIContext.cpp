@@ -165,7 +165,6 @@ bool ofxOpenNIContext::addInfraNode(int deviceID){
 bool ofxOpenNIContext::addUserNode(int deviceID){
     int originalSize = g_User.size();
     if (g_User.size() < deviceID + 1) g_User.resize(deviceID + 1);
-    //int nodeHack = (deviceID == 1 ? 4 : deviceID); // see http://openni-discussions.979934.n3.nabble.com/OpenNI-dev-Skeleton-tracking-with-multiple-kinects-not-solved-with-new-OpenNI-td2832613.html but didn't work for me
     bool ok = createXnNode(XN_NODE_TYPE_USER, g_User[deviceID], deviceID);
     if (!ok) g_User.resize(originalSize);
     if (ok) bPaused = false;
