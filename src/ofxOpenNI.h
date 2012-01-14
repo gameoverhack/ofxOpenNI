@@ -43,7 +43,6 @@
 #include "ofPixels.h"
 #include "ofTexture.h"
 #include "ofThread.h"
-#include "ofAppRunner.h"
 
 #include "ofxOpenNIUser.h"
 #include "ofxOpenNIUtils.h"

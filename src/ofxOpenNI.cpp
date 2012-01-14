@@ -31,7 +31,7 @@
 static int instanceCount = -1;
 static string CALLBACK_LOG_NAME = "ofxOpenNIUserCB";
 static ofMutex ofxOpenNIMutex;
-
+static bool shutdown = false;
 //--------------------------------------------------------------
 ofxOpenNI::ofxOpenNI(){
 	
@@ -64,7 +64,11 @@ ofxOpenNI::ofxOpenNI(){
 
 //--------------------------------------------------------------
 ofxOpenNI::~ofxOpenNI(){
-    stop();
+    if (bIsThreaded) {
+        shutdown = true;
+    } else {
+        stop();
+    }
 }
 
 //--------------------------------------------------------------
@@ -104,18 +108,19 @@ bool ofxOpenNI::setup(string xmlFilePath, bool threaded){
 //--------------------------------------------------------------
 void ofxOpenNI::stop(){
     
-    ofLogVerbose(LOG_NAME) << "Stopping ofxOpenNI instance" << instanceID;
+    if (!bIsContextReady) return;
     
     if (bIsThreaded) {
-        //ofxOpenNIMutex.lock();
-        waitForThread(true);
-        stopThread();
-        //ofxOpenNIMutex.unlock();
+        if (shutdown) {
+            stopThread();
+        } else {
+            waitForThread(true);
+        }
         bIsThreaded = false;
-        //ofSleepMillis(20);
-        
     }
     
+    g_Context.StopGeneratingAll();
+
     instanceCount--; // ok this will probably cause problems when dynamically creating and destroying -> you'd need to do it in order!
 	
 	g_bIsDepthOn = false;
@@ -131,7 +136,7 @@ void ofxOpenNI::stop(){
 	bUseTexture = true;
 	bNewPixels = false;
 	bNewFrame = false;
-    
+
     g_Depth.Release();
     g_Image.Release();
     g_IR.Release();
@@ -139,6 +144,8 @@ void ofxOpenNI::stop(){
     g_Audio.Release();
     g_Player.Release();
     g_Context.Release();
+
+    ofLogVerbose(LOG_NAME) << "Stopping ofxOpenNI instance" << instanceID;
     
 }
 
@@ -172,6 +179,8 @@ bool ofxOpenNI::initDevice(){
                 nInfo = *it;
             }
         }
+        
+        ofLogNotice(LOG_NAME) << "Found" << numDevices << "devices connected";
         
         nRetVal = g_Context.CreateProductionTree(nInfo, g_Device);
         SHOW_RC(nRetVal, "Creating production tree for device " + ofToString(instanceID));
@@ -798,7 +807,10 @@ bool ofxOpenNI::isNewFrame(){
 void ofxOpenNI::threadedFunction(){
 	while(isThreadRunning()){
         ofxOpenNIMutex.lock();
-        if (!bIsContextReady) return;
+        if (shutdown) {
+            stop();
+            return;
+        }
         ofxOpenNIMutex.unlock();
 		updateFrame();
         updateUsers();
