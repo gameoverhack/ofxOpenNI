@@ -68,8 +68,11 @@ ofxOpenNI::ofxOpenNI(){
 
 //--------------------------------------------------------------
 ofxOpenNI::~ofxOpenNI(){
-    shutdown = true;
-    stop();
+    if (bIsThreaded) {
+        shutdown = true;
+    } else {
+        stop();
+    }
 }
 
 //--------------------------------------------------------------
@@ -110,15 +113,19 @@ bool ofxOpenNI::setup(string xmlFilePath, bool threaded){
 void ofxOpenNI::stop(){
 
     if (!bIsContextReady) return;
-    
+
     if (bIsThreaded) {
         if (shutdown) {
             stopThread();
         } else {
+            //shutdown = true;
             waitForThread(true);
+            //return;
         }
-        bIsThreaded = false;
+        
     }
+
+    bIsThreaded = false;
     
     g_Context.StopGeneratingAll();
 
@@ -459,6 +466,7 @@ bool ofxOpenNI::allocateIRBuffers(){
 bool ofxOpenNI::allocateUsers(){
     
     XnStatus nRetVal = XN_STATUS_OK;
+    bool ok = false;
     
     // set to verbose for now
     ofSetLogLevel(CALLBACK_LOG_NAME, OF_LOG_VERBOSE);
@@ -471,13 +479,13 @@ bool ofxOpenNI::allocateUsers(){
     XnCallbackHandle Calibration_CallbackHandler;
     
 	nRetVal = userGenerator.RegisterUserCallbacks(User_NewUser, User_LostUser, this, User_CallbackHandler);
-    BOOL_RC(nRetVal, "Register user New/Lost callbacks");
-
+    BOOL_ERR_RC(nRetVal, "Register user New/Lost callbacks");
+    
 	nRetVal = userGenerator.GetSkeletonCap().RegisterToCalibrationStart(UserCalibration_CalibrationStart, this, Calibration_CallbackHandler);
-    BOOL_RC(nRetVal, "Register user Calibration Start callback");
+    BOOL_ERR_RC(nRetVal, "Register user Calibration Start callback");
     
 	nRetVal = userGenerator.GetSkeletonCap().RegisterToCalibrationComplete(UserCalibration_CalibrationEnd, this, Calibration_CallbackHandler);
-    BOOL_RC(nRetVal, "Register user Calibration End callback");
+    BOOL_ERR_RC(nRetVal, "Register user Calibration End callback");
     
     // check need for calibration
     if (userGenerator.GetSkeletonCap().NeedPoseForCalibration()){
@@ -488,10 +496,10 @@ bool ofxOpenNI::allocateUsers(){
 		}
         XnCallbackHandle Pose_CallbackHandler;
         nRetVal = userGenerator.GetPoseDetectionCap().RegisterToPoseDetected(UserPose_PoseDetected, this, Pose_CallbackHandler);
-        BOOL_RC(nRetVal, "Register user Pose Detected callback");
+        BOOL_ERR_RC(nRetVal, "Register user Pose Detected callback");
         
         nRetVal = userGenerator.GetSkeletonCap().GetCalibrationPose(userCalibrationPose);
-        BOOL_RC(nRetVal, "Get calibration pose");
+        BOOL_ERR_RC(nRetVal, "Get calibration pose");
         
         //userGenerator.GetPoseDetectionCap().StartPoseDetection("Psi", user); 
     } else {
@@ -757,6 +765,10 @@ void ofxOpenNI::update(){
     if (!bIsContextReady) return;
     
 	if (!bIsThreaded){
+        if (shutdown) {
+            stop();
+            return;
+        }
 		updateFrame();
 	} else {
 		ofxOpenNIMutex.lock();
@@ -858,8 +870,52 @@ bool ofxOpenNI::disableCalibratedRGBDepth(){
 }
 
 //--------------------------------------------------------------
+void ofxOpenNI::drawDebug(){
+	if (bIsContextReady) drawDebug(0.0f, 0.0f, -1.0f, -1.0f);
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawDebug(float x, float y){
+	if (bIsContextReady) drawDebug(x, y, -1.0f, -1.0f);
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawDebug(float x, float y, float w, float h){
+	if (!bIsContextReady) return;
+    
+    int generatorCount = 0;
+    if (g_bIsDepthOn) generatorCount++;
+    if (g_bIsImageOn) generatorCount++;
+    if (g_bIsIROn) generatorCount++;
+    float fullWidth = getWidth() * generatorCount;
+    float fullHeight = getHeight();
+    
+    if (w == -1.0f && h == -1.0f){
+        w = fullWidth;
+        h = fullHeight;
+    }
+    
+    ofPushStyle();
+    
+    ofPushMatrix();
+    ofTranslate(x, y);
+    ofScale(w / (getWidth() * generatorCount), h / getHeight());
+    
+    ofPushMatrix();
+    if (g_bIsDepthOn) drawDepth();
+    if (g_bIsUserOn) drawUsers();
+    ofTranslate(getWidth(), 0.0f);
+    if (g_bIsImageOn) drawImage();
+    if (g_bIsIROn) drawImage();
+    ofPopMatrix();
+    
+    ofPopMatrix();
+    ofPopStyle();
+}
+
+//--------------------------------------------------------------
 void ofxOpenNI::drawDepth(){
-	if (bUseTexture && bIsContextReady) drawDepth(0, 0, getWidth(), getHeight());
+	if (bUseTexture && bIsContextReady) drawDepth(0.0f, 0.0f, getWidth(), getHeight());
 }
 
 //--------------------------------------------------------------
@@ -874,7 +930,7 @@ void ofxOpenNI::drawDepth(float x, float y, float w, float h){
 
 //--------------------------------------------------------------
 void ofxOpenNI::drawImage(){
-	if (bUseTexture && bIsContextReady) drawImage(0, 0, getWidth(), getHeight());
+	if (bUseTexture && bIsContextReady) drawImage(0.0f, 0.0f, getWidth(), getHeight());
 }
 
 //--------------------------------------------------------------
@@ -889,24 +945,42 @@ void ofxOpenNI::drawImage(float x, float y, float w, float h){
 
 //--------------------------------------------------------------
 void ofxOpenNI::drawUsers(){
-    
-    if (!bIsContextReady) return;
-    
-	ofPushStyle();
-    //	if (currentTrackedUsers.size() > 0) {
-    //  }
-    
-    // draw all the users
-    for(int i = 0;  i < (int)currentTrackedUserIDs.size(); ++i) {
-        drawUser(i);
+    if (bIsContextReady) drawUsers(0.0f, 0.0f, getWidth(), getHeight());
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawUsers(float x, float y){
+	if (bIsContextReady) drawUsers(x, y, getWidth(), getHeight());
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawUsers(float x, float y, float w, float h){
+	if (!bIsContextReady) return;
+    ofPushStyle();
+    for(int i = 0;  i < (int)currentTrackedUserIDs.size(); ++i){
+        drawUser(x, y, w, h, i);
     }
 	ofPopStyle();
 }
 
 //--------------------------------------------------------------
-void ofxOpenNI::drawUser(int nID) {
+void ofxOpenNI::drawUser(int nID){
+	drawUser(0.0f, 0.0f, getWidth(), getHeight(), nID);
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawUser(float x, float y, int nID){
+	drawUser(x, y, getWidth(), getHeight(), nID);
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawUser(float x, float y, float w, float h, int nID){
 	if(nID - 1 > (int)currentTrackedUserIDs.size()) return;
-	currentTrackedUsers[currentTrackedUserIDs[nID]].debugDraw();
+    ofPushMatrix();
+    ofTranslate(x, y);
+    ofScale(w/getWidth(), h/getHeight(), 1.0f);
+	currentTrackedUsers[currentTrackedUserIDs[nID]].draw();
+    ofPopMatrix();
 }
 
 //--------------------------------------------------------------
@@ -1238,7 +1312,7 @@ bool ofxOpenNI::setResolution(int w, int h, int f){
 
 //--------------------------------------------------------------
 bool ofxOpenNI::setGeneratorResolution(MapGenerator & generator, int w, int h, int f){
-    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(ofxOpenNIMutex);
+    //if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(ofxOpenNIMutex);
     
     XnMapOutputMode mapMode;
     XnStatus nRetVal = XN_STATUS_OK;
@@ -1246,10 +1320,7 @@ bool ofxOpenNI::setGeneratorResolution(MapGenerator & generator, int w, int h, i
     
     if (generator.IsValid()){
         nRetVal = generator.SetMapOutputMode(mapMode);
-        
-        BOOL_RC(nRetVal, "Setting " + (string)generator.GetName() + " resolution: " + 
-                ofToString(mapMode.nXRes) + " x " + ofToString(mapMode.nYRes) + 
-                " at " + ofToString(mapMode.nFPS) + "fps");
+        BOOL_RC(nRetVal, "Setting " + (string)generator.GetName() + " resolution: " + ofToString(mapMode.nXRes) + " x " + ofToString(mapMode.nYRes) + " at " + ofToString(mapMode.nFPS) + "fps");
     } else {
         ofLogError(LOG_NAME) << "setGeneratorResolution() called on invalid generator!";
         return false;

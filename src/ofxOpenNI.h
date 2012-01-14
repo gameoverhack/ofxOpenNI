@@ -90,6 +90,10 @@ public:
     
 	void update();
 	
+    void drawDebug();
+	void drawDebug(float x, float y);
+	void drawDebug(float x, float y, float w, float h);
+    
 	void drawDepth();
 	void drawDepth(float x, float y);
 	void drawDepth(float x, float y, float w, float h);
@@ -99,7 +103,12 @@ public:
 	void drawImage(float x, float y, float w, float h);
 	
     void drawUsers();
+    void drawUsers(float x, float y);
+    void drawUsers(float x, float y, float w, float h);
+    
     void drawUser(int nID);
+    void drawUser(float x, float y, int nID);
+    void drawUser(float x, float y, float w, float, int nID);
     
     bool setResolution(int w, int h, int fps);
 

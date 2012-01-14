@@ -41,10 +41,10 @@ ofxOpenNIUser::ofxOpenNIUser(){
 }
 
 //----------------------------------------
-void ofxOpenNIUser::debugDraw() {
+void ofxOpenNIUser::draw() {
 
 	for(int i=0;i<NumLimbs;i++){
-		limbs[i].debugDraw();
+		limbs[i].draw();
 	}
 
 	//ofDrawBitmapString(ofToString((int)id), neck.position[0].X + 10, neck.position[0].Y);

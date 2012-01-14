@@ -8,13 +8,11 @@
 #include "ofGraphics.h"
 
 class ofxOpenNILimb{
+
 public:
+    
 	ofxOpenNILimb(XnSkeletonJoint nStartJoint, XnSkeletonJoint nEndJoint)
-	:start_joint(nStartJoint)
-	,end_joint(nEndJoint)
-	,found(false)
-	{
-	}
+	:start_joint(nStartJoint), end_joint(nEndJoint),found(false){};
 
 	ofxOpenNILimb(){};
 
@@ -31,17 +29,17 @@ public:
 	XnSkeletonJointOrientation orientation;
 
 	// position in projective coordinates
-	ofPoint begin,end;
+	ofPoint begin, end;
 
 	// position in real world coordinates
 	ofPoint worldBegin, worldEnd;
+    
 	bool found;
 
 	vector<ofxOpenNILimb*> jointLimbs;
 
-	void debugDraw() {
-		if(!found)
-			return;
+	void draw() {
+		if(!found) return;
 		ofPushStyle();
 		ofSetLineWidth(5);
 		ofSetColor(255,0,0);
@@ -51,7 +49,9 @@ public:
 };
 
 class ofxOpenNIUser{
+    
 public:
+    
 	ofxOpenNIUser();
 
 	enum Limb{
@@ -87,7 +87,9 @@ public:
 	};
 
 	int id;
-	//bool skeletonTracking, skeletonCalibrating, skeletonCalibrated;
+	
+    //bool skeletonTracking, skeletonCalibrating, skeletonCalibrated;
+    
 	ofPoint center;
 	vector<ofxOpenNILimb> limbs;
 	ofMesh pointCloud;
@@ -96,6 +98,6 @@ public:
 	ofxOpenNILimb & getLimb(Limb limb);
 	int getNumLimbs();
 
-	void debugDraw();
+	void draw();
 
 };

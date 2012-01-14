@@ -35,10 +35,15 @@
 #define SHOW_RC(rc, what)                                                   \
 ofLogVerbose(LOG_NAME) << what << "status:" << xnGetStatusString(rc);
 #define BOOL_RC(rc, what)                                                   \
-ofLogVerbose(LOG_NAME) << what << "status:" << xnGetStatusString(rc);   \
+ofLogVerbose(LOG_NAME) << what << "status:" << xnGetStatusString(rc);       \
 return (rc == XN_STATUS_OK);
 #define CHECK_ERR_RC(rc, what)                                              \
 if (rc != XN_STATUS_OK) ofLogError(LOG_NAME) << what << "status:" << xnGetStatusString(rc);
+#define BOOL_ERR_RC(rc, what)                                               \
+if (rc != XN_STATUS_OK) {                                                   \
+ofLogError(LOG_NAME) << what << "status:" << xnGetStatusString(rc);         \
+return false;                                                               \
+}
 
 static bool rainbowPalletInit = false;
 
