@@ -122,7 +122,13 @@ public:
 	
     bool isContextReady();
 	bool isNewFrame();
-	
+    
+    bool isDepthOn();
+	bool isImageOn();
+    bool isInfraOn();
+    bool isUserOn();
+    bool isAudioOn();
+    
 	void setUseTexture(bool useTexture);
 	void setDepthColoring(DepthColoring coloring);
 	
@@ -139,7 +145,7 @@ public:
 	bool toggleCalibratedRGBDepth();
 	bool enableCalibratedRGBDepth();
 	bool disableCalibratedRGBDepth();
-	
+    
 	ofPixels& getDepthPixels();
 	ofShortPixels& getDepthRawPixels();
 	ofPixels& getImagePixels();
@@ -211,7 +217,7 @@ private:
 	
 	bool g_bIsDepthOn;
 	bool g_bIsImageOn;
-	bool g_bIsIROn;
+	bool g_bIsInfraOn;
     bool g_bIsUserOn;
 	bool g_bIsAudioOn;
 	bool g_bIsPlayerOn;
@@ -256,7 +262,7 @@ private:
 	xn::Device g_Device;
 	xn::DepthGenerator g_Depth;
 	xn::ImageGenerator g_Image;
-	xn::IRGenerator g_IR;
+	xn::IRGenerator g_Infra;
 	xn::UserGenerator g_User;
 	xn::AudioGenerator g_Audio;
 	xn::Player g_Player;
@@ -264,7 +270,8 @@ private:
 	// meta data
 	xn::DepthMetaData g_DepthMD;
 	xn::ImageMetaData g_ImageMD;
-	xn::IRMetaData	g_IrMD;
+	xn::IRMetaData	g_InfraMD;
+    xn::SceneMetaData g_SceneMD;
 	xn::AudioMetaData g_AudioMD;
 	
 	// generators/nodes

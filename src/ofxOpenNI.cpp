@@ -37,14 +37,15 @@ ofxOpenNI::ofxOpenNI(){
 	instanceCount++;
 	instanceID = instanceCount; // TODO: this should be replaced/combined with a listDevices and setDeviceID methods
 	
-    LOG_NAME = "ofxOpenNIDevice[" + ofToString(instanceID) + "]";
+    //LOG_NAME = "ofxOpenNIDevice[" + ofToString(instanceID) + "]";
+    setLogLevel(OF_LOG_NOTICE);
     
 	bIsThreaded = false;
 	
 	g_bIsDepthOn = false;
 	g_bIsDepthRawOnOption = false;
 	g_bIsImageOn = false;
-	g_bIsIROn = false;
+	g_bIsInfraOn = false;
     g_bIsUserOn = false;
 	g_bIsAudioOn = false;
 	g_bIsPlayerOn = false;
@@ -133,7 +134,7 @@ void ofxOpenNI::stop(){
 
     g_Depth.Release();
     g_Image.Release();
-    g_IR.Release();
+    g_Infra.Release();
     g_User.Release();
     g_Audio.Release();
     g_Player.Release();
@@ -229,6 +230,10 @@ void ofxOpenNI::logErrors(xn::EnumerationErrors & errors){
 
 //--------------------------------------------------------------
 bool ofxOpenNI::addDepthGenerator(){
+    if (g_bIsDepthOn){
+        ofLogWarning() << "Already has an depth generator - can't add twice!";
+        return false;
+    }
 	XnStatus nRetVal = XN_STATUS_OK;
     g_bIsDepthOn = false;
 	ofLogNotice(LOG_NAME) << "Adding depth generator...";
@@ -254,6 +259,14 @@ bool ofxOpenNI::addDepthGenerator(){
 
 //--------------------------------------------------------------
 bool ofxOpenNI::addImageGenerator(){
+    if (g_bIsImageOn){
+        ofLogWarning() << "Already has an image generator - can't add twice!";
+        return false;
+    }
+    if (g_bIsInfraOn){
+        ofLogWarning() << "Can't add infra generator - ther is already has an image generator and you can only have one or the other!";
+        return false;
+    }
 	XnStatus nRetVal = XN_STATUS_OK;
     g_bIsImageOn = false;
 	ofLogNotice(LOG_NAME) << "Adding image generator...";
@@ -279,32 +292,43 @@ bool ofxOpenNI::addImageGenerator(){
 
 //--------------------------------------------------------------
 bool ofxOpenNI::addInfraGenerator(){
+    if (g_bIsInfraOn){
+        ofLogWarning() << "Already has an infra generator - can't add twice!";
+        return false;
+    }
+    if (g_bIsImageOn){
+        ofLogWarning() << "Can't add image generator - ther is already has an infra generator and you can only have one or the other!";
+        return false;
+    }
 	XnStatus nRetVal = XN_STATUS_OK;
-    g_bIsIROn = false;
+    g_bIsInfraOn = false;
 	ofLogNotice(LOG_NAME) << "Adding ir generator...";
 	if (!bIsContextReady){
 		ofLogError(LOG_NAME) << "Context is not setup - please call ofxOpenNI::setup() first";
 	}
-    nRetVal = g_IR.Create(g_Context);
+    nRetVal = g_Infra.Create(g_Context);
     SHOW_RC(nRetVal, "Creating IR generator");
-    g_bIsIROn = (nRetVal == XN_STATUS_OK);
-    if (!g_bIsIROn){
+    g_bIsInfraOn = (nRetVal == XN_STATUS_OK);
+    if (!g_bIsInfraOn){
         ofLogError(LOG_NAME) << "Could not add IR generator node to context";
     }
-	if (g_IR.IsValid()){
+	if (g_Infra.IsValid()){
         allocateIRBuffers();
-		nRetVal = g_IR.StartGenerating();
+		nRetVal = g_Infra.StartGenerating();
 		SHOW_RC(nRetVal, "Starting IR generator");
-        g_bIsIROn = (nRetVal == XN_STATUS_OK);
+        g_bIsInfraOn = (nRetVal == XN_STATUS_OK);
 	} else {
 		ofLogError(LOG_NAME) << "IR generator is invalid!";
 	}
-	return g_bIsIROn;
+	return g_bIsInfraOn;
 }
 
 //--------------------------------------------------------------
 bool ofxOpenNI::addUserGenerator(){
-	
+    if (g_bIsUserOn){
+        ofLogWarning() << "Already has a user generator - can't add twice!";
+        return false;
+    }
     XnStatus nRetVal = XN_STATUS_OK;
     g_bIsUserOn = false;
     ofLogNotice(LOG_NAME) << "Adding user generator...";
@@ -349,6 +373,10 @@ bool ofxOpenNI::addPlayerGenerator(){
 }
 
 bool ofxOpenNI::removeDepthGenerator(){
+    if (!g_bIsDepthOn){
+        ofLogWarning() << "No depth generator - can't remove!";
+        return false;
+    }
     XnStatus nRetVal = XN_STATUS_OK;
     nRetVal = g_Depth.StopGenerating();
     SHOW_RC(nRetVal, "Stop generating depth");
@@ -359,6 +387,10 @@ bool ofxOpenNI::removeDepthGenerator(){
 
 //--------------------------------------------------------------
 bool ofxOpenNI::removeImageGenerator(){
+    if (!g_bIsImageOn){
+        ofLogWarning() << "No image generator - can't remove!";
+        return false;
+    }
     XnStatus nRetVal = XN_STATUS_OK;
     nRetVal = g_Image.StopGenerating();
     SHOW_RC(nRetVal, "Stop generating image");
@@ -369,16 +401,24 @@ bool ofxOpenNI::removeImageGenerator(){
 
 //--------------------------------------------------------------
 bool ofxOpenNI::removeInfraGenerator(){
+    if (!g_bIsInfraOn){
+        ofLogWarning() << "No infra generator - can't remove!";
+        return false;
+    }
     XnStatus nRetVal = XN_STATUS_OK;
-    nRetVal = g_IR.StopGenerating();
+    nRetVal = g_Infra.StopGenerating();
     SHOW_RC(nRetVal, "Stop generating infra");
-    g_bIsIROn = (nRetVal != XN_STATUS_OK);
-    if (!g_bIsIROn) g_IR.Release();
-    return g_bIsIROn;
+    g_bIsInfraOn = (nRetVal != XN_STATUS_OK);
+    if (!g_bIsInfraOn) g_Infra.Release();
+    return g_bIsInfraOn;
 }
 
 //--------------------------------------------------------------
 bool ofxOpenNI::removeUserGenerator(){
+    if (!g_bIsUserOn){
+        ofLogWarning() << "No user generator - can't remove!";
+        return false;
+    }
     XnStatus nRetVal = XN_STATUS_OK;
     nRetVal = g_User.StopGenerating();
     SHOW_RC(nRetVal, "Stop generating user");
@@ -438,7 +478,7 @@ bool ofxOpenNI::allocateImageBuffers(){
 
 //--------------------------------------------------------------
 bool ofxOpenNI::allocateIRBuffers(){
-    bool ok = setGeneratorResolution(g_IR, width, height, fps);
+    bool ok = setGeneratorResolution(g_Infra, width, height, fps);
     if (!ok) return false;
     imagePixels[0].allocate(width, height, OF_IMAGE_GRAYSCALE);
     imagePixels[1].allocate(width, height, OF_IMAGE_GRAYSCALE);
@@ -450,7 +490,6 @@ bool ofxOpenNI::allocateIRBuffers(){
 
 //--------------------------------------------------------------
 bool ofxOpenNI::allocateUsers(){
-    
     XnStatus nRetVal = XN_STATUS_OK;
     bool ok = false;
     
@@ -580,9 +619,7 @@ ofxOpenNIUser&	ofxOpenNI::getUser(int nID){
 
 //--------------------------------------------------------------
 void ofxOpenNI::updateUsers(){
-    
-    if (!g_bIsUserOn) return;
-    
+
     // get user generator reference
     xn::UserGenerator& userGenerator = g_User;
     
@@ -722,15 +759,16 @@ void ofxOpenNI::updateFrame(){
     
 	if (g_bIsDepthOn && g_Depth.IsDataNew()) g_Depth.GetMetaData(g_DepthMD);
 	if (g_bIsImageOn && g_Image.IsDataNew()) g_Image.GetMetaData(g_ImageMD);
-	if (g_bIsIROn && g_IR.IsDataNew()) g_IR.GetMetaData(g_IrMD);
-	
+	if (g_bIsInfraOn && g_Infra.IsDataNew()) g_Infra.GetMetaData(g_InfraMD);
+    
     if (bIsThreaded) lock(); // with this her I get ~400-500+ fps with 2 Kinects!
     
     if (g_bIsDepthOn) generateDepthPixels();
 	if (g_bIsImageOn) generateImagePixels();
-	if (g_bIsIROn) generateIRPixels();
+	if (g_bIsInfraOn) generateIRPixels();
 
-// NB: Below info is from my old single context setup - need to retest with this new multicontext setup!    
+// NB: Below info is from my old single context setup - need to retest with this new multicontext setup!  
+// NEW SETUP for 12 frames tested avg -69.33ms latency with 2 x kinects (high ~80ms, low ~50ms)
 
 // I really don't think it's necessary to back buffer the image/ir/depth pixels
 // as I understand it the GetMetaData() call is already acting as a back buffer
@@ -753,11 +791,10 @@ void ofxOpenNI::updateFrame(){
                 swap(backDepthRawPixels, currentDepthRawPixels);
             }
         }
-        if (g_bIsImageOn || g_bIsIROn){
+        if (g_bIsImageOn || g_bIsInfraOn){
             swap(backImagePixels, currentImagePixels);
         }
     }
-	
 	
 	bNewPixels = true;
 	
@@ -787,7 +824,7 @@ void ofxOpenNI::update(){
                 depthTexture.loadData(*backDepthPixels);
             }
 		}
-		if (bUseTexture && (g_bIsImageOn || g_bIsIROn)){
+		if (bUseTexture && (g_bIsImageOn || g_bIsInfraOn)){
             if (bUseBackBuffer) {
                 imageTexture.loadData(*currentImagePixels);
             } else {
@@ -795,7 +832,7 @@ void ofxOpenNI::update(){
             }
 		}
         
-        updateUsers();
+        if (g_bIsUserOn) updateUsers();
         
 		bNewPixels = false;
 		bNewFrame = true;
@@ -816,11 +853,6 @@ void ofxOpenNI::threadedFunction(){
         unlock();
 		updateFrame();
 	}
-}
-
-//--------------------------------------------------------------
-bool ofxOpenNI::isNewFrame(){
-	return bNewFrame;
 }
 
 //--------------------------------------------------------------
@@ -895,10 +927,10 @@ void ofxOpenNI::drawDebug(float x, float y){
 void ofxOpenNI::drawDebug(float x, float y, float w, float h){
 	if (!bIsContextReady) return;
     
-    int generatorCount = 0;
-    if (g_bIsDepthOn) generatorCount++;
-    if (g_bIsImageOn) generatorCount++;
-    if (g_bIsIROn) generatorCount++;
+    int generatorCount = g_bIsDepthOn + g_bIsImageOn + g_bIsInfraOn;
+    //if (g_bIsDepthOn) generatorCount++;
+    //if (g_bIsImageOn) generatorCount++;
+    //if (g_bIsInfraOn) generatorCount++;
     float fullWidth = getWidth() * generatorCount;
     float fullHeight = getHeight();
     
@@ -918,7 +950,7 @@ void ofxOpenNI::drawDebug(float x, float y, float w, float h){
     if (g_bIsUserOn) drawUsers();
     ofTranslate(getWidth(), 0.0f);
     if (g_bIsImageOn) drawImage();
-    if (g_bIsIROn) drawImage();
+    if (g_bIsInfraOn) drawImage();
     ofPopMatrix();
     
     ofPopMatrix();
@@ -996,18 +1028,13 @@ void ofxOpenNI::drawUser(float x, float y, float w, float h, int nID){
 }
 
 //--------------------------------------------------------------
-void ofxOpenNI::setDepthColoring(DepthColoring coloring){
-	depthColoring = coloring;
-}
-
-//--------------------------------------------------------------
 void ofxOpenNI::generateIRPixels(){
-	const XnIRPixel* pImage = g_IrMD.Data();
-    unsigned char * ir_pixels = new unsigned char[g_IrMD.XRes() * g_IrMD.YRes()];
-	for (int i = 0; i < g_IrMD.XRes() * g_IrMD.YRes(); i++){
+	const XnIRPixel* pImage = g_InfraMD.Data();
+    unsigned char * ir_pixels = new unsigned char[g_InfraMD.XRes() * g_InfraMD.YRes()];
+	for (int i = 0; i < g_InfraMD.XRes() * g_InfraMD.YRes(); i++){
 		ir_pixels[i] = pImage[i]/4;
 	}
-	backImagePixels->setFromPixels(ir_pixels, g_IrMD.XRes(), g_IrMD.YRes(), OF_IMAGE_GRAYSCALE);
+	backImagePixels->setFromPixels(ir_pixels, g_InfraMD.XRes(), g_InfraMD.YRes(), OF_IMAGE_GRAYSCALE);
     delete ir_pixels;
 }
 
@@ -1169,6 +1196,39 @@ void ofxOpenNI::generateDepthPixels(){
 	
 	
 }
+//--------------------------------------------------------------
+bool ofxOpenNI::isNewFrame(){
+	return bNewFrame;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setDepthColoring(DepthColoring coloring){
+	depthColoring = coloring;
+}
+//--------------------------------------------------------------
+bool ofxOpenNI::isDepthOn(){
+    return g_bIsDepthOn;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::isImageOn(){
+    return g_bIsImageOn;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::isInfraOn(){
+    return g_bIsInfraOn;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::isUserOn(){
+    return g_bIsUserOn;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::isAudioOn(){
+    return g_bIsAudioOn;
+}
 
 //--------------------------------------------------------------
 bool ofxOpenNI::isContextReady(){
@@ -1208,7 +1268,7 @@ xn::ImageGenerator& ofxOpenNI::getImageGenerator(){
 
 //--------------------------------------------------------------
 xn::IRGenerator& ofxOpenNI::getIRGenerator(){
-	return g_IR;;
+	return g_Infra;;
 }
 
 //--------------------------------------------------------------
@@ -1238,7 +1298,7 @@ xn::ImageMetaData& ofxOpenNI::getImageMetaData(){
 
 //--------------------------------------------------------------
 xn::IRMetaData& ofxOpenNI::getIRMetaData(){
-	return g_IrMD;
+	return g_InfraMD;
 }
 
 //--------------------------------------------------------------
@@ -1311,7 +1371,7 @@ bool ofxOpenNI::setResolution(int w, int h, int f){
         }
     }
     
-    if (g_bIsIROn) {
+    if (g_bIsInfraOn) {
         ok = allocateIRBuffers();
         if(!ok) {
             width = oW; height = oH; fps = oF;
@@ -1345,8 +1405,8 @@ float ofxOpenNI::getWidth(){
 		return g_DepthMD.XRes();
 	}else if (g_bIsImageOn){
 		return g_ImageMD.XRes();
-	}else if (g_bIsIROn){
-		return g_IrMD.XRes();
+	}else if (g_bIsInfraOn){
+		return g_InfraMD.XRes();
 	} else {
 		ofLogWarning(LOG_NAME) << "getWidth() : We haven't yet initialised any generators, so this value returned is returned as 0";
 		return 0;
@@ -1359,8 +1419,8 @@ float ofxOpenNI::getHeight(){
 		return g_DepthMD.YRes();
 	}else if (g_bIsImageOn){
 		return g_ImageMD.YRes();
-	}else if (g_bIsIROn){
-		return g_IrMD.YRes();
+	}else if (g_bIsInfraOn){
+		return g_InfraMD.YRes();
 	} else {
 		ofLogWarning(LOG_NAME) << "getHeight() : We haven't yet initialised any generators, so this value returned is returned as 0";
 		return 0;
