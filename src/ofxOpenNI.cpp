@@ -810,12 +810,12 @@ void ofxOpenNI::updateUserPixels(ofxOpenNIUser & user){
                 user.maskPixels[nIndex * 4 + 0] = 255; //0;
                 user.maskPixels[nIndex * 4 + 1] = 255; //0;
                 user.maskPixels[nIndex * 4 + 2] = 255; //0;
-                user.maskPixels[nIndex * 4 + 3] = 255; //0;
+                user.maskPixels[nIndex * 4 + 3] = 0; //0;
             } else {
                 user.maskPixels[nIndex * 4 + 0] = 0;
                 user.maskPixels[nIndex * 4 + 1] = 0;
                 user.maskPixels[nIndex * 4 + 2] = 0;
-                user.maskPixels[nIndex * 4 + 3] = 0; //255;
+                user.maskPixels[nIndex * 4 + 3] = 255; //255;
             }
         }
     }
