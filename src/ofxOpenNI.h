@@ -317,6 +317,7 @@ private:
     float userSmoothFactor;
 
 	int instanceID;
+    ofLogLevel logLevel;
     
     // block copy ctor and assignment operator
     ofxOpenNI(const ofxOpenNI& other);

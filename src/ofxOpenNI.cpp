@@ -37,7 +37,7 @@ ofxOpenNI::ofxOpenNI(){
 	instanceCount++;
 	instanceID = instanceCount; // TODO: this should be replaced/combined with a listDevices and setDeviceID methods
 	
-    //LOG_NAME = "ofxOpenNIDevice[" + ofToString(instanceID) + "]";
+    LOG_NAME = "ofxOpenNIDevice[" + ofToString(instanceID) + "]";
     
 	bIsThreaded = false;
 	
@@ -66,18 +66,16 @@ ofxOpenNI::ofxOpenNI(){
     userDetectionConfidence =  0.3f;
     
 	CreateRainbowPallet();
-    
-    //ofSleepMillis(1000); // magic numbers are bad but we need a pause...
-    setLogLevel(OF_LOG_NOTICE);
+
+    logLevel = OF_LOG_NOTICE;
+    //setLogLevel(OF_LOG_NOTICE);
 }
 
 //--------------------------------------------------------------
 ofxOpenNI::~ofxOpenNI(){
-    if (bIsThreaded) {
-        shutdown = true;
-    } else {
-        stop();
-    }
+    // don't use ofLog here!!!
+    cout << "ofxOpenNI[" << instanceID << "]: " << "destructor called" << endl;
+    stop();
 }
 
 //--------------------------------------------------------------
@@ -85,6 +83,8 @@ bool ofxOpenNI::setup(bool threaded){
 	
     XnStatus nRetVal = XN_STATUS_OK;
 	bIsThreaded = threaded;
+    
+    setLogLevel(logLevel);
     
 	if (!initContext()){
         ofLogError(LOG_NAME) << "Context could not be intitilised";
@@ -125,24 +125,24 @@ void ofxOpenNI::start(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::stop(){
-
+    
     if (!bIsContextReady) return;
-
+    
+    // don't use ofLog here!!!
+    cout << "ofxOpenNI[" << instanceID << "]: " << "stop called" << endl;
+    
     if (bIsThreaded) {
-        if (shutdown) {
-            stopThread();
-        } else {
-            //shutdown = true;
-            waitForThread(true);
-            //return;
-        }
-        
+        lock();
+        g_Context.StopGeneratingAll();
+        unlock();
+        //if (isThreadRunning()) stopThread();
+        if (isThreadRunning()) waitForThread(true);
+    } else {
+        g_Context.StopGeneratingAll();
     }
 
     bIsThreaded = false;
     bIsContextReady = false;
-    
-    g_Context.StopGeneratingAll();
 
     instanceCount--; // ok this will probably cause problems when dynamically creating and destroying -> you'd need to do it in order!
 
@@ -154,7 +154,8 @@ void ofxOpenNI::stop(){
     g_Player.Release();
     g_Context.Release();
     
-    ofLogVerbose(LOG_NAME) << "Stopped ofxOpenNI instance" << instanceID;
+    //ofLogVerbose(LOG_NAME) shouldn't use that here - as it's a singleton???
+    cout << "ofxOpenNI[" << instanceID << "]: " << "full stopped" << endl;
 }
 
 //--------------------------------------------------------------
@@ -228,8 +229,9 @@ void ofxOpenNI::setLogLevel(XnLogSeverity logLevel){
 }
 
 //--------------------------------------------------------------
-void ofxOpenNI::setLogLevel(ofLogLevel logLevel){
+void ofxOpenNI::setLogLevel(ofLogLevel level){
     LOG_NAME = "ofxOpenNIDevice[" + ofToString(instanceID) + "]";
+    logLevel = level;
     ofSetLogLevel(LOG_NAME, logLevel);
 }
 
@@ -807,15 +809,15 @@ void ofxOpenNI::updateUserPixels(ofxOpenNIUser & user){
 		for (int nX = 0; nX < getWidth(); nX++) {
             nIndex = nY * getWidth() + nX;
             if (userPix[nIndex] == user.id) {
-                user.maskPixels[nIndex * 4 + 0] = 255; //0;
-                user.maskPixels[nIndex * 4 + 1] = 255; //0;
-                user.maskPixels[nIndex * 4 + 2] = 255; //0;
-                user.maskPixels[nIndex * 4 + 3] = 0; //0;
+                user.maskPixels[nIndex * 4 + 0] = 255;
+                user.maskPixels[nIndex * 4 + 1] = 255;
+                user.maskPixels[nIndex * 4 + 2] = 255;
+                user.maskPixels[nIndex * 4 + 3] = 0;
             } else {
                 user.maskPixels[nIndex * 4 + 0] = 0;
                 user.maskPixels[nIndex * 4 + 1] = 0;
                 user.maskPixels[nIndex * 4 + 2] = 0;
-                user.maskPixels[nIndex * 4 + 3] = 255; //255;
+                user.maskPixels[nIndex * 4 + 3] = 255;
             }
         }
     }
@@ -890,12 +892,6 @@ void ofxOpenNI::update(){
     if (!bIsContextReady) return;
     
 	if (!bIsThreaded){
-        if (shutdown) {
-            if (g_bIsUserOn) g_User.GetSkeletonCap().Release();
-            g_Context.StopGeneratingAll();
-            stop();
-            return;
-        }
 		updateFrame();
 	} else {
 		lock();
@@ -926,18 +922,16 @@ void ofxOpenNI::update(){
 
 	if (bIsThreaded) unlock();
 }
-
+void cleanupHandler(void *cookie){
+    cout << "Got interupted!" << endl;
+}
 //--------------------------------------------------------------
 void ofxOpenNI::threadedFunction(){
 	while(isThreadRunning()){
-        lock();
-        if (shutdown) {
-            if (g_bIsUserOn) g_User.GetSkeletonCap().Release();
-            g_Context.StopGeneratingAll();
-            stop();
-            return;
-        }
-        unlock();
+        pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
+        pthread_cleanup_push(cleanupHandler, &g_Context);
+		updateFrame();
+        pthread_cleanup_pop(0);
 		updateFrame();
 	}
 }
