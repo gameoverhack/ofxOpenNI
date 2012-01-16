@@ -43,6 +43,7 @@
 #include "ofPixels.h"
 #include "ofTexture.h"
 #include "ofThread.h"
+#include "ofAppRunner.h"
 
 #include "ofxOpenNIUser.h"
 #include "ofxOpenNIUtils.h"
@@ -72,6 +73,7 @@ public:
 	bool setup(bool threaded = true);
 	bool setup(string xmlFilePath, bool threaded = true);
 	
+    void start();
     void stop();
     
 	bool addDepthGenerator();
@@ -132,15 +134,28 @@ public:
 	void setUseTexture(bool useTexture);
 	void setDepthColoring(DepthColoring coloring);
 	
-    int	getNumUsers();
-    ofxOpenNIUser&	getUser(int nID);
+    int	getNumTrackedUsers();
+    
+    ofxOpenNIUser&	getTrackedUser(int nID); // only returns tracked users
+    ofxOpenNIUser& getAnyUser(int nID); // returns any user (whether tracked or not)
+    
+    void setMaxNumUsers(int numUsers);
+    int	getMaxNumUsers();
     
     void setUseMaskPixels(bool b);
-	void setUsePointClouds(bool b);
-    void setUseBackBuffer(bool b);
+    bool getUseMaskPixels();
     
-	void setSmoothing(float smooth);
-	float getSmoothing();
+	void setUsePointClouds(bool b);
+    bool getUsePointClouds();
+    
+    void setUseBackBuffer(bool b);
+    bool getUseBackBuffer();
+    
+	void setUserSmoothing(float smooth);
+	float getUserSmoothing();
+    
+    void setUserDetectionConfidence(float level);
+    float getUserDetectionConfidence();
     
 	bool toggleCalibratedRGBDepth();
 	bool enableCalibratedRGBDepth();
@@ -186,7 +201,7 @@ protected:
 	void threadedFunction();
     
 private:
-	
+    
 	//void openCommon();
 	//void initConstants();
     bool initContext();
@@ -296,8 +311,11 @@ private:
 	map<XnUserID,ofxOpenNIUser> currentTrackedUsers;
     set<XnUserID> previousTrackedUserIDs;
 	vector<XnUserID> currentTrackedUserIDs;
-    float userSmoothFactor;
     
+    int maxNumUsers;
+    float userDetectionConfidence;
+    float userSmoothFactor;
+
 	int instanceID;
     
     // block copy ctor and assignment operator

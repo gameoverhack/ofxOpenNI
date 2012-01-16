@@ -7,8 +7,16 @@
 
 #include "ofxOpenNIUser.h"
 
-//----------------------------------------
+//--------------------------------------------------------------
 ofxOpenNIUser::ofxOpenNIUser(){
+    
+    cloudPointSize = 2;
+    cloudPointResolution = 1;
+    
+    bUseTexture = false;
+    bIsTracking = false;
+    bIsAllocated = false;
+    
 	limbs.resize(NumLimbs);
 
 	limbs[Neck].set(XN_SKEL_HEAD, XN_SKEL_NECK);
@@ -40,23 +48,105 @@ ofxOpenNIUser::ofxOpenNIUser(){
 	limbs[Hip].set(XN_SKEL_LEFT_HIP, XN_SKEL_RIGHT_HIP);
 }
 
-//----------------------------------------
-void ofxOpenNIUser::draw() {
-
+//--------------------------------------------------------------
+void ofxOpenNIUser::drawSkeleton() {
+    ofPushStyle();
+    ofPushMatrix();
 	for(int i=0;i<NumLimbs;i++){
+        ofSetColor(255, 0, 0);
 		limbs[i].draw();
 	}
-
+    ofPopMatrix();
+    ofPopStyle();
 	//ofDrawBitmapString(ofToString((int)id), neck.position[0].X + 10, neck.position[0].Y);
 }
 
-//----------------------------------------
+//--------------------------------------------------------------
+void ofxOpenNIUser::drawPointCloud(){
+    ofPushStyle();
+    ofPushMatrix();
+    glPointSize(2);
+    glEnable(GL_DEPTH_TEST);
+    pointCloud.drawVertices();
+    glDisable(GL_DEPTH_TEST);
+    ofPopMatrix();
+    ofPopStyle();
+}
+
+//--------------------------------------------------------------
+void ofxOpenNIUser::drawMask(){
+    if (bUseTexture){
+        ofPushStyle();
+        ofPushMatrix();
+        maskTexture.draw(0, 0, maskPixels.getWidth(), maskPixels.getHeight());
+        ofPopMatrix();
+        ofPopStyle();
+    }
+}
+
+//--------------------------------------------------------------
+void ofxOpenNIUser::setUseTexture(bool b){
+    bUseTexture = b;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNIUser::setCloudPointSize(int size){
+    // this is the size of the points when drawing
+    cloudPointSize = size;
+}
+
+//--------------------------------------------------------------
+int ofxOpenNIUser::getCloudPointSize(){
+    return cloudPointSize;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNIUser::setCloudPointResolution(int resolution){
+    // this is the step size when calculating (lower is higher res - 1 is the highest)
+    cloudPointResolution = resolution;
+}
+
+//--------------------------------------------------------------
+int ofxOpenNIUser::getCloudPointResolution(){
+    return cloudPointResolution;
+}
+
+//--------------------------------------------------------------
 ofxOpenNILimb & ofxOpenNIUser::getLimb(Limb limb){
 	return limbs[limb];
 }
 
-//----------------------------------------
+//--------------------------------------------------------------
 int ofxOpenNIUser::getNumLimbs(){
 	return NumLimbs;
 }
 
+//--------------------------------------------------------------
+ofPoint & ofxOpenNIUser::getCenter(){
+    return center;
+}
+
+//--------------------------------------------------------------
+ofMesh & ofxOpenNIUser::getPointCloud(){
+    return pointCloud;
+}
+
+//--------------------------------------------------------------
+ofPixels & ofxOpenNIUser::getMaskPixels(){
+    return maskPixels;
+}
+
+//--------------------------------------------------------------
+ofTexture & ofxOpenNIUser::getMaskTextureReference(){
+    return maskTexture;
+}
+
+//--------------------------------------------------------------
+int ofxOpenNIUser::getID(){
+    return id;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNIUser::isTracking(){
+    return bIsTracking;
+}

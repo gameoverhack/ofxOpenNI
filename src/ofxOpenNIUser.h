@@ -5,9 +5,10 @@
 #include "ofPoint.h"
 #include "ofMesh.h"
 #include "ofPixels.h"
+#include "ofTexture.h"
 #include "ofGraphics.h"
 
-class ofxOpenNILimb{
+class ofxOpenNILimb {
 
 public:
     
@@ -40,15 +41,15 @@ public:
 
 	void draw() {
 		if(!found) return;
-		ofPushStyle();
+		//ofPushStyle();
 		ofSetLineWidth(5);
-		ofSetColor(255,0,0);
+		//ofSetColor(255,0,0);
 		ofLine(ofVec2f(begin),ofVec2f(end));
-		ofPopStyle();
+		//ofPopStyle();
 	}
 };
 
-class ofxOpenNIUser{
+class ofxOpenNIUser {
     
 public:
     
@@ -86,18 +87,46 @@ public:
 		NumLimbs
 	};
 
-	int id;
-	
-    //bool skeletonTracking, skeletonCalibrating, skeletonCalibrated;
+    void drawSkeleton();
+    void drawPointCloud();
+    void drawMask();
+    
+    void setCloudPointSize(int size); // this is the size of the points when drawing
+    int getCloudPointSize();
+    
+    void setCloudPointResolution(int resolution); // this is the step size when calculating (lower is higher res!)
+    int getCloudPointResolution();
+    
+    void setUseTexture(bool b);
+    
+    int getNumLimbs();
+	ofxOpenNILimb & getLimb(Limb limb);
+    
+    ofPoint & getCenter();
+    ofMesh & getPointCloud();
+    ofPixels & getMaskPixels();
+    ofTexture & getMaskTextureReference();
+    
+    int getID();
+    
+    bool isTracking();
+    
+private:
+    
+    friend class ofxOpenNI; // so we can access directly in ofxOpenNI
     
 	ofPoint center;
 	vector<ofxOpenNILimb> limbs;
 	ofMesh pointCloud;
 	ofPixels maskPixels;
-
-	ofxOpenNILimb & getLimb(Limb limb);
-	int getNumLimbs();
-
-	void draw();
+    ofTexture maskTexture;
+    
+    int id;
+    int cloudPointSize;
+    int cloudPointResolution;
+    
+    bool bUseTexture;
+    bool bIsTracking;//, skeletonCalibrating, skeletonCalibrated;
+    bool bIsAllocated;
 
 };

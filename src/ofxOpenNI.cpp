@@ -38,7 +38,6 @@ ofxOpenNI::ofxOpenNI(){
 	instanceID = instanceCount; // TODO: this should be replaced/combined with a listDevices and setDeviceID methods
 	
     //LOG_NAME = "ofxOpenNIDevice[" + ofToString(instanceID) + "]";
-    setLogLevel(OF_LOG_NOTICE);
     
 	bIsThreaded = false;
 	
@@ -63,7 +62,13 @@ ofxOpenNI::ofxOpenNI(){
     height = XN_VGA_Y_RES;
     fps = 30;
     
+    maxNumUsers = 20;
+    userDetectionConfidence =  0.3f;
+    
 	CreateRainbowPallet();
+    
+    //ofSleepMillis(1000); // magic numbers are bad but we need a pause...
+    setLogLevel(OF_LOG_NOTICE);
 }
 
 //--------------------------------------------------------------
@@ -98,7 +103,7 @@ bool ofxOpenNI::setup(bool threaded){
         return false;
     } else {
         ofLogNotice(LOG_NAME) << "Starting device for instance [" << instanceID << "] of ofxOpenNI";
-        if (bIsThreaded) startThread(true, false);
+        //if (bIsThreaded) startThread(true, false);
         return true;
 	}
 	
@@ -107,6 +112,15 @@ bool ofxOpenNI::setup(bool threaded){
 //--------------------------------------------------------------
 bool ofxOpenNI::setup(string xmlFilePath, bool threaded){
 	ofLogWarning(LOG_NAME) << "Not yet implimented";
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::start(){
+    if (!bIsContextReady) {
+        ofLogError() << "You need to call setup() first!";
+        return;
+    }
+    if (bIsThreaded) startThread(true, false);
 }
 
 //--------------------------------------------------------------
@@ -493,6 +507,8 @@ bool ofxOpenNI::allocateUsers(){
     XnStatus nRetVal = XN_STATUS_OK;
     bool ok = false;
     
+    setMaxNumUsers(10); // default to 4
+    
     // set to verbose for now
     ofSetLogLevel(CALLBACK_LOG_NAME, OF_LOG_VERBOSE);
     
@@ -544,8 +560,18 @@ void ofxOpenNI::setUseBackBuffer(bool b){
 }
 
 //--------------------------------------------------------------
+bool ofxOpenNI::getUseBackBuffer(){
+	return bUseBackBuffer;
+}
+
+//--------------------------------------------------------------
 void ofxOpenNI::setUseMaskPixels(bool b){
 	bUseMaskPixels = b;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::getUseMaskPixels(){
+	return bUseMaskPixels;
 }
 
 //--------------------------------------------------------------
@@ -554,7 +580,12 @@ void ofxOpenNI::setUsePointClouds(bool b){
 }
 
 //--------------------------------------------------------------
-void ofxOpenNI::setSmoothing(float smooth){
+bool ofxOpenNI::getUsePointClouds(){
+	return bUsePointClouds;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setUserSmoothing(float smooth){
 	if (smooth > 0.0f && smooth < 1.0f) {
 		userSmoothFactor = smooth;
 		if (g_bIsUserOn) {
@@ -564,8 +595,18 @@ void ofxOpenNI::setSmoothing(float smooth){
 }
 
 //--------------------------------------------------------------
-float ofxOpenNI::getSmoothing(){
+float ofxOpenNI::getUserSmoothing(){
 	return userSmoothFactor;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setUserDetectionConfidence(float level){
+    userDetectionConfidence = level;
+}
+
+//--------------------------------------------------------------
+float ofxOpenNI::getUserDetectionConfidence(){
+    return userDetectionConfidence;
 }
 
 //--------------------------------------------------------------
@@ -608,13 +649,34 @@ bool ofxOpenNI::needsPoseForCalibration(){
 }
 
 //--------------------------------------------------------------
-int	ofxOpenNI::getNumUsers(){
+int	ofxOpenNI::getNumTrackedUsers(){
     return currentTrackedUserIDs.size();
 }
 
 //--------------------------------------------------------------
-ofxOpenNIUser&	ofxOpenNI::getUser(int nID){
+ofxOpenNIUser&	ofxOpenNI::getTrackedUser(int nID){
     return currentTrackedUsers[currentTrackedUserIDs[nID]];
+}
+
+//--------------------------------------------------------------
+ofxOpenNIUser&	ofxOpenNI::getAnyUser(int nID){
+    return currentTrackedUsers[nID];
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setMaxNumUsers(int numUsers){
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    maxNumUsers = numUsers;
+    currentTrackedUsers.clear();
+    for (int i = 0; i < maxNumUsers; ++i) {
+        ofxOpenNIUser & user = currentTrackedUsers[i];
+        user.bIsTracking = false;
+    }
+}
+
+//--------------------------------------------------------------
+int	ofxOpenNI::getMaxNumUsers(){
+    return maxNumUsers;
 }
 
 //--------------------------------------------------------------
@@ -623,15 +685,19 @@ void ofxOpenNI::updateUsers(){
     // get user generator reference
     xn::UserGenerator& userGenerator = g_User;
     
-	vector<XnUserID> userIDs(MAX_NUMBER_USERS);
-	XnUInt16 maxNumUsers = MAX_NUMBER_USERS;
-	userGenerator.GetUsers(&userIDs[0], maxNumUsers);
+	vector<XnUserID> userIDs(maxNumUsers);
+    XnUInt16 xnMaxNumUsers = maxNumUsers;
+    if (xnMaxNumUsers < userGenerator.GetNumberOfUsers()){
+        ofLogWarning() << "maxNumUsers is set lower than the current number of users...increase them with setMaxNumUsers()";
+    }
+	userGenerator.GetUsers(&userIDs[0], xnMaxNumUsers);
     
 	set<XnUserID> trackedUserIDs;
-    
-	for (int i = 0; i < MAX_NUMBER_USERS; ++i) {
+
+	for (int i = 0; i < maxNumUsers; ++i) {
 		if (userGenerator.GetSkeletonCap().IsTracking(userIDs[i])) {
 			ofxOpenNIUser & user = currentTrackedUsers[userIDs[i]];
+            user.bIsTracking = true;
 			user.id = userIDs[i];
 			XnPoint3D center;
 			userGenerator.GetCoM(userIDs[i], center);
@@ -642,7 +708,7 @@ void ofxOpenNI::updateUsers(){
 				userGenerator.GetSkeletonCap().GetSkeletonJointPosition(user.id, user.limbs[j].start_joint, a);
 				userGenerator.GetSkeletonCap().GetSkeletonJointPosition(user.id, user.limbs[j].end_joint, b);
 				userGenerator.GetSkeletonCap().GetSkeletonJointOrientation(user.id,user.limbs[j].start_joint, user.limbs[j].orientation);
-				if (a.fConfidence < 0.3f || b.fConfidence < 0.3f){
+				if (a.fConfidence < userDetectionConfidence || b.fConfidence < userDetectionConfidence){
 					user.limbs[j].found = false;
 					continue;
 				}
@@ -664,7 +730,9 @@ void ofxOpenNI::updateUsers(){
 	set<XnUserID>::iterator it;
 	for (it = previousTrackedUserIDs.begin(); it != previousTrackedUserIDs.end(); it++){
 		if (trackedUserIDs.find(*it) == trackedUserIDs.end()){
-			currentTrackedUsers.erase(*it);
+			//currentTrackedUsers.erase(*it);
+            ofxOpenNIUser & user = currentTrackedUsers[*it];
+            user.bIsTracking = false;
 		}
 	}
 
@@ -693,7 +761,7 @@ void ofxOpenNI::updatePointClouds(ofxOpenNIUser & user){
 		userPix = (unsigned short*)smd.Data();
 	}
     
-	int step = 1;
+	int step = user.cloudPointResolution;
 	int nIndex = 0;
     
 	user.pointCloud.getVertices().clear();
@@ -701,11 +769,12 @@ void ofxOpenNI::updatePointClouds(ofxOpenNIUser & user){
 	user.pointCloud.setMode(OF_PRIMITIVE_POINTS);
     
 	for (int nY = 0; nY < getHeight(); nY += step) {
-		for (int nX = 0; nX < getWidth(); nX += step, nIndex += step) {
+		for (int nX = 0; nX < getWidth(); nX += step) {
+            nIndex = nY * getWidth() + nX;
 			if (userPix[nIndex] == user.id) {
-				user.pointCloud.addVertex(ofPoint( nX,nY,pDepth[nIndex] ));
+				user.pointCloud.addVertex(ofPoint(nX, nY, pDepth[nIndex]));
 				if(g_bIsImageOn){
-					user.pointCloud.addColor(ofColor(pColor[nIndex].nRed,pColor[nIndex].nGreen,pColor[nIndex].nBlue));
+					user.pointCloud.addColor(ofColor(pColor[nIndex].nRed, pColor[nIndex].nGreen, pColor[nIndex].nBlue));
 				}else{
 					user.pointCloud.addColor(ofFloatColor(1,1,1));
 				}
@@ -728,16 +797,30 @@ void ofxOpenNI::updateUserPixels(ofxOpenNIUser & user){
     //			if userPix[i] > 0 then the pixel belongs to the user who's value IS userPix[i]
     //  // (many thanks to ascorbin who's code made this apparent to me)
     
-	user.maskPixels.allocate(getWidth(), getHeight(), OF_IMAGE_GRAYSCALE);
+    if (!user.bIsAllocated || (user.maskPixels.getWidth() != getWidth() || user.maskPixels.getHeight() != getHeight())){
+        user.maskPixels.allocate(getWidth(), getHeight(), OF_IMAGE_COLOR_ALPHA);
+        if (user.bUseTexture) user.maskTexture.allocate(getWidth(), getHeight(), GL_RGBA);
+    }
+	
+    int nIndex = 0;
+    for (int nY = 0; nY < getHeight(); nY++) {
+		for (int nX = 0; nX < getWidth(); nX++) {
+            nIndex = nY * getWidth() + nX;
+            if (userPix[nIndex] == user.id) {
+                user.maskPixels[nIndex * 4 + 0] = 255; //0;
+                user.maskPixels[nIndex * 4 + 1] = 255; //0;
+                user.maskPixels[nIndex * 4 + 2] = 255; //0;
+                user.maskPixels[nIndex * 4 + 3] = 255; //0;
+            } else {
+                user.maskPixels[nIndex * 4 + 0] = 0;
+                user.maskPixels[nIndex * 4 + 1] = 0;
+                user.maskPixels[nIndex * 4 + 2] = 0;
+                user.maskPixels[nIndex * 4 + 3] = 0; //255;
+            }
+        }
+    }
     
-	for (int i =0 ; i < getWidth() * getHeight(); i++) {
-		if (userPix[i] == user.id) {
-			user.maskPixels[i] = 255;
-		} else {
-			user.maskPixels[i] = 0;
-		}
-        
-	}
+    if (user.bUseTexture) user.maskTexture.loadData(user.maskPixels.getPixels(), getWidth(), getHeight(), GL_RGBA);
 }
 
 //--------------------------------------------------------------
@@ -808,6 +891,8 @@ void ofxOpenNI::update(){
     
 	if (!bIsThreaded){
         if (shutdown) {
+            if (g_bIsUserOn) g_User.GetSkeletonCap().Release();
+            g_Context.StopGeneratingAll();
             stop();
             return;
         }
@@ -847,6 +932,8 @@ void ofxOpenNI::threadedFunction(){
 	while(isThreadRunning()){
         lock();
         if (shutdown) {
+            if (g_bIsUserOn) g_User.GetSkeletonCap().Release();
+            g_Context.StopGeneratingAll();
             stop();
             return;
         }
@@ -1023,7 +1110,7 @@ void ofxOpenNI::drawUser(float x, float y, float w, float h, int nID){
     ofPushMatrix();
     ofTranslate(x, y);
     ofScale(w/getWidth(), h/getHeight(), 1.0f);
-	currentTrackedUsers[currentTrackedUserIDs[nID]].draw();
+	currentTrackedUsers[currentTrackedUserIDs[nID]].drawSkeleton();
     ofPopMatrix();
 }
 
