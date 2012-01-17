@@ -10,12 +10,12 @@
 //--------------------------------------------------------------
 ofxOpenNIUser::ofxOpenNIUser(){
     
-    cloudPointSize = 2;
-    cloudPointResolution = 1;
+    cloudPointDrawSize = 2;
+    cloudPointResolution = 2;
     
-    bUseTexture = false;
+    bUseMaskPixels = false;
+    bUseMaskTexture = false;
     bIsTracking = false;
-    bIsAllocated = false;
     
 	limbs.resize(NumLimbs);
 
@@ -65,7 +65,7 @@ void ofxOpenNIUser::drawSkeleton() {
 void ofxOpenNIUser::drawPointCloud(){
     ofPushStyle();
     ofPushMatrix();
-    glPointSize(2);
+    glPointSize(cloudPointDrawSize);
     glEnable(GL_DEPTH_TEST);
     pointCloud.drawVertices();
     glDisable(GL_DEPTH_TEST);
@@ -75,7 +75,7 @@ void ofxOpenNIUser::drawPointCloud(){
 
 //--------------------------------------------------------------
 void ofxOpenNIUser::drawMask(){
-    if (bUseTexture){
+    if (bUseMaskTexture){
         ofPushStyle();
         ofPushMatrix();
         maskTexture.draw(0, 0, maskPixels.getWidth(), maskPixels.getHeight());
@@ -85,18 +85,28 @@ void ofxOpenNIUser::drawMask(){
 }
 
 //--------------------------------------------------------------
-void ofxOpenNIUser::setUseTexture(bool b){
-    bUseTexture = b;
+void ofxOpenNIUser::setUseMaskTexture(bool b){
+    bUseMaskTexture = b;
+    if (bUseMaskTexture) {
+        bUseMaskPixels = true; // have to use pixels to use the texture!
+    } else {
+        //if (bUseMaskPixels) // TODO: warn or set false?;
+    }
 }
 
 //--------------------------------------------------------------
-void ofxOpenNIUser::setUseMask(bool b){
-    bUseMask = b;
+bool ofxOpenNIUser::getUseMaskTexture(){
+    return bUseMaskTexture;
 }
 
 //--------------------------------------------------------------
-bool ofxOpenNIUser::getUseMask(){
-    return bUseMask;
+void ofxOpenNIUser::setUseMaskPixels(bool b){
+    bUseMaskPixels = b;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNIUser::getUseMaskPixels(){
+    return bUseMaskPixels;
 }
 
 //--------------------------------------------------------------
@@ -110,14 +120,14 @@ bool ofxOpenNIUser::getUsePointCloud(){
 }
 
 //--------------------------------------------------------------
-void ofxOpenNIUser::setCloudPointSize(int size){
+void ofxOpenNIUser::setCloudPointDrawSize(int size){
     // this is the size of the points when drawing
-    cloudPointSize = size;
+    cloudPointDrawSize = size;
 }
 
 //--------------------------------------------------------------
-int ofxOpenNIUser::getCloudPointSize(){
-    return cloudPointSize;
+int ofxOpenNIUser::getCloudPointDrawSize(){
+    return cloudPointDrawSize;
 }
 
 //--------------------------------------------------------------

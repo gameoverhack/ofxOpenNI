@@ -91,16 +91,17 @@ public:
     void drawPointCloud();
     void drawMask();
     
-    void setCloudPointSize(int size); // this is the size of the points when drawing
-    int getCloudPointSize();
+    void setCloudPointDrawSize(int size); // this is the size of the points when drawing
+    int getCloudPointDrawSize();
     
     void setCloudPointResolution(int resolution); // this is the step size when calculating (lower is higher res!)
     int getCloudPointResolution();
     
-    void setUseTexture(bool b);
+    void setUseMaskTexture(bool b);
+    bool getUseMaskTexture();
     
-    void setUseMask(bool b);
-    bool getUseMask();
+    void setUseMaskPixels(bool b);
+    bool getUseMaskPixels();
     
     void setUsePointCloud(bool b);
     bool getUsePointCloud();
@@ -128,12 +129,12 @@ private:
     ofTexture maskTexture;
     
     int id;
-    int cloudPointSize;
+    int cloudPointDrawSize;
     int cloudPointResolution;
     
-    bool bUseMask;
+    bool bUseMaskPixels;
+    bool bUseMaskTexture;
     bool bUsePointCloud;
-    bool bUseTexture;
     bool bIsFound;
     bool bIsTracking;
     bool bIsCalibrating;

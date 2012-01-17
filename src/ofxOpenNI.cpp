@@ -149,7 +149,7 @@ void ofxOpenNI::stop(){
         cout << "ofxOpenNI[" << instanceID << "]: " << "trying to lock" << endl;
         lock();
         cout << "ofxOpenNI[" << instanceID << "]: " << "trying to shut down generator" << endl;
-        g_Context.WaitNoneUpdateAll();
+        g_Context.WaitNoneUpdateAll(); // maybe this helps?
         g_Context.StopGeneratingAll();
         cout << "ofxOpenNI[" << instanceID << "]: " << "trying to unlock" << endl;
         unlock();
@@ -744,7 +744,7 @@ void ofxOpenNI::updateUsers(){
 			}
             
 			if (user.bUsePointCloud) updatePointClouds(user);
-			if (user.bUseMask) updateUserPixels(user);
+			if (user.bUseMaskPixels) updateUserPixels(user);
             
 			trackedUserIDs.insert(user.id);
 		}
@@ -820,9 +820,10 @@ void ofxOpenNI::updateUserPixels(ofxOpenNIUser & user){
     //			if userPix[i] > 0 then the pixel belongs to the user who's value IS userPix[i]
     //  // (many thanks to ascorbin who's code made this apparent to me)
     
-    if (!user.bIsAllocated || (user.maskPixels.getWidth() != getWidth() || user.maskPixels.getHeight() != getHeight())){
+
+    if (user.maskPixels.getWidth() != getWidth() || user.maskPixels.getHeight() != getHeight()){
         user.maskPixels.allocate(getWidth(), getHeight(), OF_IMAGE_COLOR_ALPHA);
-        if (user.bUseTexture) user.maskTexture.allocate(getWidth(), getHeight(), GL_RGBA);
+        if (user.bUseMaskTexture) user.maskTexture.allocate(getWidth(), getHeight(), GL_RGBA);
     }
 	
     int nIndex = 0;
@@ -843,7 +844,7 @@ void ofxOpenNI::updateUserPixels(ofxOpenNIUser & user){
         }
     }
     
-    if (user.bUseTexture) user.maskTexture.loadData(user.maskPixels.getPixels(), getWidth(), getHeight(), GL_RGBA);
+    if (user.bUseMaskTexture) user.maskTexture.loadData(user.maskPixels.getPixels(), getWidth(), getHeight(), GL_RGBA);
 }
 
 //--------------------------------------------------------------
