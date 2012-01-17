@@ -142,11 +142,11 @@ public:
     void setMaxNumUsers(int numUsers);
     int	getMaxNumUsers();
     
-    void setUseMaskPixels(bool b);
-    bool getUseMaskPixels();
-    
-	void setUsePointClouds(bool b);
-    bool getUsePointClouds();
+//    void setUseMaskPixels(bool b);
+//    bool getUseMaskPixels();
+//    
+//	  void setUsePointClouds(bool b);
+//    bool getUsePointClouds();
     
     void setUseBackBuffer(bool b);
     bool getUseBackBuffer();

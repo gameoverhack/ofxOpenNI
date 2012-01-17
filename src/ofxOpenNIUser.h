@@ -99,6 +99,12 @@ public:
     
     void setUseTexture(bool b);
     
+    void setUseMask(bool b);
+    bool getUseMask();
+    
+    void setUsePointCloud(bool b);
+    bool getUsePointCloud();
+    
     int getNumLimbs();
 	ofxOpenNILimb & getLimb(Limb limb);
     
@@ -125,8 +131,13 @@ private:
     int cloudPointSize;
     int cloudPointResolution;
     
+    bool bUseMask;
+    bool bUsePointCloud;
     bool bUseTexture;
-    bool bIsTracking;//, skeletonCalibrating, skeletonCalibrated;
+    bool bIsFound;
+    bool bIsTracking;
+    bool bIsCalibrating;
+    bool bIsCalibrated;
     bool bIsAllocated;
 
 };

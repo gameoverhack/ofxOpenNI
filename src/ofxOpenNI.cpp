@@ -566,25 +566,25 @@ bool ofxOpenNI::getUseBackBuffer(){
 	return bUseBackBuffer;
 }
 
-//--------------------------------------------------------------
-void ofxOpenNI::setUseMaskPixels(bool b){
-	bUseMaskPixels = b;
-}
-
-//--------------------------------------------------------------
-bool ofxOpenNI::getUseMaskPixels(){
-	return bUseMaskPixels;
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::setUsePointClouds(bool b){
-	bUsePointClouds = b;
-}
-
-//--------------------------------------------------------------
-bool ofxOpenNI::getUsePointClouds(){
-	return bUsePointClouds;
-}
+////--------------------------------------------------------------
+//void ofxOpenNI::setUseMaskPixels(bool b){
+//	bUseMaskPixels = b;
+//}
+//
+////--------------------------------------------------------------
+//bool ofxOpenNI::getUseMaskPixels(){
+//	return bUseMaskPixels;
+//}
+//
+////--------------------------------------------------------------
+//void ofxOpenNI::setUsePointClouds(bool b){
+//	bUsePointClouds = b;
+//}
+//
+////--------------------------------------------------------------
+//bool ofxOpenNI::getUsePointClouds(){
+//	return bUsePointClouds;
+//}
 
 //--------------------------------------------------------------
 void ofxOpenNI::setUserSmoothing(float smooth){
@@ -722,8 +722,8 @@ void ofxOpenNI::updateUsers(){
 				user.limbs[j].worldEnd = toOf(b.position);
 			}
             
-			if (bUsePointClouds) updatePointClouds(user);
-			if (bUseMaskPixels) updateUserPixels(user);
+			if (user.bUsePointCloud) updatePointClouds(user);
+			if (user.bUseMask) updateUserPixels(user);
             
 			trackedUserIDs.insert(user.id);
 		}

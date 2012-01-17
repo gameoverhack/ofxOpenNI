@@ -90,6 +90,26 @@ void ofxOpenNIUser::setUseTexture(bool b){
 }
 
 //--------------------------------------------------------------
+void ofxOpenNIUser::setUseMask(bool b){
+    bUseMask = b;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNIUser::getUseMask(){
+    return bUseMask;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNIUser::setUsePointCloud(bool b){
+    bUsePointCloud = b;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNIUser::getUsePointCloud(){
+    return bUsePointCloud;
+}
+
+//--------------------------------------------------------------
 void ofxOpenNIUser::setCloudPointSize(int size){
     // this is the size of the points when drawing
     cloudPointSize = size;
