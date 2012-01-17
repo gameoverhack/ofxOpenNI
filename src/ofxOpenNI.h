@@ -239,6 +239,7 @@ private:
 	bool g_bIsDepthRawOnOption;
 	
     bool bIsContextReady;
+    bool bIsShuttingDown;
     bool bUseBackBuffer;
     bool bNeedsPose;
 	bool bUseTexture;

@@ -31,7 +31,7 @@
 static int instanceCount = -1;
 static string CALLBACK_LOG_NAME = "ofxOpenNIUserCB";
 //static ofMutex ofxOpenNIMutex;
-static bool shutdown = false;
+
 //--------------------------------------------------------------
 ofxOpenNI::ofxOpenNI(){
 	instanceCount++;
@@ -52,6 +52,7 @@ ofxOpenNI::ofxOpenNI(){
 	depthColoring = COLORING_RAINBOW;
 	
     bIsContextReady = false;
+    bIsShuttingDown = false;
     bUseBackBuffer = false;
     bNeedsPose = true;
 	bUseTexture = true;
@@ -73,9 +74,16 @@ ofxOpenNI::ofxOpenNI(){
 
 //--------------------------------------------------------------
 ofxOpenNI::~ofxOpenNI(){
+    
     // don't use ofLog here!!!
     cout << "ofxOpenNI[" << instanceID << "]: " << "destructor called" << endl;
+    if (bIsShuttingDown) {
+        cout << "ofxOpenNI[" << instanceID << "]: " << "...already shut down" << endl;
+        return;
+    }
+    
     stop();
+    bIsShuttingDown = true;
 }
 
 //--------------------------------------------------------------
@@ -126,21 +134,34 @@ void ofxOpenNI::start(){
 //--------------------------------------------------------------
 void ofxOpenNI::stop(){
     
-    if (!bIsContextReady) return;
-    
     // don't use ofLog here!!!
     cout << "ofxOpenNI[" << instanceID << "]: " << "stop called" << endl;
+    if (bIsShuttingDown) {
+        cout << "ofxOpenNI[" << instanceID << "]: " << "...already shut down" << endl;
+        return;
+    }
+    
+    bIsShuttingDown = true;
+    
+    if (!bIsContextReady) return;
     
     if (bIsThreaded) {
+        cout << "ofxOpenNI[" << instanceID << "]: " << "trying to lock" << endl;
         lock();
+        cout << "ofxOpenNI[" << instanceID << "]: " << "trying to shut down generator" << endl;
+        g_Context.WaitNoneUpdateAll();
         g_Context.StopGeneratingAll();
+        cout << "ofxOpenNI[" << instanceID << "]: " << "trying to unlock" << endl;
         unlock();
         //if (isThreadRunning()) stopThread();
+        cout << "ofxOpenNI[" << instanceID << "]: " << "waiting for thread to end" << endl;
         if (isThreadRunning()) waitForThread(true);
     } else {
         g_Context.StopGeneratingAll();
     }
-
+    
+    cout << "ofxOpenNI[" << instanceID << "]: " << "releasing all nodes" << endl;
+    
     bIsThreaded = false;
     bIsContextReady = false;
 
