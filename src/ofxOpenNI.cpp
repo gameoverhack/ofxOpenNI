@@ -1028,7 +1028,7 @@ void ofxOpenNI::drawDebug(float x, float y, float w, float h){
     
     ofPushMatrix();
     if (g_bIsDepthOn) drawDepth();
-    if (g_bIsUserOn) drawUsers();
+    if (g_bIsUserOn) drawSkeletons();
     ofTranslate(getWidth(), 0.0f);
     if (g_bIsImageOn) drawImage();
     if (g_bIsInfraOn) drawImage();
@@ -1069,37 +1069,37 @@ void ofxOpenNI::drawImage(float x, float y, float w, float h){
 }
 
 //--------------------------------------------------------------
-void ofxOpenNI::drawUsers(){
-    if (bIsContextReady) drawUsers(0.0f, 0.0f, getWidth(), getHeight());
+void ofxOpenNI::drawSkeletons(){
+    if (bIsContextReady) drawSkeletons(0.0f, 0.0f, getWidth(), getHeight());
 }
 
 //--------------------------------------------------------------
-void ofxOpenNI::drawUsers(float x, float y){
-	if (bIsContextReady) drawUsers(x, y, getWidth(), getHeight());
+void ofxOpenNI::drawSkeletons(float x, float y){
+	if (bIsContextReady) drawSkeletons(x, y, getWidth(), getHeight());
 }
 
 //--------------------------------------------------------------
-void ofxOpenNI::drawUsers(float x, float y, float w, float h){
+void ofxOpenNI::drawSkeletons(float x, float y, float w, float h){
 	if (!bIsContextReady) return;
     ofPushStyle();
     for(int i = 0;  i < (int)currentTrackedUserIDs.size(); ++i){
-        drawUser(x, y, w, h, i);
+        drawSkeleton(x, y, w, h, i);
     }
 	ofPopStyle();
 }
 
 //--------------------------------------------------------------
-void ofxOpenNI::drawUser(int nID){
-	drawUser(0.0f, 0.0f, getWidth(), getHeight(), nID);
+void ofxOpenNI::drawSkeleton(int nID){
+	drawSkeleton(0.0f, 0.0f, getWidth(), getHeight(), nID);
 }
 
 //--------------------------------------------------------------
-void ofxOpenNI::drawUser(float x, float y, int nID){
-	drawUser(x, y, getWidth(), getHeight(), nID);
+void ofxOpenNI::drawSkeleton(float x, float y, int nID){
+	drawSkeleton(x, y, getWidth(), getHeight(), nID);
 }
 
 //--------------------------------------------------------------
-void ofxOpenNI::drawUser(float x, float y, float w, float h, int nID){
+void ofxOpenNI::drawSkeleton(float x, float y, float w, float h, int nID){
 	if(nID - 1 > (int)currentTrackedUserIDs.size()) return;
     ofPushMatrix();
     ofTranslate(x, y);

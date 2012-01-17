@@ -104,13 +104,13 @@ public:
 	void drawImage(float x, float y);
 	void drawImage(float x, float y, float w, float h);
 	
-    void drawUsers();
-    void drawUsers(float x, float y);
-    void drawUsers(float x, float y, float w, float h);
+    void drawSkeletons();
+    void drawSkeletons(float x, float y);
+    void drawSkeletons(float x, float y, float w, float h);
     
-    void drawUser(int nID);
-    void drawUser(float x, float y, int nID);
-    void drawUser(float x, float y, float w, float, int nID);
+    void drawSkeleton(int nID);
+    void drawSkeleton(float x, float y, int nID);
+    void drawSkeleton(float x, float y, float w, float, int nID);
     
     bool setResolution(int w, int h, int fps);
 
