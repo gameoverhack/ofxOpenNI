@@ -15,7 +15,12 @@ ofxOpenNIUser::ofxOpenNIUser(){
     
     bUseMaskPixels = false;
     bUseMaskTexture = false;
+    bUsePointCloud = false;
+    bIsFound = false;
     bIsTracking = false;
+    bIsSkeleton = false;
+    bIsCalibrating = false;
+    bUseAutoCalibration = true;
     
 	limbs.resize(NumLimbs);
 
@@ -52,13 +57,12 @@ ofxOpenNIUser::ofxOpenNIUser(){
 void ofxOpenNIUser::drawSkeleton() {
     ofPushStyle();
     ofPushMatrix();
-	for(int i=0;i<NumLimbs;i++){
+	for(int i = 0; i < NumLimbs; i++){
         ofSetColor(255, 0, 0);
 		limbs[i].draw();
 	}
     ofPopMatrix();
     ofPopStyle();
-	//ofDrawBitmapString(ofToString((int)id), neck.position[0].X + 10, neck.position[0].Y);
 }
 
 //--------------------------------------------------------------
@@ -82,6 +86,16 @@ void ofxOpenNIUser::drawMask(){
         ofPopMatrix();
         ofPopStyle();
     }
+}
+
+//--------------------------------------------------------------
+void ofxOpenNIUser::setUseAutoCalibration(bool b){
+    bUseAutoCalibration = b;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNIUser::getUseAutoCalibration(){
+    return bUseAutoCalibration;
 }
 
 //--------------------------------------------------------------
@@ -177,6 +191,40 @@ int ofxOpenNIUser::getID(){
 }
 
 //--------------------------------------------------------------
+bool ofxOpenNIUser::isFound(){
+    return bIsFound;
+}
+
+//--------------------------------------------------------------
 bool ofxOpenNIUser::isTracking(){
     return bIsTracking;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNIUser::isSkeleton(){
+    return bIsSkeleton;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNIUser::isCalibrating(){
+    return bIsCalibrating;
+}
+
+//--------------------------------------------------------------
+string ofxOpenNIUser::getDebugInfo(){
+    ostringstream info;
+    info << "userID: " << ofToString(id) << " ";
+    info << "bUseAutoCalibration" << boolToString(bUseAutoCalibration) << " ";
+    info << "bIsFound: " << boolToString(bIsFound) << " ";
+    info << "bIsTracking: " << boolToString(bIsTracking) << " ";
+    info << "bIsSkeleton: " << boolToString(bIsSkeleton) << " ";
+    info << "bIsCalibrating: " << boolToString(bIsCalibrating) << endl;
+    info << "bUseMaskPixels: " << boolToString(bUseMaskPixels) << " ";
+    info << "bUseMaskTexture: " << boolToString(bUseMaskTexture) << " ";
+    info << "bUsePointCloud: " << boolToString(bUsePointCloud) << " ";
+    if (bUsePointCloud) {
+        info << "cloudPointDrawSize: " << ofToString(cloudPointDrawSize) << " ";
+        info << "cloudPointResolution: " << ofToString(cloudPointResolution) << " ";
+    }
+    return info.str();
 }

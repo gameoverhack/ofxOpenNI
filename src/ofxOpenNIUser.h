@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ofxOpenNIUtils.h"
+
 #include <XnTypes.h>
 #include "ofConstants.h"
 #include "ofPoint.h"
@@ -36,8 +38,6 @@ public:
 	ofPoint worldBegin, worldEnd;
     
 	bool found;
-
-	vector<ofxOpenNILimb*> jointLimbs;
 
 	void draw() {
 		if(!found) return;
@@ -91,6 +91,9 @@ public:
     void drawPointCloud();
     void drawMask();
     
+    void setUseAutoCalibration(bool b);
+    bool getUseAutoCalibration();
+    
     void setCloudPointDrawSize(int size); // this is the size of the points when drawing
     int getCloudPointDrawSize();
     
@@ -116,7 +119,12 @@ public:
     
     int getID();
     
+    bool isFound();
     bool isTracking();
+    bool isSkeleton();
+    bool isCalibrating();
+
+    string getDebugInfo();
     
 private:
     
@@ -135,10 +143,10 @@ private:
     bool bUseMaskPixels;
     bool bUseMaskTexture;
     bool bUsePointCloud;
+    bool bUseAutoCalibration;
     bool bIsFound;
     bool bIsTracking;
+    bool bIsSkeleton;
     bool bIsCalibrating;
-    bool bIsCalibrated;
-    bool bIsAllocated;
 
 };

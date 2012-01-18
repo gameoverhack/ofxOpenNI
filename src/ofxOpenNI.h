@@ -137,7 +137,7 @@ public:
     int	getNumTrackedUsers();
     
     ofxOpenNIUser&	getTrackedUser(int nID); // only returns tracked users
-    ofxOpenNIUser& getAnyUser(int nID); // returns any user (whether tracked or not)
+    ofxOpenNIUser& getUser(int nID); // finds a user if it exists (whether tracked or not)
     
     void setMaxNumUsers(int numUsers);
     int	getMaxNumUsers();
@@ -294,18 +294,20 @@ private:
 	xn::MockDepthGenerator mockDepth;
 	
     // user callback handlers
-    static void XN_CALLBACK_TYPE User_NewUser(xn::UserGenerator& rGenerator, XnUserID nID, void* pCookie);
-    static void XN_CALLBACK_TYPE User_LostUser(xn::UserGenerator& rGenerator, XnUserID nID, void* pCookie);
-    static void XN_CALLBACK_TYPE UserPose_PoseDetected(xn::PoseDetectionCapability& rCapability, const XnChar* strPose, XnUserID nID, void* pCookie);
-    static void XN_CALLBACK_TYPE UserCalibration_CalibrationStart(xn::SkeletonCapability& capability, XnUserID nID, void* pCookie);
-    static void XN_CALLBACK_TYPE UserCalibration_CalibrationEnd(xn::SkeletonCapability& rCapability, XnUserID nID, XnCalibrationStatus bSuccess, void* pCookie);
+    static void XN_CALLBACK_TYPE UserCB_handleNewUser(xn::UserGenerator& userGenerator, XnUserID nID, void* pCookie);
+    static void XN_CALLBACK_TYPE UserCB_handleLostUser(xn::UserGenerator& userGenerator, XnUserID nID, void* pCookie);
+    static void XN_CALLBACK_TYPE UserCB_handlePoseDetected(xn::PoseDetectionCapability& poseDetectionCapability, const XnChar* strPose, XnUserID nID, void* pCookie);
+    static void XN_CALLBACK_TYPE UserCB_handleCalibrationStart(xn::SkeletonCapability& skeletonCapability, XnUserID nID, void* pCookie);
+//    static void XN_CALLBACK_TYPE UserCB_handleCalibrationProgress(xn::SkeletonCapability& skeletonCapability, XnUserID nID, XnCalibrationStatus calibrationStatus, void* pCookie);
+    static void XN_CALLBACK_TYPE UserCB_handleCalibrationEnd(xn::SkeletonCapability& skeletonCapability, XnUserID nID, XnCalibrationStatus calibrationStatus, void* pCookie);
     
     // user pose functions
     XnChar	userCalibrationPose[20];
+    void startTracking(XnUserID nID);
+    void stopTracking(XnUserID nID);
+    void requestCalibration(XnUserID nID);
     void startPoseDetection(XnUserID nID);
     void stopPoseDetection(XnUserID nID);
-    void requestCalibration(XnUserID nID);
-    void startTracking(XnUserID nID);
     bool needsPoseForCalibration();
     
     // user storage

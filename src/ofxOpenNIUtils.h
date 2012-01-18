@@ -112,6 +112,54 @@ inline XnPoint3D toXn(const ofPoint & p){
 	 */
 }
 
+inline string boolToString(bool b){
+    return (string)(b ? "TRUE" : "FALSE");
+}
+
+inline string getCalibrationStatusAsString(XnCalibrationStatus type) {
+	switch (type) {
+		case XN_CALIBRATION_STATUS_OK:
+			return "XN_CALIBRATION_STATUS_OK";
+			break;
+		case XN_CALIBRATION_STATUS_NO_USER:
+			return "XN_CALIBRATION_STATUS_NO_USER";
+			break;
+		case XN_CALIBRATION_STATUS_ARM:
+			return "XN_CALIBRATION_STATUS_ARM";
+			break;
+		case XN_CALIBRATION_STATUS_LEG:
+			return "XN_CALIBRATION_STATUS_LEG";
+			break;
+		case XN_CALIBRATION_STATUS_HEAD:
+			return "XN_CALIBRATION_STATUS_HEAD";
+			break;
+		case XN_CALIBRATION_STATUS_TORSO:
+			return "XN_CALIBRATION_STATUS_TORSO";
+			break;
+		case XN_CALIBRATION_STATUS_TOP_FOV:
+			return "XN_CALIBRATION_STATUS_TOP_FOV";
+			break;
+		case XN_CALIBRATION_STATUS_SIDE_FOV:
+			return "XN_CALIBRATION_STATUS_SIDE_FOV";
+			break;
+		case XN_CALIBRATION_STATUS_POSE:
+			return "XN_CALIBRATION_STATUS_POSE";
+			break;
+		case XN_CALIBRATION_STATUS_MANUAL_ABORT:
+			return "XN_CALIBRATION_STATUS_MANUAL_ABORT";
+			break;
+		case XN_CALIBRATION_STATUS_MANUAL_RESET:
+			return "XN_CALIBRATION_STATUS_MANUAL_RESET";
+			break;
+		case XN_CALIBRATION_STATUS_TIMEOUT_FAIL:
+			return "XN_CALIBRATION_STATUS_TIMEOUT_FAIL";
+			break;
+		default:
+			return "UNKNOWN_CALIBRATION_STATUS_TYPE";
+			break;
+	}
+}
+
 inline string getNodeTypeAsString(XnProductionNodeType type) {
 	switch (type) {
 		case XN_NODE_TYPE_INVALID:
