@@ -197,11 +197,7 @@ private:
     bool addLicence(string sVendor, string sKey);
     void logErrors(xn::EnumerationErrors & errors);
     
-	void updateFrame();
-    void updateUsers();
-    
-    void updateUserPixels(ofxOpenNIUser & user);
-	void updatePointClouds(ofxOpenNIUser & user);
+	void updateGenerators();
     
 	bool allocateDepthBuffers();
 	bool allocateDepthRawBuffers();
@@ -212,8 +208,9 @@ private:
     void generateDepthPixels();
 	void generateImagePixels();
 	void generateIRPixels();
-	
-	bool bIsThreaded;
+    void generateUserTracking();
+    void generateUserPixels(ofxOpenNIUser & user);
+	void generatePointClouds(ofxOpenNIUser & user);
 	
 	bool g_bIsDepthOn;
 	bool g_bIsImageOn;
@@ -223,12 +220,16 @@ private:
 	bool g_bIsPlayerOn;
 	bool g_bIsDepthRawOnOption;
 	
+    bool bIsThreaded;
     bool bIsContextReady;
     bool bIsDeviceReady;
     bool bIsShuttingDown;
+    
     bool bUseBackBuffer;
-    bool bAutoCalibrationPossible;
 	bool bUseTexture;
+    
+    bool bAutoCalibrationPossible;
+    
 	bool bNewPixels;
 	bool bNewFrame;
     bool bUsePointClouds;

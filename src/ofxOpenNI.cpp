@@ -31,6 +31,12 @@
 static int instanceCount = -1;
 static ofxOpenNIUser staticDummyUser;
 
+/**************************************************************
+ *
+ *      constructor and setup methods
+ *
+ *************************************************************/
+
 //--------------------------------------------------------------
 ofxOpenNI::ofxOpenNI(){
 	instanceCount++;
@@ -66,20 +72,8 @@ ofxOpenNI::ofxOpenNI(){
     maxNumUsers = 4;
     
 	CreateRainbowPallet();
-
+    
     logLevel = OF_LOG_SILENT;
-}
-
-//--------------------------------------------------------------
-ofxOpenNI::~ofxOpenNI(){
-    // don't use ofLog here!!!
-    cout << LOG_NAME << ": destructor called" << endl;
-    if (bIsShuttingDown) {
-        cout << LOG_NAME << ": ...already shut down" << endl;
-        return;
-    }
-    stop();
-    bIsShuttingDown = true;
 }
 
 //--------------------------------------------------------------
@@ -122,111 +116,6 @@ bool ofxOpenNI::setup(bool threaded){
 //--------------------------------------------------------------
 bool ofxOpenNI::setup(string xmlFilePath, bool threaded){
 	ofLogWarning(LOG_NAME) << "Not yet implimented";
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::stop(){
-    // don't use ofLog here!!!
-    cout << LOG_NAME << ": stop called" << endl;
-    if (bIsShuttingDown) {
-        cout << LOG_NAME << ": ...already shut down" << endl;
-        return;
-    }
-    
-    bIsShuttingDown = true;
-    
-    if (!bIsContextReady) return;
-    
-    if (bIsThreaded) {
-        cout << LOG_NAME << ": trying to lock" << endl;
-        lock();
-        if (isThreadRunning()){
-            cout << LOG_NAME << ": trying to stop thread" << endl;
-            stopThread();
-            bIsThreaded = false;
-        }
-        if (g_bIsUserOn){
-            for (XnUserID nID = 1; nID <= maxNumUsers; nID++) {
-                if (currentTrackedUsers[nID].bIsFound) {
-                    cout << LOG_NAME << ": trying to kill user " << nID << endl;
-                    resetUserTracking(nID);
-                    currentTrackedUsers.erase(currentTrackedUsers.find(nID));
-                }
-            }
-//            cout << LOG_NAME << ": trying to stop user generator" << endl;
-//            g_User.StopGenerating();
-//            g_User.Release();
-        }
-        //cout << LOG_NAME << ": trying one last update of generator" << endl;
-        //g_Context.WaitNoneUpdateAll(); // maybe this helps?
-        cout << LOG_NAME << ": trying to unlock" << endl;
-        //unlock();
-        cout << LOG_NAME << ": waiting for thread to end" << endl;
-        if (isThreadRunning()) waitForThread(true);
-
-    }
-    
-//    cout << LOG_NAME << ": trying to stop generator" << endl;
-//    g_Context.StopGeneratingAll();
-    
-    cout << LOG_NAME << ": releasing all nodes" << endl;
-
-    instanceCount--; // ok this will probably cause problems when dynamically creating and destroying -> you'd need to do it in order!
-    
-    if (g_bIsDepthOn){
-        cout << LOG_NAME << ": releasing depth generator" << endl;
-        g_Depth.StopGenerating();
-        g_Depth.Release();
-        g_bIsDepthOn = false;
-    }
-    
-    if (g_bIsImageOn){
-        cout << LOG_NAME << ": releasing image generator" << endl;
-        g_Image.StopGenerating();
-        g_Image.Release();
-        g_bIsImageOn = false;
-    }
-
-    if (g_bIsInfraOn){
-        cout << LOG_NAME << ": releasing infra generator" << endl;
-        g_Infra.StopGenerating();
-        g_Infra.Release();
-        g_bIsInfraOn = false;
-    }
-
-    if (g_bIsUserOn){
-        cout << LOG_NAME << ": releasing user generator" << endl;
-        g_User.StopGenerating();
-        g_User.Release();
-        g_bIsUserOn = false;
-    }
-
-    if (g_bIsAudioOn){
-        cout << LOG_NAME << ": releasing audio generator" << endl;
-        g_Audio.StopGenerating();
-        g_Audio.Release();
-    }
-
-    if (g_bIsPlayerOn){
-        cout << LOG_NAME << ": releasing player generator" << endl;
-        g_Player.Release();
-        g_bIsPlayerOn = false;
-    }
-
-    if (bIsDeviceReady){
-        cout << LOG_NAME << ": releasing device" << endl;
-        g_Device.Release();
-        bIsDeviceReady = false;
-    }
-
-    if (bIsContextReady){
-        cout << LOG_NAME << ": releasing context" << endl;
-        g_Context.StopGeneratingAll();
-        g_Context.Release();
-        bIsContextReady = false;
-    }
-
-    cout << LOG_NAME << ": full stopped" << endl;
 }
 
 //--------------------------------------------------------------
@@ -293,6 +182,135 @@ bool ofxOpenNI::addLicence(string sVendor, string sKey){
     return ok;
 }
 
+/**************************************************************
+ *
+ *      destructor and stop methods
+ *
+ *************************************************************/
+
+//--------------------------------------------------------------
+ofxOpenNI::~ofxOpenNI(){
+    // don't use ofLog here!!!
+    cout << LOG_NAME << ": destructor called" << endl;
+    if (bIsShuttingDown) {
+        cout << LOG_NAME << ": ...already shut down" << endl;
+        return;
+    }
+    stop();
+    bIsShuttingDown = true;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::stop(){
+    // don't use ofLog here!!!
+    cout << LOG_NAME << ": stop called" << endl;
+    if (bIsShuttingDown) {
+        cout << LOG_NAME << ": ...already shut down" << endl;
+        return;
+    }
+    
+    bIsShuttingDown = true;
+    
+    if (!bIsContextReady) return;
+    
+    if (bIsThreaded) {
+        cout << LOG_NAME << ": trying to lock" << endl;
+        lock();
+        if (isThreadRunning()){
+            cout << LOG_NAME << ": trying to stop thread" << endl;
+            stopThread();
+            bIsThreaded = false;
+        }
+        if (g_bIsUserOn){
+            for (XnUserID nID = 1; nID <= maxNumUsers; nID++) {
+                if (currentTrackedUsers[nID].bIsFound) {
+                    cout << LOG_NAME << ": trying to kill user " << nID << endl;
+                    resetUserTracking(nID);
+                    currentTrackedUsers.erase(currentTrackedUsers.find(nID));
+                }
+            }
+            //            cout << LOG_NAME << ": trying to stop user generator" << endl;
+            //            g_User.StopGenerating();
+            //            g_User.Release();
+        }
+        //cout << LOG_NAME << ": trying one last update of generator" << endl;
+        //g_Context.WaitNoneUpdateAll(); // maybe this helps?
+        cout << LOG_NAME << ": trying to unlock" << endl;
+        //unlock();
+        cout << LOG_NAME << ": waiting for thread to end" << endl;
+        if (isThreadRunning()) waitForThread(true);
+        
+    }
+    
+    //    cout << LOG_NAME << ": trying to stop generator" << endl;
+    //    g_Context.StopGeneratingAll();
+    
+    cout << LOG_NAME << ": releasing all nodes" << endl;
+    
+    instanceCount--; // ok this will probably cause problems when dynamically creating and destroying -> you'd need to do it in order!
+    
+    if (g_bIsDepthOn){
+        cout << LOG_NAME << ": releasing depth generator" << endl;
+        g_Depth.StopGenerating();
+        g_Depth.Release();
+        g_bIsDepthOn = false;
+    }
+    
+    if (g_bIsImageOn){
+        cout << LOG_NAME << ": releasing image generator" << endl;
+        g_Image.StopGenerating();
+        g_Image.Release();
+        g_bIsImageOn = false;
+    }
+    
+    if (g_bIsInfraOn){
+        cout << LOG_NAME << ": releasing infra generator" << endl;
+        g_Infra.StopGenerating();
+        g_Infra.Release();
+        g_bIsInfraOn = false;
+    }
+    
+    if (g_bIsUserOn){
+        cout << LOG_NAME << ": releasing user generator" << endl;
+        g_User.StopGenerating();
+        g_User.Release();
+        g_bIsUserOn = false;
+    }
+    
+    if (g_bIsAudioOn){
+        cout << LOG_NAME << ": releasing audio generator" << endl;
+        g_Audio.StopGenerating();
+        g_Audio.Release();
+    }
+    
+    if (g_bIsPlayerOn){
+        cout << LOG_NAME << ": releasing player generator" << endl;
+        g_Player.Release();
+        g_bIsPlayerOn = false;
+    }
+    
+    if (bIsDeviceReady){
+        cout << LOG_NAME << ": releasing device" << endl;
+        g_Device.Release();
+        bIsDeviceReady = false;
+    }
+    
+    if (bIsContextReady){
+        cout << LOG_NAME << ": releasing context" << endl;
+        g_Context.StopGeneratingAll();
+        g_Context.Release();
+        bIsContextReady = false;
+    }
+    
+    cout << LOG_NAME << ": full stopped" << endl;
+}
+
+/**************************************************************
+ *
+ *      logging helper methods
+ *
+ *************************************************************/
+
 //--------------------------------------------------------------
 void ofxOpenNI::setLogLevel(XnLogSeverity logLevel){
 	XnStatus nRetVal = XN_STATUS_OK;
@@ -318,6 +336,12 @@ void ofxOpenNI::logErrors(xn::EnumerationErrors & errors){
 		ofLog(OF_LOG_ERROR, "%s failed: %s\n", desc, xnGetStatusString(it.Error()));
 	}	
 }
+
+/**************************************************************
+ *
+ *      adding generator methods
+ *
+ *************************************************************/
 
 //--------------------------------------------------------------
 bool ofxOpenNI::addDepthGenerator(){
@@ -463,6 +487,13 @@ bool ofxOpenNI::addPlayerGenerator(){
     return false;
 }
 
+/**************************************************************
+ *
+ *      removing generator methods
+ *
+ *************************************************************/
+
+//--------------------------------------------------------------
 bool ofxOpenNI::removeDepthGenerator(){
     if (!g_bIsDepthOn){
         ofLogWarning() << "No depth generator - can't remove!";
@@ -530,6 +561,12 @@ bool ofxOpenNI::removePlayerGenerator(){
     return false;
 }
 
+/**************************************************************
+ *
+ *      allocators for generators (pixels, textures, users)
+ *
+ *************************************************************/
+
 //--------------------------------------------------------------
 bool ofxOpenNI::allocateDepthBuffers(){
     bool ok = setGeneratorResolution(g_Depth, width, height, fps);
@@ -581,6 +618,7 @@ bool ofxOpenNI::allocateIRBuffers(){
 
 //--------------------------------------------------------------
 bool ofxOpenNI::allocateUsers(){
+    
     XnStatus nRetVal = XN_STATUS_OK;
     bool ok = false;
     
@@ -631,15 +669,335 @@ bool ofxOpenNI::allocateUsers(){
     
 }
 
+/**************************************************************
+ *
+ *      update methods (frame, user, pixels, cloudpoints)
+ *
+ *************************************************************/
+
 //--------------------------------------------------------------
-void ofxOpenNI::setUseBackBuffer(bool b){
-	bUseBackBuffer = b;
+void ofxOpenNI::threadedFunction(){
+	while(isThreadRunning()){
+		updateGenerators();
+	}
 }
 
 //--------------------------------------------------------------
-bool ofxOpenNI::getUseBackBuffer(){
-	return bUseBackBuffer;
+void ofxOpenNI::update(){
+
+    if (!bIsContextReady) return;
+    
+	if (!bIsThreaded){
+		updateGenerators();
+	} else {
+		lock();
+	}
+	
+	if (bNewPixels){
+		if (bUseTexture && g_bIsDepthOn){
+            if (bUseBackBuffer) {
+                depthTexture.loadData(*currentDepthPixels); // see note about back buffering above
+            } else {
+                depthTexture.loadData(*backDepthPixels);
+            }
+		}
+		if (bUseTexture && (g_bIsImageOn || g_bIsInfraOn)){
+            if (bUseBackBuffer) {
+                imageTexture.loadData(*currentImagePixels);
+            } else {
+                imageTexture.loadData(*backImagePixels);
+            }
+		}
+        
+        if (g_bIsUserOn) generateUserTracking();
+		
+        bNewPixels = false;
+		bNewFrame = true;
+
+	}
+
+	if (bIsThreaded) unlock();
 }
+
+//--------------------------------------------------------------
+void ofxOpenNI::updateGenerators(){
+    
+	//if (bIsThreaded) lock(); // with this here I get ~30 fps with 2 Kinects
+	
+    if (!bIsContextReady) return;
+    
+    g_Context.WaitAnyUpdateAll();
+    
+    //    this doesn't seem as fast/smooth, but is more 'correct':
+    //    if (g_bIsUserOn) {
+    //        g_Context.WaitOneUpdateAll(g_User);
+    //    } else {
+    //        g_Context.WaitAnyUpdateAll();
+    //    }
+    //if (bIsThreaded) lock(); // with this her I get ~300-400+ fps with 2 Kinects!
+    
+	if (g_bIsDepthOn && g_Depth.IsDataNew()) g_Depth.GetMetaData(g_DepthMD);
+	if (g_bIsImageOn && g_Image.IsDataNew()) g_Image.GetMetaData(g_ImageMD);
+	if (g_bIsInfraOn && g_Infra.IsDataNew()) g_Infra.GetMetaData(g_InfraMD);
+    
+    if (bIsThreaded) lock(); // with this her I get ~400-500+ fps with 2 Kinects!
+    
+    if (g_bIsDepthOn) generateDepthPixels();
+	if (g_bIsImageOn) generateImagePixels();
+	if (g_bIsInfraOn) generateIRPixels();
+    
+    
+    // NB: Below info is from my old single context setup - need to retest with this new multicontext setup!  
+    // NEW SETUP for 12 frames tested avg -69.33ms latency with 2 x kinects (high ~80ms, low ~50ms)
+    
+    // I really don't think it's necessary to back buffer the image/ir/depth pixels
+    // as I understand it the GetMetaData() call is already acting as a back buffer
+    // since it is fetching the pixel data from the xn::Context which we then 'copy'
+    // during our generateDepth/Image/IRPixels() methods...
+    
+    // my tests show that it adds between ~10 to ~15 milliseconds to capture <-> screen latency 
+    // ie., the time between something occuring in the physical world, it's capture and subsequent display onscreen.
+    
+    // without back buffering my tests show 55 to 65ms, avg 61.5ms (consistent frame times, ie., no outliers in small samples)
+    // with back buffering my tests show 70 to 80ms, avg 73.8ms (this does not include outliers ie., usually 1 in 7 frames showing 150-275ms latency!)
+    
+    // NB: the above tests were done with 2 Kinects...with one Kinect (and not using backbuffering) I get between 50-60ms, avg ~53ms 
+    // (with some more outliers though one frame 33ms (!) andother 95ms(!))....hmmmm   
+    
+    if (bUseBackBuffer){
+        if (g_bIsDepthOn && g_Depth.IsDataNew()){
+            swap(backDepthPixels, currentDepthPixels);
+            if (g_bIsDepthRawOnOption){
+                swap(backDepthRawPixels, currentDepthRawPixels);
+            }
+        }
+        if ((g_bIsImageOn && g_Image.IsDataNew()) || (g_bIsInfraOn && g_Infra.IsDataNew())){
+            swap(backImagePixels, currentImagePixels);
+        }
+    }
+	
+	bNewPixels = true;
+	
+	if (bIsThreaded) unlock();
+}
+
+/**************************************************************
+ *
+ *      generate pixels and textures (depth, image, infra)
+ *
+ *************************************************************/
+
+//--------------------------------------------------------------
+void ofxOpenNI::generateDepthPixels(){
+	// get the pixels
+	const XnDepthPixel* depth = g_DepthMD.Data();
+	
+	if (g_DepthMD.FrameID() == 0) return;
+	
+	// copy raw values
+	if (g_bIsDepthRawOnOption){
+		backDepthRawPixels->setFromPixels(depth, g_DepthMD.XRes(), g_DepthMD.YRes(), OF_IMAGE_COLOR);
+	}
+	
+	// copy depth into texture-map
+	for (XnUInt16 y = g_DepthMD.YOffset(); y < g_DepthMD.YRes() + g_DepthMD.YOffset(); y++){
+		unsigned char * texture = backDepthPixels->getPixels() + y * g_DepthMD.XRes() * 4 + g_DepthMD.XOffset() * 4;
+		for (XnUInt16 x = 0; x < g_DepthMD.XRes(); x++, depth++, texture += 4){
+			
+			ofColor depthColor;
+			getDepthColor(depthColoring, *depth, depthColor, maxDepth);
+			
+			texture[0] = depthColor.r;
+			texture[1] = depthColor.g;
+			texture[2] = depthColor.b;
+			
+			if (*depth == 0)
+				texture[3] = 0;
+			else
+				texture[3] = depthColor.a;
+		}
+	}
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::generateImagePixels(){
+	const XnUInt8* pImage = g_ImageMD.Data();
+	backImagePixels->setFromPixels(pImage, g_ImageMD.XRes(), g_ImageMD.YRes(), OF_IMAGE_COLOR);
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::generateIRPixels(){
+	const XnIRPixel* pImage = g_InfraMD.Data();
+    unsigned char * ir_pixels = new unsigned char[g_InfraMD.XRes() * g_InfraMD.YRes()];
+	for (int i = 0; i < g_InfraMD.XRes() * g_InfraMD.YRes(); i++){
+		ir_pixels[i] = pImage[i]/4;
+	}
+	backImagePixels->setFromPixels(ir_pixels, g_InfraMD.XRes(), g_InfraMD.YRes(), OF_IMAGE_GRAYSCALE);
+    delete ir_pixels;
+}
+
+/**************************************************************
+ *
+ *      generate skeletons, user masks and point clouds
+ *
+ *************************************************************/
+
+//--------------------------------------------------------------
+void ofxOpenNI::generateUserTracking(){
+    
+    // get user generator reference
+    xn::UserGenerator & userGenerator = g_User;
+    
+	vector<XnUserID> userIDs(maxNumUsers);
+    XnUInt16 xnMaxNumUsers = maxNumUsers + 1;
+    if (xnMaxNumUsers < userGenerator.GetNumberOfUsers()){
+        //ofLogWarning() << "maxNumUsers is set lower than the current number of users...increase them with setMaxNumUsers()";
+    }
+	userGenerator.GetUsers(&userIDs[0], xnMaxNumUsers);
+    
+	set<XnUserID> trackedUserIDs;
+    
+	for (int i = 0; i < maxNumUsers + 1; ++i) {
+		if (userGenerator.GetSkeletonCap().IsTracking(userIDs[i])) {
+			ofxOpenNIUser & user = currentTrackedUsers[userIDs[i]];
+			user.id = userIDs[i];
+			XnPoint3D center;
+			userGenerator.GetCoM(userIDs[i], center);
+			user.center = toOf(center);
+            bool lastbIsSkeleton = user.bIsSkeleton;
+            user.bIsSkeleton = false;
+			for (int j=0; j<ofxOpenNIUser::NumLimbs; j++){
+				XnSkeletonJointPosition a,b;
+				userGenerator.GetSkeletonCap().GetSkeletonJointPosition(user.id, user.limbs[j].start_joint, a);
+				userGenerator.GetSkeletonCap().GetSkeletonJointPosition(user.id, user.limbs[j].end_joint, b);
+				userGenerator.GetSkeletonCap().GetSkeletonJointOrientation(user.id,user.limbs[j].start_joint, user.limbs[j].orientation);
+				if (a.fConfidence < user.limbDetectionConfidence || b.fConfidence < user.limbDetectionConfidence){
+					user.limbs[j].found = false;
+					continue;
+				}
+				user.limbs[j].found = true;
+				user.limbs[j].begin = worldToProjective(a.position);
+				user.limbs[j].end = worldToProjective(b.position);
+				user.limbs[j].worldBegin = toOf(a.position);
+				user.limbs[j].worldEnd = toOf(b.position);
+                user.bIsSkeleton = true;
+			}
+            
+			if (user.bUsePointCloud) generatePointClouds(user);
+			if (user.bUseMaskPixels) generateUserPixels(user);
+            
+			trackedUserIDs.insert(user.id);
+            
+            if (user.bIsSkeleton != lastbIsSkeleton){
+                ofLogNotice(LOG_NAME) << "Skeleton" << (string)(user.bIsSkeleton ? "found" : "lost") << "for user" << user.id;
+                ofxOpenNIUserEvent event = ofxOpenNIUserEvent(user.id, instanceID, (user.bIsSkeleton ? USER_SKELETON_FOUND : USER_SKELETON_LOST));
+                ofNotifyEvent(userEvent, event, this);
+            }
+		}
+	}
+    
+    //	set<XnUserID>::iterator it;
+    //	for (it = previousTrackedUserIDs.begin(); it != previousTrackedUserIDs.end(); it++){
+    //		if (trackedUserIDs.find(*it) == trackedUserIDs.end()){
+    //			//currentTrackedUsers.erase(*it);
+    //            ofxOpenNIUser & user = currentTrackedUsers[*it];
+    //            //user.bIsTracking = false;
+    //		}
+    //	}
+    //
+    //	previousTrackedUserIDs = trackedUserIDs;
+    //	currentTrackedUserIDs.assign(previousTrackedUserIDs.begin(), previousTrackedUserIDs.end());
+    
+    currentTrackedUserIDs.assign(trackedUserIDs.begin(), trackedUserIDs.end());
+    
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::generatePointClouds(ofxOpenNIUser & user){
+    
+	const XnRGB24Pixel*	pColor;
+	const XnDepthPixel*	pDepth = g_DepthMD.Data();
+    
+	if (g_bIsImageOn) {
+		pColor = g_ImageMD.RGB24Data();
+	}
+    
+	xn::SceneMetaData smd;
+    
+	unsigned short *userPix;
+    
+	if (g_User.GetUserPixels(user.id, smd) == XN_STATUS_OK) {
+		userPix = (unsigned short*)smd.Data();
+	}
+    
+	int step = user.cloudPointResolution;
+	int nIndex = 0;
+    
+	user.pointCloud.getVertices().clear();
+	user.pointCloud.getColors().clear();
+	user.pointCloud.setMode(OF_PRIMITIVE_POINTS);
+    
+	for (int nY = 0; nY < getHeight(); nY += step) {
+		for (int nX = 0; nX < getWidth(); nX += step) {
+            nIndex = nY * getWidth() + nX;
+			if (userPix[nIndex] == user.id) {
+				user.pointCloud.addVertex(ofPoint(nX, nY, pDepth[nIndex]));
+				if(g_bIsImageOn){
+					user.pointCloud.addColor(ofColor(pColor[nIndex].nRed, pColor[nIndex].nGreen, pColor[nIndex].nBlue));
+				}else{
+					user.pointCloud.addColor(ofFloatColor(1,1,1));
+				}
+			}
+		}
+	}
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::generateUserPixels(ofxOpenNIUser & user){
+    
+	xn::SceneMetaData smd;
+	unsigned short *userPix;
+    
+	if (g_User.GetUserPixels(user.id, smd) == XN_STATUS_OK) { //	GetUserPixels is supposed to take a user ID number,
+		userPix = (unsigned short*)smd.Data();					//  but you get the same data no matter what you pass.
+	}															//	userPix actually contains an array where each value
+    //  corresponds to the user being tracked.
+    //  Ie.,	if userPix[i] == 0 then it's not being tracked -> it's the background!
+    //			if userPix[i] > 0 then the pixel belongs to the user who's value IS userPix[i]
+    //  // (many thanks to ascorbin who's code made this apparent to me)
+    
+    
+    if (user.maskPixels.getWidth() != getWidth() || user.maskPixels.getHeight() != getHeight()){
+        user.maskPixels.allocate(getWidth(), getHeight(), OF_IMAGE_COLOR_ALPHA);
+        if (user.bUseMaskTexture) user.maskTexture.allocate(getWidth(), getHeight(), GL_RGBA);
+    }
+	
+    int nIndex = 0;
+    for (int nY = 0; nY < getHeight(); nY++) {
+		for (int nX = 0; nX < getWidth(); nX++) {
+            nIndex = nY * getWidth() + nX;
+            if (userPix[nIndex] == user.id) {
+                user.maskPixels[nIndex * 4 + 0] = 255;
+                user.maskPixels[nIndex * 4 + 1] = 255;
+                user.maskPixels[nIndex * 4 + 2] = 255;
+                user.maskPixels[nIndex * 4 + 3] = 0;
+            } else {
+                user.maskPixels[nIndex * 4 + 0] = 0;
+                user.maskPixels[nIndex * 4 + 1] = 0;
+                user.maskPixels[nIndex * 4 + 2] = 0;
+                user.maskPixels[nIndex * 4 + 3] = 255;
+            }
+        }
+    }
+    
+    if (user.bUseMaskTexture) user.maskTexture.loadData(user.maskPixels.getPixels(), getWidth(), getHeight(), GL_RGBA);
+}
+
+/**************************************************************
+ *
+ *      getters/setters: user properties
+ *
+ *************************************************************/
 
 //--------------------------------------------------------------
 void ofxOpenNI::setUserSmoothing(float smooth){
@@ -717,267 +1075,11 @@ int	ofxOpenNI::getMaxNumUsers(){
     return maxNumUsers; // currentTrackedUsers.size()
 }
 
-//--------------------------------------------------------------
-void ofxOpenNI::updateUsers(){
-
-    // get user generator reference
-    xn::UserGenerator& userGenerator = g_User;
-    
-	vector<XnUserID> userIDs(maxNumUsers);
-    XnUInt16 xnMaxNumUsers = maxNumUsers + 1;
-    if (xnMaxNumUsers < userGenerator.GetNumberOfUsers()){
-        //ofLogWarning() << "maxNumUsers is set lower than the current number of users...increase them with setMaxNumUsers()";
-    }
-	userGenerator.GetUsers(&userIDs[0], xnMaxNumUsers);
-    
-	set<XnUserID> trackedUserIDs;
-    
-	for (int i = 0; i < maxNumUsers + 1; ++i) {
-		if (userGenerator.GetSkeletonCap().IsTracking(userIDs[i])) {
-			ofxOpenNIUser & user = currentTrackedUsers[userIDs[i]];
-			user.id = userIDs[i];
-			XnPoint3D center;
-			userGenerator.GetCoM(userIDs[i], center);
-			user.center = toOf(center);
-            bool lastbIsSkeleton = user.bIsSkeleton;
-            user.bIsSkeleton = false;
-			for (int j=0; j<ofxOpenNIUser::NumLimbs; j++){
-				XnSkeletonJointPosition a,b;
-				userGenerator.GetSkeletonCap().GetSkeletonJointPosition(user.id, user.limbs[j].start_joint, a);
-				userGenerator.GetSkeletonCap().GetSkeletonJointPosition(user.id, user.limbs[j].end_joint, b);
-				userGenerator.GetSkeletonCap().GetSkeletonJointOrientation(user.id,user.limbs[j].start_joint, user.limbs[j].orientation);
-				if (a.fConfidence < user.limbDetectionConfidence || b.fConfidence < user.limbDetectionConfidence){
-					user.limbs[j].found = false;
-					continue;
-				}
-				user.limbs[j].found = true;
-				user.limbs[j].begin = worldToProjective(a.position);
-				user.limbs[j].end = worldToProjective(b.position);
-				user.limbs[j].worldBegin = toOf(a.position);
-				user.limbs[j].worldEnd = toOf(b.position);
-                user.bIsSkeleton = true;
-			}
-            
-			if (user.bUsePointCloud) updatePointClouds(user);
-			if (user.bUseMaskPixels) updateUserPixels(user);
-            
-			trackedUserIDs.insert(user.id);
-            
-            if (user.bIsSkeleton != lastbIsSkeleton){
-                ofLogNotice(LOG_NAME) << "Skeleton" << (string)(user.bIsSkeleton ? "found" : "lost") << "for user" << user.id;
-                ofxOpenNIUserEvent event = ofxOpenNIUserEvent(user.id, instanceID, (user.bIsSkeleton ? USER_SKELETON_FOUND : USER_SKELETON_LOST));
-                ofNotifyEvent(userEvent, event, this);
-            }
-		}
-	}
-    
-//	set<XnUserID>::iterator it;
-//	for (it = previousTrackedUserIDs.begin(); it != previousTrackedUserIDs.end(); it++){
-//		if (trackedUserIDs.find(*it) == trackedUserIDs.end()){
-//			//currentTrackedUsers.erase(*it);
-//            ofxOpenNIUser & user = currentTrackedUsers[*it];
-//            //user.bIsTracking = false;
-//		}
-//	}
-//
-//	previousTrackedUserIDs = trackedUserIDs;
-//	currentTrackedUserIDs.assign(previousTrackedUserIDs.begin(), previousTrackedUserIDs.end());
-    currentTrackedUserIDs.assign(trackedUserIDs.begin(), trackedUserIDs.end());
-	//if (useMaskPixels) updateUserPixels();
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::updatePointClouds(ofxOpenNIUser & user){
-    
-	const XnRGB24Pixel*	pColor;
-	const XnDepthPixel*	pDepth = g_DepthMD.Data();
-    
-	if (g_bIsImageOn) {
-		pColor = g_ImageMD.RGB24Data();
-	}
-    
-	xn::SceneMetaData smd;
-    //if (!smd.IsDataNew()) return;
-    
-	unsigned short *userPix;
-    
-	if (g_User.GetUserPixels(user.id, smd) == XN_STATUS_OK) {
-		userPix = (unsigned short*)smd.Data();
-	}
-    
-	int step = user.cloudPointResolution;
-	int nIndex = 0;
-    
-	user.pointCloud.getVertices().clear();
-	user.pointCloud.getColors().clear();
-	user.pointCloud.setMode(OF_PRIMITIVE_POINTS);
-    
-	for (int nY = 0; nY < getHeight(); nY += step) {
-		for (int nX = 0; nX < getWidth(); nX += step) {
-            nIndex = nY * getWidth() + nX;
-			if (userPix[nIndex] == user.id) {
-				user.pointCloud.addVertex(ofPoint(nX, nY, pDepth[nIndex]));
-				if(g_bIsImageOn){
-					user.pointCloud.addColor(ofColor(pColor[nIndex].nRed, pColor[nIndex].nGreen, pColor[nIndex].nBlue));
-				}else{
-					user.pointCloud.addColor(ofFloatColor(1,1,1));
-				}
-			}
-		}
-	}
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::updateUserPixels(ofxOpenNIUser & user){
-    
-	xn::SceneMetaData smd;
-	unsigned short *userPix;
-    
-	if (g_User.GetUserPixels(user.id, smd) == XN_STATUS_OK) { //	GetUserPixels is supposed to take a user ID number,
-		userPix = (unsigned short*)smd.Data();					//  but you get the same data no matter what you pass.
-	}															//	userPix actually contains an array where each value
-    //  corresponds to the user being tracked.
-    //  Ie.,	if userPix[i] == 0 then it's not being tracked -> it's the background!
-    //			if userPix[i] > 0 then the pixel belongs to the user who's value IS userPix[i]
-    //  // (many thanks to ascorbin who's code made this apparent to me)
-    
-
-    if (user.maskPixels.getWidth() != getWidth() || user.maskPixels.getHeight() != getHeight()){
-        user.maskPixels.allocate(getWidth(), getHeight(), OF_IMAGE_COLOR_ALPHA);
-        if (user.bUseMaskTexture) user.maskTexture.allocate(getWidth(), getHeight(), GL_RGBA);
-    }
-	
-    int nIndex = 0;
-    for (int nY = 0; nY < getHeight(); nY++) {
-		for (int nX = 0; nX < getWidth(); nX++) {
-            nIndex = nY * getWidth() + nX;
-            if (userPix[nIndex] == user.id) {
-                user.maskPixels[nIndex * 4 + 0] = 255;
-                user.maskPixels[nIndex * 4 + 1] = 255;
-                user.maskPixels[nIndex * 4 + 2] = 255;
-                user.maskPixels[nIndex * 4 + 3] = 0;
-            } else {
-                user.maskPixels[nIndex * 4 + 0] = 0;
-                user.maskPixels[nIndex * 4 + 1] = 0;
-                user.maskPixels[nIndex * 4 + 2] = 0;
-                user.maskPixels[nIndex * 4 + 3] = 255;
-            }
-        }
-    }
-    
-    if (user.bUseMaskTexture) user.maskTexture.loadData(user.maskPixels.getPixels(), getWidth(), getHeight(), GL_RGBA);
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::updateFrame(){
-    
-	//if (bIsThreaded) lock(); // with this here I get ~30 fps with 2 Kinects
-	
-    if (!bIsContextReady) return;
-    
-    g_Context.WaitAnyUpdateAll();
-    
-//    this doesn't seem as fast/smooth, but is more 'correct':
-//    if (g_bIsUserOn) {
-//        g_Context.WaitOneUpdateAll(g_User);
-//    } else {
-//        g_Context.WaitAnyUpdateAll();
-//    }
-    //if (bIsThreaded) lock(); // with this her I get ~300-400+ fps with 2 Kinects!
-    
-	if (g_bIsDepthOn && g_Depth.IsDataNew()) g_Depth.GetMetaData(g_DepthMD);
-	if (g_bIsImageOn && g_Image.IsDataNew()) g_Image.GetMetaData(g_ImageMD);
-	if (g_bIsInfraOn && g_Infra.IsDataNew()) g_Infra.GetMetaData(g_InfraMD);
-    
-    if (bIsThreaded) lock(); // with this her I get ~400-500+ fps with 2 Kinects!
-    
-    if (g_bIsDepthOn) generateDepthPixels();
-	if (g_bIsImageOn) generateImagePixels();
-	if (g_bIsInfraOn) generateIRPixels();
-
-// NB: Below info is from my old single context setup - need to retest with this new multicontext setup!  
-// NEW SETUP for 12 frames tested avg -69.33ms latency with 2 x kinects (high ~80ms, low ~50ms)
-
-// I really don't think it's necessary to back buffer the image/ir/depth pixels
-// as I understand it the GetMetaData() call is already acting as a back buffer
-// since it is fetching the pixel data from the xn::Context which we then 'copy'
-// during our generateDepth/Image/IRPixels() methods...
-
-// my tests show that it adds between ~10 to ~15 milliseconds to capture <-> screen latency 
-// ie., the time between something occuring in the physical world, it's capture and subsequent display onscreen.
-    
-// without back buffering my tests show 55 to 65ms, avg 61.5ms (consistent frame times, ie., no outliers in small samples)
-// with back buffering my tests show 70 to 80ms, avg 73.8ms (this does not include outliers ie., usually 1 in 7 frames showing 150-275ms latency!)
-
-// NB: the above tests were done with 2 Kinects...with one Kinect (and not using backbuffering) I get between 50-60ms, avg ~53ms 
-// (with some more outliers though one frame 33ms (!) andother 95ms(!))....hmmmm   
-
-    if (bUseBackBuffer){
-        if (g_bIsDepthOn){
-            swap(backDepthPixels, currentDepthPixels);
-            if (g_bIsDepthRawOnOption){
-                swap(backDepthRawPixels, currentDepthRawPixels);
-            }
-        }
-        if (g_bIsImageOn || g_bIsInfraOn){
-            swap(backImagePixels, currentImagePixels);
-        }
-    }
-	
-	bNewPixels = true;
-	
-	if (bIsThreaded) unlock();
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::update(){
-
-    if (!bIsContextReady) return;
-    
-	if (!bIsThreaded){
-		updateFrame();
-	} else {
-		lock();
-	}
-	
-	if (bNewPixels){
-		if (bUseTexture && g_bIsDepthOn){
-            if (bUseBackBuffer) {
-                depthTexture.loadData(*currentDepthPixels); // see note about back buffering above
-            } else {
-                depthTexture.loadData(*backDepthPixels);
-            }
-		}
-		if (bUseTexture && (g_bIsImageOn || g_bIsInfraOn)){
-            if (bUseBackBuffer) {
-                imageTexture.loadData(*currentImagePixels);
-            } else {
-                imageTexture.loadData(*backImagePixels);
-            }
-		}
-        
-        if (g_bIsUserOn) updateUsers();
-        
-		bNewPixels = false;
-		bNewFrame = true;
-
-	}
-
-	if (bIsThreaded) unlock();
-}
-void cleanupHandler(void *cookie){
-    cout << "Got interupted!" << endl;
-}
-//--------------------------------------------------------------
-void ofxOpenNI::threadedFunction(){
-	while(isThreadRunning()){
-        pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
-        pthread_cleanup_push(cleanupHandler, &g_Context);
-		updateFrame();
-        pthread_cleanup_pop(0);
-		updateFrame();
-	}
-}
+/**************************************************************
+ *
+ *      getters/setters: rgb to depth calibration properties
+ *
+ *************************************************************/
 
 //--------------------------------------------------------------
 bool ofxOpenNI::toggleCalibratedRGBDepth(){
@@ -1037,405 +1139,37 @@ bool ofxOpenNI::disableCalibratedRGBDepth(){
 	return true;
 }
 
+/**************************************************************
+ *
+ *      getters/setters: pixel and texture properties/modes
+ *
+ *************************************************************/
+
 //--------------------------------------------------------------
-void ofxOpenNI::drawDebug(){
-	if (bIsContextReady) drawDebug(0.0f, 0.0f, -1.0f, -1.0f);
+void ofxOpenNI::setUseBackBuffer(bool b){
+	bUseBackBuffer = b;
 }
 
 //--------------------------------------------------------------
-void ofxOpenNI::drawDebug(float x, float y){
-	if (bIsContextReady) drawDebug(x, y, -1.0f, -1.0f);
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::drawDebug(float x, float y, float w, float h){
-	if (!bIsContextReady) return;
-    
-    int generatorCount = g_bIsDepthOn + g_bIsImageOn + g_bIsInfraOn;
-    //if (g_bIsDepthOn) generatorCount++;
-    //if (g_bIsImageOn) generatorCount++;
-    //if (g_bIsInfraOn) generatorCount++;
-    float fullWidth = getWidth() * generatorCount;
-    float fullHeight = getHeight();
-    
-    if (w == -1.0f && h == -1.0f){
-        w = fullWidth;
-        h = fullHeight;
-    }
-    
-    ofPushStyle();
-    
-    ofPushMatrix();
-    ofTranslate(x, y);
-    ofScale(w / (getWidth() * generatorCount), h / getHeight());
-    
-    ofPushMatrix();
-    if (g_bIsDepthOn) drawDepth();
-    if (g_bIsUserOn) drawSkeletons();
-    ofTranslate(getWidth(), 0.0f);
-    if (g_bIsImageOn) drawImage();
-    if (g_bIsInfraOn) drawImage();
-    if (g_bIsUserOn){
-        if (g_bIsImageOn || g_bIsInfraOn) ofTranslate(-getWidth(), 0.0f);
-        for (int nID = 1; nID <= maxNumUsers; nID++) {
-            ofxOpenNIUser & user = getUser(nID);
-            ofSetColor(255, 255, 0);
-            ofDrawBitmapString(user.getDebugInfo(), 8, getHeight() + (nID) * 30);
-        }
-    }
-    ofPopMatrix();
-    ofPopMatrix();
-    ofPopStyle();
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::drawDepth(){
-	if (bUseTexture && bIsContextReady) drawDepth(0.0f, 0.0f, getWidth(), getHeight());
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::drawDepth(float x, float y){
-	if (bUseTexture && bIsContextReady) drawDepth(x, y, getWidth(), getHeight());
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::drawDepth(float x, float y, float w, float h){
-	if (bUseTexture && bIsContextReady) depthTexture.draw(x, y, w, h);
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::drawImage(){
-	if (bUseTexture && bIsContextReady) drawImage(0.0f, 0.0f, getWidth(), getHeight());
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::drawImage(float x, float y){
-	if (bUseTexture && bIsContextReady) drawImage(x, y, getWidth(), getHeight());
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::drawImage(float x, float y, float w, float h){
-	if (bUseTexture && bIsContextReady) imageTexture.draw(x, y, w, h);
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::drawSkeletons(){
-    if (bIsContextReady) drawSkeletons(0.0f, 0.0f, getWidth(), getHeight());
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::drawSkeletons(float x, float y){
-	if (bIsContextReady) drawSkeletons(x, y, getWidth(), getHeight());
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::drawSkeletons(float x, float y, float w, float h){
-	if (!bIsContextReady) return;
-    ofPushStyle();
-    for(int i = 0;  i < (int)currentTrackedUserIDs.size(); ++i){
-        drawSkeleton(x, y, w, h, i);
-    }
-	ofPopStyle();
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::drawSkeleton(int nID){
-	drawSkeleton(0.0f, 0.0f, getWidth(), getHeight(), nID);
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::drawSkeleton(float x, float y, int nID){
-	drawSkeleton(x, y, getWidth(), getHeight(), nID);
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::drawSkeleton(float x, float y, float w, float h, int nID){
-	if(nID - 1 > (int)currentTrackedUserIDs.size()) return;
-    ofPushMatrix();
-    ofTranslate(x, y);
-    ofScale(w/getWidth(), h/getHeight(), 1.0f);
-	currentTrackedUsers[currentTrackedUserIDs[nID]].drawSkeleton();
-    ofPopMatrix();
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::generateIRPixels(){
-	const XnIRPixel* pImage = g_InfraMD.Data();
-    unsigned char * ir_pixels = new unsigned char[g_InfraMD.XRes() * g_InfraMD.YRes()];
-	for (int i = 0; i < g_InfraMD.XRes() * g_InfraMD.YRes(); i++){
-		ir_pixels[i] = pImage[i]/4;
-	}
-	backImagePixels->setFromPixels(ir_pixels, g_InfraMD.XRes(), g_InfraMD.YRes(), OF_IMAGE_GRAYSCALE);
-    delete ir_pixels;
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::generateImagePixels(){
-	const XnUInt8* pImage = g_ImageMD.Data();
-	backImagePixels->setFromPixels(pImage, g_ImageMD.XRes(), g_ImageMD.YRes(), OF_IMAGE_COLOR);
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::generateDepthPixels(){
-	// get the pixels
-	const XnDepthPixel* depth = g_DepthMD.Data();
-	
-	if (g_DepthMD.FrameID() == 0) return;
-	
-	// copy raw values
-	if (g_bIsDepthRawOnOption){
-		backDepthRawPixels->setFromPixels(depth, g_DepthMD.XRes(), g_DepthMD.YRes(), OF_IMAGE_COLOR);
-	}
-	
-	// copy depth into texture-map
-	float max;
-	for (XnUInt16 y = g_DepthMD.YOffset(); y < g_DepthMD.YRes() + g_DepthMD.YOffset(); y++){
-		unsigned char * texture = backDepthPixels->getPixels() + y * g_DepthMD.XRes() * 4 + g_DepthMD.XOffset() * 4;
-		for (XnUInt16 x = 0; x < g_DepthMD.XRes(); x++, depth++, texture += 4){
-			XnUInt8 red = 0;
-			XnUInt8 green = 0;
-			XnUInt8 blue = 0;
-			XnUInt8 alpha = 255;
-			
-			XnUInt16 col_index;
-			
-			switch (depthColoring){
-				case COLORING_PSYCHEDELIC_SHADES:
-					alpha *= (((XnFloat)(*depth % 10) / 20) + 0.5);
-				case COLORING_PSYCHEDELIC:
-					switch ((*depth/10) % 10){
-						case 0:
-							red = 255;
-							break;
-						case 1:
-							green = 255;
-							break;
-						case 2:
-							blue = 255;
-							break;
-						case 3:
-							red = 255;
-							green = 255;
-							break;
-						case 4:
-							green = 255;
-							blue = 255;
-							break;
-						case 5:
-							red = 255;
-							blue = 255;
-							break;
-						case 6:
-							red = 255;
-							green = 255;
-							blue = 255;
-							break;
-						case 7:
-							red = 127;
-							blue = 255;
-							break;
-						case 8:
-							red = 255;
-							blue = 127;
-							break;
-						case 9:
-							red = 127;
-							green = 255;
-							break;
-					}
-					break;
-				case COLORING_RAINBOW:
-					col_index = (XnUInt16)(((*depth) / (maxDepth / 256)));
-					red = PalletIntsR[col_index];
-					green = PalletIntsG[col_index];
-					blue = PalletIntsB[col_index];
-					break;
-				case COLORING_CYCLIC_RAINBOW:
-					col_index = (*depth % 256);
-					red = PalletIntsR[col_index];
-					green = PalletIntsG[col_index];
-					blue = PalletIntsB[col_index];
-					break;
-				case COLORING_BLUES:
-					// 3 bytes of depth: black (R0G0B0) >> blue (001) >> cyan (011) >> white (111)
-					max = 256+255+255;
-					col_index = (XnUInt16)(((*depth) / (maxDepth / max)));
-					if ( col_index < 256 )
-					{
-						blue	= col_index;
-						green	= 0;
-						red		= 0;
-					}
-					else if ( col_index < (256+255) )
-					{
-						blue	= 255;
-						green	= (col_index % 256) + 1;
-						red		= 0;
-					}
-					else if ( col_index < (256+255+255) )
-					{
-						blue	= 255;
-						green	= 255;
-						red		= (col_index % 256) + 1;
-					}
-					else
-					{
-						blue	= 255;
-						green	= 255;
-						red		= 255;
-					}
-					break;
-				case COLORING_GREY:
-					max = 255;	// half depth
-				{
-					XnUInt8 a = (XnUInt8)(((*depth) / (maxDepth / max)));
-					red		= a;
-					green	= a;
-					blue	= a;
-				}
-					break;
-				case COLORING_STATUS:
-					// This is something to use on installations
-					// when the end user needs to know if the camera is tracking or not
-					// The scene will be painted GREEN if status == true
-					// The scene will be painted RED if status == false
-					// Usage: declare a global bool status and that's it!
-					// I'll keep it commented so you dont have to have a status on every project
-#if 0
-				{
-					extern bool status;
-					max = 255;	// half depth
-					XnUInt8 a = 255 - (XnUInt8)(((*depth) / (maxDepth / max)));
-					red		= ( status ? 0 : a);
-					green	= ( status ? a : 0);
-					blue	= 0;
-				}
-#endif
-					break;
-			}
-			
-			texture[0] = red;
-			texture[1] = green;
-			texture[2] = blue;
-			
-			if (*depth == 0)
-				texture[3] = 0;
-			else
-				texture[3] = alpha;
-		}
-	}
-	
-	
-}
-//--------------------------------------------------------------
-bool ofxOpenNI::isNewFrame(){
-	return bNewFrame;
+bool ofxOpenNI::getUseBackBuffer(){
+	return bUseBackBuffer;
 }
 
 //--------------------------------------------------------------
 void ofxOpenNI::setDepthColoring(DepthColoring coloring){
 	depthColoring = coloring;
 }
-//--------------------------------------------------------------
-bool ofxOpenNI::isDepthOn(){
-    return g_bIsDepthOn;
-}
 
 //--------------------------------------------------------------
-bool ofxOpenNI::isImageOn(){
-    return g_bIsImageOn;
+bool ofxOpenNI::isNewFrame(){
+	return bNewFrame;
 }
 
-//--------------------------------------------------------------
-bool ofxOpenNI::isInfraOn(){
-    return g_bIsInfraOn;
-}
-
-//--------------------------------------------------------------
-bool ofxOpenNI::isUserOn(){
-    return g_bIsUserOn;
-}
-
-//--------------------------------------------------------------
-bool ofxOpenNI::isAudioOn(){
-    return g_bIsAudioOn;
-}
-
-//--------------------------------------------------------------
-bool ofxOpenNI::isContextReady(){
-	return bIsContextReady;
-}
-
-//--------------------------------------------------------------
-int ofxOpenNI::getNumDevices(){
-    if (!bIsContextReady) setup();
-	return numDevices;
-}
-
-//--------------------------------------------------------------
-int ofxOpenNI::getDeviceID(){
-	return instanceID;
-}
-
-//--------------------------------------------------------------
-xn::Context& ofxOpenNI::getContext(){
-	return g_Context;
-}
-
-//--------------------------------------------------------------
-xn::Device& ofxOpenNI::getDevice(){
-	return g_Device;
-}
-
-//--------------------------------------------------------------
-xn::DepthGenerator& ofxOpenNI::getDepthGenerator(){
-	return g_Depth;
-}
-
-//--------------------------------------------------------------
-xn::ImageGenerator& ofxOpenNI::getImageGenerator(){
-	return g_Image;;
-}
-
-//--------------------------------------------------------------
-xn::IRGenerator& ofxOpenNI::getIRGenerator(){
-	return g_Infra;;
-}
-
-//--------------------------------------------------------------
-xn::UserGenerator& ofxOpenNI::getUserGenerator(){
-	return g_User;;
-}
-
-//--------------------------------------------------------------
-xn::AudioGenerator& ofxOpenNI::getAudioGenerator(){
-	return g_Audio;
-}
-
-//--------------------------------------------------------------
-xn::Player& ofxOpenNI::getPlayer(){
-	return g_Player;
-}
-
-//--------------------------------------------------------------
-xn::DepthMetaData& ofxOpenNI::getDepthMetaData(){
-	return g_DepthMD;
-}
-
-//--------------------------------------------------------------
-xn::ImageMetaData& ofxOpenNI::getImageMetaData(){
-	return g_ImageMD;
-}
-
-//--------------------------------------------------------------
-xn::IRMetaData& ofxOpenNI::getIRMetaData(){
-	return g_InfraMD;
-}
-
-//--------------------------------------------------------------
-xn::AudioMetaData& ofxOpenNI::getAudioMetaData(){
-	return g_AudioMD;
-}
+/**************************************************************
+ *
+ *      getters: pixels and textures (direct access)
+ *
+ *************************************************************/
 
 //--------------------------------------------------------------
 ofPixels& ofxOpenNI::getDepthPixels(){
@@ -1470,6 +1204,12 @@ ofTexture& ofxOpenNI::getimageTextureReference(){
     if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(mutex);
 	return imageTexture;
 }
+
+/**************************************************************
+ *
+ *      getters/setters: width, height and resolution
+ *
+ *************************************************************/
 
 //--------------------------------------------------------------
 bool ofxOpenNI::setResolution(int w, int h, int f){
@@ -1558,71 +1298,130 @@ float ofxOpenNI::getHeight(){
 	}
 }
 
+/**************************************************************
+ *
+ *      getters: generator presence
+ *
+ *************************************************************/
+
 //--------------------------------------------------------------
-ofPoint ofxOpenNI::worldToProjective(const ofPoint& p){
-	XnVector3D world = toXn(p);
-	return worldToProjective(world);
+bool ofxOpenNI::isDepthOn(){
+    return g_bIsDepthOn;
 }
 
 //--------------------------------------------------------------
-ofPoint ofxOpenNI::worldToProjective(const XnVector3D& p){
-	XnVector3D proj;
-	g_Depth.ConvertRealWorldToProjective(1,&p,&proj);
-	return toOf(proj);
+bool ofxOpenNI::isImageOn(){
+    return g_bIsImageOn;
 }
 
 //--------------------------------------------------------------
-ofPoint ofxOpenNI::projectiveToWorld(const ofPoint& p){
-	XnVector3D proj = toXn(p);
-	return projectiveToWorld(proj);
+bool ofxOpenNI::isInfraOn(){
+    return g_bIsInfraOn;
 }
 
 //--------------------------------------------------------------
-ofPoint ofxOpenNI::projectiveToWorld(const XnVector3D& p){
-	XnVector3D world;
-	g_Depth.ConvertProjectiveToRealWorld(1,&p,&world);
-	return toOf(world);
+bool ofxOpenNI::isUserOn(){
+    return g_bIsUserOn;
 }
 
 //--------------------------------------------------------------
-ofPoint ofxOpenNI::cameraToWorld(const ofVec2f& c){
-	vector<ofVec2f> vc(1, c);
-	vector<ofVec3f> vw(1);
-	cameraToWorld(vc, vw);
-	return vw[0];
+bool ofxOpenNI::isAudioOn(){
+    return g_bIsAudioOn;
+}
+
+/**************************************************************
+ *
+ *      getters: context and device presence
+ *
+ *************************************************************/
+
+//--------------------------------------------------------------
+bool ofxOpenNI::isContextReady(){
+	return bIsContextReady;
 }
 
 //--------------------------------------------------------------
-void ofxOpenNI::cameraToWorld(const vector<ofVec2f>& c, vector<ofVec3f>& w){
-	const int nPoints = c.size();
-	w.resize(nPoints);
-	if (!g_bIsDepthRawOnOption){
-		ofLogError(LOG_NAME) << "ofxOpenNI::cameraToWorld - cannot perform this function if g_bIsDepthRawOnOption is false. You can enabled g_bIsDepthRawOnOption by calling getDepthRawPixels(..).";
-		return;
-	}
-	
-	vector<XnPoint3D> projective(nPoints);
-	XnPoint3D *out =&projective[0];
-	
-	//lock();
-	const XnDepthPixel* d = currentDepthRawPixels->getPixels();
-	unsigned int pixel;
-	for (int i=0; i<nPoints; ++i){
-		pixel  = (int)c[i].x + (int)c[i].y * g_DepthMD.XRes();
-		if (pixel >= g_DepthMD.XRes() * g_DepthMD.YRes())
-			continue;
-		
-		projective[i].X = c[i].x;
-		projective[i].Y = c[i].y;
-		projective[i].Z = float(d[pixel]) / 1000.0f;
-	}
-	//unlock();
-	
-	g_Depth.ConvertProjectiveToRealWorld(nPoints,&projective[0], (XnPoint3D*)&w[0]);
+int ofxOpenNI::getNumDevices(){
+    if (!bIsContextReady) setup();
+	return numDevices;
 }
 
-// USER GENERATOR CALLBACKS AND HANDLE HELPER FUNCTIONS
-// =============================================================
+//--------------------------------------------------------------
+int ofxOpenNI::getDeviceID(){
+	return instanceID;
+}
+
+/**************************************************************
+ *
+ *      getters: generator reference (xn::type direct access)
+ *
+ *************************************************************/
+
+//--------------------------------------------------------------
+xn::Context& ofxOpenNI::getContext(){
+	return g_Context;
+}
+
+//--------------------------------------------------------------
+xn::Device& ofxOpenNI::getDevice(){
+	return g_Device;
+}
+
+//--------------------------------------------------------------
+xn::DepthGenerator& ofxOpenNI::getDepthGenerator(){
+	return g_Depth;
+}
+
+//--------------------------------------------------------------
+xn::ImageGenerator& ofxOpenNI::getImageGenerator(){
+	return g_Image;;
+}
+
+//--------------------------------------------------------------
+xn::IRGenerator& ofxOpenNI::getIRGenerator(){
+	return g_Infra;;
+}
+
+//--------------------------------------------------------------
+xn::UserGenerator& ofxOpenNI::getUserGenerator(){
+	return g_User;;
+}
+
+//--------------------------------------------------------------
+xn::AudioGenerator& ofxOpenNI::getAudioGenerator(){
+	return g_Audio;
+}
+
+//--------------------------------------------------------------
+xn::Player& ofxOpenNI::getPlayer(){
+	return g_Player;
+}
+
+//--------------------------------------------------------------
+xn::DepthMetaData& ofxOpenNI::getDepthMetaData(){
+	return g_DepthMD;
+}
+
+//--------------------------------------------------------------
+xn::ImageMetaData& ofxOpenNI::getImageMetaData(){
+	return g_ImageMD;
+}
+
+//--------------------------------------------------------------
+xn::IRMetaData& ofxOpenNI::getIRMetaData(){
+	return g_InfraMD;
+}
+
+//--------------------------------------------------------------
+xn::AudioMetaData& ofxOpenNI::getAudioMetaData(){
+	return g_AudioMD;
+}
+
+/**************************************************************
+ *
+ *      callbacks: user generator callback handlers
+ *
+ *************************************************************/
 
 //--------------------------------------------------------------
 void ofxOpenNI::startTrackingUser(XnUserID nID){
@@ -1777,4 +1576,218 @@ void XN_CALLBACK_TYPE ofxOpenNI::UserCB_handleCalibrationEnd(xn::SkeletonCapabil
             openNI->startPoseDetection(nID);
 		}
 	}
+}
+
+/**************************************************************
+ *
+ *      drawing: debug draw
+ *
+ *************************************************************/
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawDebug(){
+	if (bIsContextReady) drawDebug(0.0f, 0.0f, -1.0f, -1.0f);
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawDebug(float x, float y){
+	if (bIsContextReady) drawDebug(x, y, -1.0f, -1.0f);
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawDebug(float x, float y, float w, float h){
+	if (!bIsContextReady) return;
+    
+    int generatorCount = g_bIsDepthOn + g_bIsImageOn + g_bIsInfraOn;
+    //if (g_bIsDepthOn) generatorCount++;
+    //if (g_bIsImageOn) generatorCount++;
+    //if (g_bIsInfraOn) generatorCount++;
+    float fullWidth = getWidth() * generatorCount;
+    float fullHeight = getHeight();
+    
+    if (w == -1.0f && h == -1.0f){
+        w = fullWidth;
+        h = fullHeight;
+    }
+    
+    ofPushStyle();
+    
+    ofPushMatrix();
+    ofTranslate(x, y);
+    ofScale(w / (getWidth() * generatorCount), h / getHeight());
+    
+    ofPushMatrix();
+    if (g_bIsDepthOn) drawDepth();
+    if (g_bIsUserOn) drawSkeletons();
+    ofTranslate(getWidth(), 0.0f);
+    if (g_bIsImageOn) drawImage();
+    if (g_bIsInfraOn) drawImage();
+    if (g_bIsUserOn){
+        if (g_bIsImageOn || g_bIsInfraOn) ofTranslate(-getWidth(), 0.0f);
+        for (int nID = 1; nID <= maxNumUsers; nID++) {
+            ofxOpenNIUser & user = getUser(nID);
+            ofSetColor(255, 255, 0);
+            ofDrawBitmapString(user.getDebugInfo(), 8, getHeight() + (nID) * 30);
+        }
+    }
+    ofPopMatrix();
+    ofPopMatrix();
+    ofPopStyle();
+}
+
+/**************************************************************
+ *
+ *      drawing: depth draw
+ *
+ *************************************************************/
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawDepth(){
+	if (bUseTexture && bIsContextReady) drawDepth(0.0f, 0.0f, getWidth(), getHeight());
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawDepth(float x, float y){
+	if (bUseTexture && bIsContextReady) drawDepth(x, y, getWidth(), getHeight());
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawDepth(float x, float y, float w, float h){
+	if (bUseTexture && bIsContextReady) depthTexture.draw(x, y, w, h);
+}
+
+/**************************************************************
+ *
+ *      drawing: image draw
+ *
+ *************************************************************/
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawImage(){
+	if (bUseTexture && bIsContextReady) drawImage(0.0f, 0.0f, getWidth(), getHeight());
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawImage(float x, float y){
+	if (bUseTexture && bIsContextReady) drawImage(x, y, getWidth(), getHeight());
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawImage(float x, float y, float w, float h){
+	if (bUseTexture && bIsContextReady) imageTexture.draw(x, y, w, h);
+}
+
+/**************************************************************
+ *
+ *      drawing: skeleton draw
+ *
+ *************************************************************/
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawSkeletons(){
+    if (bIsContextReady) drawSkeletons(0.0f, 0.0f, getWidth(), getHeight());
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawSkeletons(float x, float y){
+	if (bIsContextReady) drawSkeletons(x, y, getWidth(), getHeight());
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawSkeletons(float x, float y, float w, float h){
+	if (!bIsContextReady) return;
+    ofPushStyle();
+    for(int i = 0;  i < (int)currentTrackedUserIDs.size(); ++i){
+        drawSkeleton(x, y, w, h, i);
+    }
+	ofPopStyle();
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawSkeleton(int nID){
+	drawSkeleton(0.0f, 0.0f, getWidth(), getHeight(), nID);
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawSkeleton(float x, float y, int nID){
+	drawSkeleton(x, y, getWidth(), getHeight(), nID);
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawSkeleton(float x, float y, float w, float h, int nID){
+	if(nID - 1 > (int)currentTrackedUserIDs.size()) return;
+    ofPushMatrix();
+    ofTranslate(x, y);
+    ofScale(w/getWidth(), h/getHeight(), 1.0f);
+	currentTrackedUsers[currentTrackedUserIDs[nID]].drawSkeleton();
+    ofPopMatrix();
+}
+
+/**************************************************************
+ *
+ *      pixel helper methods
+ *
+ *************************************************************/
+
+//--------------------------------------------------------------
+ofPoint ofxOpenNI::worldToProjective(const ofPoint& p){
+	XnVector3D world = toXn(p);
+	return worldToProjective(world);
+}
+
+//--------------------------------------------------------------
+ofPoint ofxOpenNI::worldToProjective(const XnVector3D& p){
+	XnVector3D proj;
+	g_Depth.ConvertRealWorldToProjective(1,&p,&proj);
+	return toOf(proj);
+}
+
+//--------------------------------------------------------------
+ofPoint ofxOpenNI::projectiveToWorld(const ofPoint& p){
+	XnVector3D proj = toXn(p);
+	return projectiveToWorld(proj);
+}
+
+//--------------------------------------------------------------
+ofPoint ofxOpenNI::projectiveToWorld(const XnVector3D& p){
+	XnVector3D world;
+	g_Depth.ConvertProjectiveToRealWorld(1,&p,&world);
+	return toOf(world);
+}
+
+//--------------------------------------------------------------
+ofPoint ofxOpenNI::cameraToWorld(const ofVec2f& c){
+	vector<ofVec2f> vc(1, c);
+	vector<ofVec3f> vw(1);
+	cameraToWorld(vc, vw);
+	return vw[0];
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::cameraToWorld(const vector<ofVec2f>& c, vector<ofVec3f>& w){
+	const int nPoints = c.size();
+	w.resize(nPoints);
+	if (!g_bIsDepthRawOnOption){
+		ofLogError(LOG_NAME) << "ofxOpenNI::cameraToWorld - cannot perform this function if g_bIsDepthRawOnOption is false. You can enabled g_bIsDepthRawOnOption by calling getDepthRawPixels(..).";
+		return;
+	}
+	
+	vector<XnPoint3D> projective(nPoints);
+	XnPoint3D *out = &projective[0];
+	
+	//lock();
+	const XnDepthPixel* d = currentDepthRawPixels->getPixels();
+	unsigned int pixel;
+	for (int i=0; i<nPoints; ++i){
+		pixel  = (int)c[i].x + (int)c[i].y * g_DepthMD.XRes();
+		if (pixel >= g_DepthMD.XRes() * g_DepthMD.YRes())
+			continue;
+		
+		projective[i].X = c[i].x;
+		projective[i].Y = c[i].y;
+		projective[i].Z = float(d[pixel]) / 1000.0f;
+	}
+	//unlock();
+	
+	g_Depth.ConvertProjectiveToRealWorld(nPoints,&projective[0], (XnPoint3D*)&w[0]);
 }

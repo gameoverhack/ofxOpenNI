@@ -31,6 +31,7 @@
 
 #include <XnTypes.h>
 #include "ofPoint.h"
+#include "ofTypes.h"
 
 #define SHOW_RC(rc, what)                                                   \
 ofLogVerbose(LOG_NAME) << what << "status:" << xnGetStatusString(rc);
@@ -107,6 +108,127 @@ static void CreateRainbowPallet(){
 		PalletIntsB[i] = b;
 	}
 	rainbowPalletInit = true;
+}
+
+inline void getDepthColor(DepthColoring depthColoring, const unsigned short & depth, ofColor & color, int maxDepth){
+    
+    float max;
+    XnUInt16 col_index;
+    
+    switch (depthColoring){
+        case COLORING_PSYCHEDELIC_SHADES:
+            color.a *= (((XnFloat)(depth % 10) / 20) + 0.5);
+        case COLORING_PSYCHEDELIC:
+            switch ((depth/10) % 10){
+                case 0:
+                    color.r = 255;
+                    break;
+                case 1:
+                    color.g = 255;
+                    break;
+                case 2:
+                    color.b = 255;
+                    break;
+                case 3:
+                    color.r = 255;
+                    color.g = 255;
+                    break;
+                case 4:
+                    color.g = 255;
+                    color.b = 255;
+                    break;
+                case 5:
+                    color.r = 255;
+                    color.b = 255;
+                    break;
+                case 6:
+                    color.r = 255;
+                    color.g = 255;
+                    color.b = 255;
+                    break;
+                case 7:
+                    color.r = 127;
+                    color.b = 255;
+                    break;
+                case 8:
+                    color.r = 255;
+                    color.b = 127;
+                    break;
+                case 9:
+                    color.r = 127;
+                    color.g = 255;
+                    break;
+            }
+            break;
+        case COLORING_RAINBOW:
+            col_index = (XnUInt16)(((depth) / (maxDepth / 256)));
+            color.r = PalletIntsR[col_index];
+            color.g = PalletIntsG[col_index];
+            color.b = PalletIntsB[col_index];
+            break;
+        case COLORING_CYCLIC_RAINBOW:
+            col_index = (depth % 256);
+            color.r = PalletIntsR[col_index];
+            color.g = PalletIntsG[col_index];
+            color.b = PalletIntsB[col_index];
+            break;
+        case COLORING_BLUES:
+            // 3 bytes of depth: black (R0G0B0) >> color.b (001) >> cyan (011) >> white (111)
+            max = 256+255+255;
+            col_index = (XnUInt16)(((depth) / (maxDepth / max)));
+            if ( col_index < 256 )
+            {
+                color.b	= col_index;
+                color.g	= 0;
+                color.r	= 0;
+            }
+            else if ( col_index < (256+255) )
+            {
+                color.b	= 255;
+                color.g	= (col_index % 256) + 1;
+                color.r	= 0;
+            }
+            else if ( col_index < (256+255+255) )
+            {
+                color.b	= 255;
+                color.g	= 255;
+                color.r	= (col_index % 256) + 1;
+            }
+            else
+            {
+                color.b	= 255;
+                color.g	= 255;
+                color.r	= 255;
+            }
+            break;
+        case COLORING_GREY:
+            max = 255;	// half depth
+        {
+            XnUInt8 a = (XnUInt8)(((depth) / (maxDepth / max)));
+            color.r	= a;
+            color.g	= a;
+            color.b	= a;
+        }
+            break;
+        case COLORING_STATUS:
+            // This is something to use on installations
+            // when the end user needs to know if the camera is tracking or not
+            // The scene will be painted color.g if status == true
+            // The scene will be painted color.r if status == false
+            // Usage: declare a global bool status and that's it!
+            // I'll keep it commented so you dont have to have a status on every project
+#if 0
+        {
+            extern bool status;
+            max = 255;	// half depth
+            XnUInt8 a = 255 - (XnUInt8)(((depth) / (maxDepth / max)));
+            color.r	= ( status ? 0 : a);
+            color.g	= ( status ? a : 0);
+            color.b	= 0;
+        }
+#endif
+            break;
+    }
 }
 
 void YUV422ToRGB888(const XnUInt8* pYUVImage, XnUInt8* pRGBImage, XnUInt32 nYUVSize, XnUInt32 nRGBSize);
