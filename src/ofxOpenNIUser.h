@@ -123,11 +123,11 @@ public:
     void setUseAutoCalibration(bool b);
     bool getUseAutoCalibration();
     
-    void setCloudPointDrawSize(int size); // this is the size of the points when drawing
-    int getCloudPointDrawSize();
+    void setPointCloudDrawSize(int size); // this is the size of the points when drawing
+    int getPointCloudDrawSize();
     
-    void setCloudPointResolution(int resolution); // this is the step size when calculating (lower is higher res!)
-    int getCloudPointResolution();
+    void setPointCloudResolution(int resolution); // this is the step size when calculating (lower is higher res!)
+    int getPointCloudResolution();
     
     void setUseMaskTexture(bool b);
     bool getUseMaskTexture();
@@ -170,8 +170,8 @@ private:
     
     int id;
     
-    int cloudPointDrawSize;
-    int cloudPointResolution;
+    int pointCloudDrawSize;
+    int pointCloudResolution;
     
     float limbDetectionConfidence;
     

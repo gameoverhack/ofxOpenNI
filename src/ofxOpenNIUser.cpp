@@ -31,8 +31,8 @@
 //--------------------------------------------------------------
 ofxOpenNIUser::ofxOpenNIUser(){
     
-    cloudPointDrawSize = 2;
-    cloudPointResolution = 2;
+    pointCloudDrawSize = 2;
+    pointCloudResolution = 2;
     
     limbDetectionConfidence =  0.3f;
     
@@ -93,7 +93,7 @@ void ofxOpenNIUser::drawSkeleton() {
 void ofxOpenNIUser::drawPointCloud(){
     ofPushStyle();
     ofPushMatrix();
-    glPointSize(cloudPointDrawSize);
+    glPointSize(pointCloudDrawSize);
     glEnable(GL_DEPTH_TEST);
     pointCloud[1].drawVertices();
     glDisable(GL_DEPTH_TEST);
@@ -125,11 +125,6 @@ bool ofxOpenNIUser::getUseAutoCalibration(){
 //--------------------------------------------------------------
 void ofxOpenNIUser::setUseMaskTexture(bool b){
     bUseMaskTexture = b;
-    if (bUseMaskTexture) {
-        bUseMaskPixels = true; // have to use pixels to use the texture!
-    } else {
-        //if (bUseMaskPixels) // TODO: warn or set false?;
-    }
 }
 
 //--------------------------------------------------------------
@@ -144,7 +139,7 @@ void ofxOpenNIUser::setUseMaskPixels(bool b){
 
 //--------------------------------------------------------------
 bool ofxOpenNIUser::getUseMaskPixels(){
-    return bUseMaskPixels;
+    return (bUseMaskPixels || bUseMaskTexture);
 }
 
 //--------------------------------------------------------------
@@ -158,25 +153,25 @@ bool ofxOpenNIUser::getUsePointCloud(){
 }
 
 //--------------------------------------------------------------
-void ofxOpenNIUser::setCloudPointDrawSize(int size){
+void ofxOpenNIUser::setPointCloudDrawSize(int size){
     // this is the size of the points when drawing
-    cloudPointDrawSize = size;
+    pointCloudDrawSize = size;
 }
 
 //--------------------------------------------------------------
-int ofxOpenNIUser::getCloudPointDrawSize(){
-    return cloudPointDrawSize;
+int ofxOpenNIUser::getPointCloudDrawSize(){
+    return pointCloudDrawSize;
 }
 
 //--------------------------------------------------------------
-void ofxOpenNIUser::setCloudPointResolution(int resolution){
+void ofxOpenNIUser::setPointCloudResolution(int resolution){
     // this is the step size when calculating (lower is higher res - 1 is the highest)
-    cloudPointResolution = resolution;
+    pointCloudResolution = resolution;
 }
 
 //--------------------------------------------------------------
-int ofxOpenNIUser::getCloudPointResolution(){
-    return cloudPointResolution;
+int ofxOpenNIUser::getPointCloudResolution(){
+    return pointCloudResolution;
 }
 
 //--------------------------------------------------------------
@@ -249,16 +244,16 @@ string ofxOpenNIUser::getDebugInfo(){
     ostringstream info;
     info << "userID: " << ofToString(id) << " ";
     info << "autoCalibrate: " << boolToString(bUseAutoCalibration) << " ";
-    info << "isFound: " << boolToString(bIsFound) << " ";
-    info << "isTracking: " << boolToString(bIsTracking) << " ";
-    info << "isSkeleton: " << boolToString(bIsSkeleton) << " ";
-    info << "isCalibrating: " << boolToString(bIsCalibrating) << endl;
-    info << "useMaskPixels: " << boolToString(bUseMaskPixels) << " ";
-    info << "useMaskTexture: " << boolToString(bUseMaskTexture) << " ";
-    info << "usePointCloud: " << boolToString(bUsePointCloud) << " ";
+    info << "isFound: " << boolToString(isFound()) << " ";
+    info << "isTracking: " << boolToString(isTracking()) << " ";
+    info << "isSkeleton: " << boolToString(isSkeleton()) << " ";
+    info << "isCalibrating: " << boolToString(isCalibrating()) << endl;
+    info << "useMaskPixels: " << boolToString(getUseMaskPixels()) << " ";
+    info << "useMaskTexture: " << boolToString(getUseMaskTexture()) << " ";
+    info << "usePointCloud: " << boolToString(getUsePointCloud()) << " ";
     if (bUsePointCloud) {
-        info << "cloudPointDrawSize: " << ofToString(cloudPointDrawSize) << " ";
-        info << "cloudPointResolution: " << ofToString(cloudPointResolution) << " ";
+        info << "pointCloudDrawSize: " << ofToString(pointCloudDrawSize) << " ";
+        info << "pointCloudResolution: " << ofToString(pointCloudResolution) << " ";
     }
     return info.str();
 }

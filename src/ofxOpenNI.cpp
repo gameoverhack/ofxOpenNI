@@ -717,7 +717,6 @@ void ofxOpenNI::update(){
             if (user.bIsTracking){
                 if (user.bUsePointCloud && user.bNewPointCloud){
                     swap(user.pointCloud[0], user.pointCloud[1]);
-                    user.bNewPointCloud = false;
                 }
                 if (user.bUseMaskTexture && user.bNewPixels){
                     if (user.maskTexture.getWidth() != getWidth() || user.maskTexture.getHeight() != getHeight()){
@@ -725,8 +724,9 @@ void ofxOpenNI::update(){
                         user.maskTexture.allocate(getWidth(), getHeight(), GL_RGBA);
                     }
                     user.maskTexture.loadData(user.maskPixels.getPixels(), getWidth(), getHeight(), GL_RGBA);
-                    user.bNewPixels = false;
                 }
+                user.bNewPointCloud = false;
+                user.bNewPixels = false;
             }
             
         }
@@ -911,7 +911,7 @@ void ofxOpenNI::generateUserTracking(){
             }
 
 			if (user.bUsePointCloud) generatePointClouds(user);
-			if (user.bUseMaskPixels) generateUserPixels(user);
+			if (user.bUseMaskPixels || user.bUseMaskTexture) generateUserPixels(user);
             
 			trackedUserIDs.insert(user.id);
             
@@ -937,7 +937,7 @@ void ofxOpenNI::generatePointClouds(ofxOpenNIUser & user){
 		pColor = g_ImageMD.RGB24Data();
 	}
     
-	int step = user.cloudPointResolution;
+	int step = user.getPointCloudResolution();
 	int nIndex = 0;
     
 	user.pointCloud[0].getVertices().clear();
@@ -1055,36 +1055,35 @@ ofxOpenNIUser&	ofxOpenNI::getUser(XnUserID nID){
 //--------------------------------------------------------------
 void ofxOpenNI::setUseMaskTextureAllUsers(bool b){
     for (XnUserID nID = 1; nID <= maxNumUsers; ++nID){
-        currentTrackedUsers[nID].bUseMaskTexture = b;
+        currentTrackedUsers[nID].setUseMaskTexture(b);
     }
-    if (b) setUseMaskPixelsAllUsers(b); // should I also auto turn off pixels? probably :-)
 }
 
 //--------------------------------------------------------------
 void ofxOpenNI::setUseMaskPixelsAllUsers(bool b){
     for (XnUserID nID = 1; nID <= maxNumUsers; ++nID){
-        currentTrackedUsers[nID].bUseMaskPixels = b;
+        currentTrackedUsers[nID].setUseMaskPixels(b);
     }
 }
 
 //--------------------------------------------------------------
 void ofxOpenNI::setUsePointCloudsAllUsers(bool b){
     for (XnUserID nID = 1; nID <= maxNumUsers; ++nID){
-        currentTrackedUsers[nID].bUsePointCloud = b;
+        currentTrackedUsers[nID].setUsePointCloud(b);
     }
 }
 
 //--------------------------------------------------------------
 void ofxOpenNI::setPointCloudDrawSizeAllUsers(int size){
     for (XnUserID nID = 1; nID <= maxNumUsers; ++nID){
-        currentTrackedUsers[nID].cloudPointDrawSize = size;
+        currentTrackedUsers[nID].setPointCloudDrawSize(size);
     }
 }
 
 //--------------------------------------------------------------
 void ofxOpenNI::setPointCloudResolutionAllUsers(int resolution){
     for (XnUserID nID = 1; nID <= maxNumUsers; ++nID){
-        currentTrackedUsers[nID].cloudPointResolution = resolution;
+        currentTrackedUsers[nID].setPointCloudResolution(resolution);
     }
 }
 
