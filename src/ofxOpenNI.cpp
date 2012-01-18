@@ -709,8 +709,25 @@ void ofxOpenNI::update(){
             }
 		}
         
-        if (g_bIsUserOn) generateUserTracking();
-		
+		for (int nID = 1; nID <= maxNumUsers; nID++) {
+            ofxOpenNIUser & user = currentTrackedUsers[nID];
+            if (user.bIsTracking){
+                if (user.bUsePointCloud && user.bNewPointCloud){
+                    swap(user.pointCloud[0], user.pointCloud[1]);
+                    user.bNewPointCloud = false;
+                }
+                if (user.bUseMaskTexture && user.bNewPixels){
+                    if (user.maskTexture.getWidth() != getWidth() || user.maskTexture.getHeight() != getHeight()){
+                        ofLogVerbose(LOG_NAME) << "Allocating mask texture " << user.id;
+                        user.maskTexture.allocate(getWidth(), getHeight(), GL_RGBA);
+                    }
+                    user.maskTexture.loadData(user.maskPixels.getPixels(), getWidth(), getHeight(), GL_RGBA);
+                    user.bNewPixels = false;
+                }
+            }
+            
+        }
+        
         bNewPixels = false;
 		bNewFrame = true;
 
@@ -745,7 +762,7 @@ void ofxOpenNI::updateGenerators(){
     if (g_bIsDepthOn) generateDepthPixels();
 	if (g_bIsImageOn) generateImagePixels();
 	if (g_bIsInfraOn) generateIRPixels();
-    
+    if (g_bIsUserOn) generateUserTracking();
     
     // NB: Below info is from my old single context setup - need to retest with this new multicontext setup!  
     // NEW SETUP for 12 frames tested avg -69.33ms latency with 2 x kinects (high ~80ms, low ~50ms)
@@ -883,6 +900,13 @@ void ofxOpenNI::generateUserTracking(){
                 user.bIsSkeleton = true;
 			}
             
+            if (user.bUsePointCloud || user.bUseMaskPixels) {
+                xn::SceneMetaData smd;
+                if (g_User.GetUserPixels(user.id, smd) == XN_STATUS_OK) {
+                    user.userPixels = (unsigned short*)smd.Data();
+                }
+            }
+
 			if (user.bUsePointCloud) generatePointClouds(user);
 			if (user.bUseMaskPixels) generateUserPixels(user);
             
@@ -922,61 +946,42 @@ void ofxOpenNI::generatePointClouds(ofxOpenNIUser & user){
 		pColor = g_ImageMD.RGB24Data();
 	}
     
-	xn::SceneMetaData smd;
-    
-	unsigned short *userPix;
-    
-	if (g_User.GetUserPixels(user.id, smd) == XN_STATUS_OK) {
-		userPix = (unsigned short*)smd.Data();
-	}
-    
 	int step = user.cloudPointResolution;
 	int nIndex = 0;
     
-	user.pointCloud.getVertices().clear();
-	user.pointCloud.getColors().clear();
-	user.pointCloud.setMode(OF_PRIMITIVE_POINTS);
+	user.pointCloud[0].getVertices().clear();
+	user.pointCloud[0].getColors().clear();
+	user.pointCloud[0].setMode(OF_PRIMITIVE_POINTS);
     
 	for (int nY = 0; nY < getHeight(); nY += step) {
 		for (int nX = 0; nX < getWidth(); nX += step) {
             nIndex = nY * getWidth() + nX;
-			if (userPix[nIndex] == user.id) {
-				user.pointCloud.addVertex(ofPoint(nX, nY, pDepth[nIndex]));
+			if (user.userPixels[nIndex] == user.id) {
+				user.pointCloud[0].addVertex(ofPoint(nX, nY, pDepth[nIndex]));
 				if(g_bIsImageOn){
-					user.pointCloud.addColor(ofColor(pColor[nIndex].nRed, pColor[nIndex].nGreen, pColor[nIndex].nBlue));
+					user.pointCloud[0].addColor(ofColor(pColor[nIndex].nRed, pColor[nIndex].nGreen, pColor[nIndex].nBlue));
 				}else{
-					user.pointCloud.addColor(ofFloatColor(1,1,1));
+					user.pointCloud[0].addColor(ofFloatColor(1,1,1));
 				}
 			}
 		}
 	}
+    user.bNewPointCloud = true;
 }
 
 //--------------------------------------------------------------
 void ofxOpenNI::generateUserPixels(ofxOpenNIUser & user){
     
-	xn::SceneMetaData smd;
-	unsigned short *userPix;
-    
-	if (g_User.GetUserPixels(user.id, smd) == XN_STATUS_OK) { //	GetUserPixels is supposed to take a user ID number,
-		userPix = (unsigned short*)smd.Data();					//  but you get the same data no matter what you pass.
-	}															//	userPix actually contains an array where each value
-    //  corresponds to the user being tracked.
-    //  Ie.,	if userPix[i] == 0 then it's not being tracked -> it's the background!
-    //			if userPix[i] > 0 then the pixel belongs to the user who's value IS userPix[i]
-    //  // (many thanks to ascorbin who's code made this apparent to me)
-    
-    
     if (user.maskPixels.getWidth() != getWidth() || user.maskPixels.getHeight() != getHeight()){
         user.maskPixels.allocate(getWidth(), getHeight(), OF_IMAGE_COLOR_ALPHA);
-        if (user.bUseMaskTexture) user.maskTexture.allocate(getWidth(), getHeight(), GL_RGBA);
+        //if (user.bUseMaskTexture) user.maskTexture.allocate(getWidth(), getHeight(), GL_RGBA);
     }
 	
     int nIndex = 0;
     for (int nY = 0; nY < getHeight(); nY++) {
 		for (int nX = 0; nX < getWidth(); nX++) {
             nIndex = nY * getWidth() + nX;
-            if (userPix[nIndex] == user.id) {
+            if (user.userPixels[nIndex] == user.id) {
                 user.maskPixels[nIndex * 4 + 0] = 255;
                 user.maskPixels[nIndex * 4 + 1] = 255;
                 user.maskPixels[nIndex * 4 + 2] = 255;
@@ -989,8 +994,8 @@ void ofxOpenNI::generateUserPixels(ofxOpenNIUser & user){
             }
         }
     }
-    
-    if (user.bUseMaskTexture) user.maskTexture.loadData(user.maskPixels.getPixels(), getWidth(), getHeight(), GL_RGBA);
+    user.bNewPixels = true;
+    //if (user.bUseMaskTexture) user.maskTexture.loadData(user.maskPixels.getPixels(), getWidth(), getHeight(), GL_RGBA);
 }
 
 /**************************************************************

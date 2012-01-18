@@ -44,6 +44,7 @@ ofxOpenNIUser::ofxOpenNIUser(){
     bIsSkeleton = false;
     bIsCalibrating = false;
     bUseAutoCalibration = true;
+    bNewPixels = false;
     
 	limbs.resize(NumLimbs);
 
@@ -94,7 +95,7 @@ void ofxOpenNIUser::drawPointCloud(){
     ofPushMatrix();
     glPointSize(cloudPointDrawSize);
     glEnable(GL_DEPTH_TEST);
-    pointCloud.drawVertices();
+    pointCloud[1].drawVertices();
     glDisable(GL_DEPTH_TEST);
     ofPopMatrix();
     ofPopStyle();
@@ -195,7 +196,7 @@ ofPoint & ofxOpenNIUser::getCenter(){
 
 //--------------------------------------------------------------
 ofMesh & ofxOpenNIUser::getPointCloud(){
-    return pointCloud;
+    return pointCloud[1];
 }
 
 //--------------------------------------------------------------

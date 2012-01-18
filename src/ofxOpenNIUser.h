@@ -164,7 +164,7 @@ private:
     
 	ofPoint center;
 	vector<ofxOpenNILimb> limbs;
-	ofMesh pointCloud;
+	ofMesh pointCloud[2];
 	ofPixels maskPixels;
     ofTexture maskTexture;
     
@@ -183,6 +183,10 @@ private:
     bool bIsTracking;
     bool bIsSkeleton;
     bool bIsCalibrating;
+    bool bNewPixels;
+    bool bNewPointCloud;
+    
+    unsigned short* userPixels;
 
 };
 
