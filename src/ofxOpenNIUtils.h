@@ -51,6 +51,26 @@ static XnUInt8 PalletIntsR [256] = {0};
 static XnUInt8 PalletIntsG [256] = {0};
 static XnUInt8 PalletIntsB [256] = {0};
 
+enum DepthColoring {
+    COLORING_PSYCHEDELIC_SHADES = 0,
+    COLORING_PSYCHEDELIC,
+    COLORING_RAINBOW,
+    COLORING_CYCLIC_RAINBOW,
+    COLORING_BLUES,
+    COLORING_GREY,
+    COLORING_STATUS,
+    COLORING_COUNT
+};
+
+enum userStatusType {
+    USER_TRACKING_STOPPED = 0,
+    USER_TRACKING_STARTED,
+    USER_CALIBRATION_STOPPED,
+    USER_CALIBRATION_STARTED,
+    USER_SKELETON_LOST,
+    USER_SKELETON_FOUND
+};
+
 //--------------------------------------------------------------
 static void CreateRainbowPallet(){
 	if (rainbowPalletInit) return;
@@ -114,6 +134,32 @@ inline XnPoint3D toXn(const ofPoint & p){
 
 inline string boolToString(bool b){
     return (string)(b ? "TRUE" : "FALSE");
+}
+
+inline string getUserStatusAsString(userStatusType type) {
+	switch (type) {
+        case USER_TRACKING_STOPPED:
+			return "USER_TRACKING_STOPPED";
+			break;
+		case USER_TRACKING_STARTED:
+			return "USER_TRACKING_STARTED";
+			break;
+		case USER_CALIBRATION_STOPPED:
+			return "USER_CALIBRATION_STOPPED";
+			break;
+		case USER_CALIBRATION_STARTED:
+			return "USER_CALIBRATION_STARTED";
+			break;
+		case USER_SKELETON_LOST:
+			return "USER_SKELETON_LOST";
+			break;
+		case USER_SKELETON_FOUND:
+			return "USER_SKELETON_FOUND";
+			break;
+		default:
+			return "UNKNOWN_USER_STATUS_TYPE";
+			break;
+    }
 }
 
 inline string getCalibrationStatusAsString(XnCalibrationStatus type) {

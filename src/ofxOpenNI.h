@@ -43,7 +43,7 @@
 #include "ofPixels.h"
 #include "ofTexture.h"
 #include "ofThread.h"
-#include "ofAppRunner.h"
+#include "ofEvents.h"
 
 #include "ofxOpenNIUser.h"
 #include "ofxOpenNIUtils.h"
@@ -55,17 +55,6 @@ using namespace xn;
 class ofxOpenNI : public ofThread {
 	
 public:
-	
-	enum DepthColoring {
-		COLORING_PSYCHEDELIC_SHADES = 0,
-		COLORING_PSYCHEDELIC,
-		COLORING_RAINBOW,
-		COLORING_CYCLIC_RAINBOW,
-		COLORING_BLUES,
-		COLORING_GREY,
-		COLORING_STATUS,
-		COLORING_COUNT
-	};
 	
 	ofxOpenNI();
 	~ofxOpenNI();
@@ -195,6 +184,8 @@ public:
 	xn::AudioMetaData& getAudioMetaData();
 	
     string LOG_NAME;
+    
+    ofEvent<ofxOpenNIUserEvent> userEvent;
 
 protected:
 	

@@ -705,6 +705,7 @@ void ofxOpenNI::updateUsers(){
 			XnPoint3D center;
 			userGenerator.GetCoM(userIDs[i], center);
 			user.center = toOf(center);
+            bool lastbIsSkeleton = user.bIsSkeleton;
             user.bIsSkeleton = false;
 			for (int j=0; j<ofxOpenNIUser::NumLimbs; j++){
 				XnSkeletonJointPosition a,b;
@@ -722,6 +723,11 @@ void ofxOpenNI::updateUsers(){
 				user.limbs[j].worldEnd = toOf(b.position);
                 user.bIsSkeleton = true;
 			}
+            
+            if (user.bIsSkeleton != lastbIsSkeleton){
+                ofxOpenNIUserEvent event = ofxOpenNIUserEvent(user.id, instanceID, (user.bIsSkeleton ? USER_SKELETON_FOUND : USER_SKELETON_LOST));
+                ofNotifyEvent(userEvent, event, this);
+            }
             
 			if (user.bUsePointCloud) updatePointClouds(user);
 			if (user.bUseMaskPixels) updateUserPixels(user);
@@ -1547,9 +1553,7 @@ ofPoint ofxOpenNI::projectiveToWorld(const XnVector3D& p){
 ofPoint ofxOpenNI::cameraToWorld(const ofVec2f& c){
 	vector<ofVec2f> vc(1, c);
 	vector<ofVec3f> vw(1);
-	
 	cameraToWorld(vc, vw);
-	
 	return vw[0];
 }
 
@@ -1580,7 +1584,6 @@ void ofxOpenNI::cameraToWorld(const vector<ofVec2f>& c, vector<ofVec3f>& w){
 	//unlock();
 	
 	g_Depth.ConvertProjectiveToRealWorld(nPoints,&projective[0], (XnPoint3D*)&w[0]);
-	
 }
 
 // USER GENERATOR CALLBACKS AND HANDLE HELPER FUNCTIONS
@@ -1599,11 +1602,10 @@ void ofxOpenNI::startTracking(XnUserID nID){
 	nRetVal = g_User.GetSkeletonCap().StartTracking(nID);
     CHECK_ERR_RC(nRetVal, "Get skeleton capability - start tracking");
     if (nRetVal == XN_STATUS_OK) {
-        // perhaps I should use find rather than [] accessor -> that way we can never accidently add a user that isn't meant to be tracked??
+        ofxOpenNIUserEvent event = ofxOpenNIUserEvent(nID, instanceID, USER_TRACKING_STARTED);
+        ofNotifyEvent(userEvent, event, this);
         currentTrackedUsers[nID].bIsFound = true;
-        //currentTrackedUsers[nID].bIsPoseDetected = true; // TODO: maybe check agains bNeedsPoseDetection?? per user or global?
         currentTrackedUsers[nID].bIsTracking = true;
-        //currentTrackedUsers[nID].bIsPoseDetecting = false;
         currentTrackedUsers[nID].bIsCalibrating = false;
     }
 }
@@ -1612,15 +1614,16 @@ void ofxOpenNI::startTracking(XnUserID nID){
 void ofxOpenNI::stopTracking(XnUserID nID){
     XnStatus nRetVal = XN_STATUS_OK;
     ofLogNotice(LOG_NAME) << "Stop tracking user" << nID;
-//    nRetVal = g_User.GetSkeletonCap().Reset(nID);
-//    CHECK_ERR_RC(nRetVal, "Get skeleton capability - stop tracking (maybe we didn't have a skeleton?");
+    if (g_User.GetSkeletonCap().IsTracking(nID)){
+        nRetVal = g_User.GetSkeletonCap().Reset(nID);
+        CHECK_ERR_RC(nRetVal, "Get skeleton capability - stop tracking (maybe we didn't have a skeleton?");
+    }
     if (nID > maxNumUsers) return;
-    //if (nRetVal == XN_STATUS_OK) {
-        currentTrackedUsers[nID].bIsFound = false;
-        currentTrackedUsers[nID].bIsTracking = false;
-        //currentTrackedUsers[nID].bIsPoseDetecting = false;
-        currentTrackedUsers[nID].bIsCalibrating = false;
-    //}
+    ofxOpenNIUserEvent event = ofxOpenNIUserEvent(nID, instanceID, USER_TRACKING_STOPPED);
+    ofNotifyEvent(userEvent, event, this);
+    currentTrackedUsers[nID].bIsFound = false;
+    currentTrackedUsers[nID].bIsTracking = false;
+    currentTrackedUsers[nID].bIsCalibrating = false;
 }
 
 //--------------------------------------------------------------
@@ -1635,6 +1638,8 @@ void ofxOpenNI::requestCalibration(XnUserID nID){
 	nRetVal = g_User.GetSkeletonCap().RequestCalibration(nID, TRUE);
     CHECK_ERR_RC(nRetVal, "Get skeleton capability - request calibration");
     if (nRetVal == XN_STATUS_OK) {
+        ofxOpenNIUserEvent event = ofxOpenNIUserEvent(nID, instanceID, USER_CALIBRATION_STARTED);
+        ofNotifyEvent(userEvent, event, this);
         currentTrackedUsers[nID].bIsFound = true;
         currentTrackedUsers[nID].bIsCalibrating = true;
     }
@@ -1653,12 +1658,12 @@ void ofxOpenNI::startPoseDetection(XnUserID nID){
 	nRetVal = g_User.GetPoseDetectionCap().StartPoseDetection(userCalibrationPose, nID);
     SHOW_RC(nRetVal, "Get pose detection capability - start");
     if (nRetVal == XN_STATUS_OK) {
+        ofxOpenNIUserEvent event = ofxOpenNIUserEvent(nID, instanceID, USER_CALIBRATION_STARTED);
+        ofNotifyEvent(userEvent, event, this);
         currentTrackedUsers[nID].bIsFound = true;
-        //currentTrackedUsers[nID].bIsPoseDetecting = true;
         currentTrackedUsers[nID].bIsCalibrating = true;
     }
 }
-
 
 //--------------------------------------------------------------
 void ofxOpenNI::stopPoseDetection(XnUserID nID){
@@ -1668,7 +1673,8 @@ void ofxOpenNI::stopPoseDetection(XnUserID nID){
     CHECK_ERR_RC(nRetVal, "Get pose detection capability - stop");
     if (nID > maxNumUsers) return;
     if (nRetVal == XN_STATUS_OK) {
-        //currentTrackedUsers[nID].bIsPoseDetecting = false;
+        ofxOpenNIUserEvent event = ofxOpenNIUserEvent(nID, instanceID, USER_CALIBRATION_STOPPED);
+        ofNotifyEvent(userEvent, event, this);
         currentTrackedUsers[nID].bIsCalibrating = false;
     }
 }
