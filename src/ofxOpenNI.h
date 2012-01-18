@@ -62,7 +62,6 @@ public:
 	bool setup(bool threaded = true);
 	bool setup(string xmlFilePath, bool threaded = true);
 	
-    void start();
     void stop();
     
 	bool addDepthGenerator();
@@ -225,6 +224,7 @@ private:
 	bool g_bIsDepthRawOnOption;
 	
     bool bIsContextReady;
+    bool bIsDeviceReady;
     bool bIsShuttingDown;
     bool bUseBackBuffer;
     bool bAutoCalibrationPossible;

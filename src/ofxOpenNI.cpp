@@ -35,11 +35,11 @@ static ofxOpenNIUser staticDummyUser;
 ofxOpenNI::ofxOpenNI(){
 	instanceCount++;
 	instanceID = instanceCount; // TODO: this should be replaced/combined with a listDevices and setDeviceID methods
-	
+    
     LOG_NAME = "ofxOpenNIDevice[" + ofToString(instanceID) + "]";
+    //cout << LOG_NAME << ": constructor called" << endl;
     
 	bIsThreaded = false;
-	
 	g_bIsDepthOn = false;
 	g_bIsDepthRawOnOption = false;
 	g_bIsImageOn = false;
@@ -51,6 +51,7 @@ ofxOpenNI::ofxOpenNI(){
 	depthColoring = COLORING_RAINBOW;
 	
     bIsContextReady = false;
+    bIsDeviceReady = false;
     bIsShuttingDown = false;
     bUseBackBuffer = false;
     bAutoCalibrationPossible = false;
@@ -67,16 +68,15 @@ ofxOpenNI::ofxOpenNI(){
 	CreateRainbowPallet();
 
     logLevel = OF_LOG_SILENT;
-
 }
 
 //--------------------------------------------------------------
 ofxOpenNI::~ofxOpenNI(){
-    
+
     // don't use ofLog here!!!
-    cout << "ofxOpenNI[" << instanceID << "]: " << "destructor called" << endl;
+    cout << LOG_NAME << ": destructor called" << endl;
     if (bIsShuttingDown) {
-        cout << "ofxOpenNI[" << instanceID << "]: " << "...already shut down" << endl;
+        cout << LOG_NAME << ": ...already shut down" << endl;
         return;
     }
     
@@ -90,27 +90,32 @@ bool ofxOpenNI::setup(bool threaded){
     XnStatus nRetVal = XN_STATUS_OK;
 	bIsThreaded = threaded;
     
+    // set log level to ofLogLevel base level at least
     if (ofGetLogLevel() < logLevel) logLevel = ofGetLogLevel();
     setLogLevel(logLevel);
     
 	if (!initContext()){
-        ofLogError(LOG_NAME) << "Context could not be intitilised";
+        ofLogError(LOG_NAME) << "Context could not be initialized";
         return false;
 	}
     
     if (!initDevice()){
-        ofLogError(LOG_NAME) << "Device could not be intitilised";
+        ofLogError(LOG_NAME) << "Device could not be initialized";
         return false;
 	}
     
-    if (numDevices < instanceID) {
+    if (!bIsDeviceReady || numDevices < instanceID) {
         ofLogError(LOG_NAME) << "No Devices available for this instance [" << instanceID << "] of ofxOpenNI - have you got a device connected?!?!";
         g_Context.Release();
         bIsContextReady = false;
         return false;
     } else {
-        ofLogNotice(LOG_NAME) << "Starting device for instance [" << instanceID << "] of ofxOpenNI";
-        //if (bIsThreaded) startThread(true, false);
+        if (bIsThreaded && !isThreadRunning()) {
+            ofLogNotice(LOG_NAME) << "Starting ofxOpenNI with threading";
+            startThread(true, false);
+        } else if (!bIsThreaded) {
+            ofLogNotice(LOG_NAME) << "Starting ofxOpenNI without threading";
+        }
         return true;
 	}
 	
@@ -122,21 +127,11 @@ bool ofxOpenNI::setup(string xmlFilePath, bool threaded){
 }
 
 //--------------------------------------------------------------
-void ofxOpenNI::start(){
-    if (!bIsContextReady) {
-        ofLogError() << "You need to call setup() first!";
-        return;
-    }
-    if (bIsThreaded) startThread(true, false);
-}
-
-//--------------------------------------------------------------
 void ofxOpenNI::stop(){
-    
     // don't use ofLog here!!!
-    cout << "ofxOpenNI[" << instanceID << "]: " << "stop called" << endl;
+    cout << LOG_NAME << ": stop called" << endl;
     if (bIsShuttingDown) {
-        cout << "ofxOpenNI[" << instanceID << "]: " << "...already shut down" << endl;
+        cout << LOG_NAME << ": ...already shut down" << endl;
         return;
     }
     
@@ -145,21 +140,24 @@ void ofxOpenNI::stop(){
     if (!bIsContextReady) return;
     
     if (bIsThreaded) {
-        cout << "ofxOpenNI[" << instanceID << "]: " << "trying to lock" << endl;
+        cout << LOG_NAME << ": trying to lock" << endl;
         lock();
-        cout << "ofxOpenNI[" << instanceID << "]: " << "trying to shut down generator" << endl;
+        cout << LOG_NAME << ": trying one last update of generator" << endl;
         g_Context.WaitNoneUpdateAll(); // maybe this helps?
+        unlock();
+        lock();
+        cout << LOG_NAME << ": trying to shut down generator" << endl;
         g_Context.StopGeneratingAll();
-        cout << "ofxOpenNI[" << instanceID << "]: " << "trying to unlock" << endl;
+        cout << LOG_NAME << ": trying to unlock" << endl;
         unlock();
         //if (isThreadRunning()) stopThread();
-        cout << "ofxOpenNI[" << instanceID << "]: " << "waiting for thread to end" << endl;
+        cout << LOG_NAME << ": waiting for thread to end" << endl;
         if (isThreadRunning()) waitForThread(true);
     } else {
         g_Context.StopGeneratingAll();
     }
     
-    cout << "ofxOpenNI[" << instanceID << "]: " << "releasing all nodes" << endl;
+    cout << LOG_NAME << ": releasing all nodes" << endl;
     
     bIsThreaded = false;
     bIsContextReady = false;
@@ -175,16 +173,17 @@ void ofxOpenNI::stop(){
     g_Context.Release();
     
     //ofLogVerbose(LOG_NAME) shouldn't use that here - as it's a singleton???
-    cout << "ofxOpenNI[" << instanceID << "]: " << "full stopped" << endl;
+    cout << LOG_NAME << ": full stopped" << endl;
 }
 
 //--------------------------------------------------------------
 bool ofxOpenNI::initContext(){
     if (bIsContextReady) return true;
+    ofLogNotice(LOG_NAME) << "Init context...";
     XnStatus nRetVal = XN_STATUS_OK;
     ofToDataPath(""); // of007 hack to make sure ofSetRootPath is done!
     nRetVal = g_Context.Init();
-    SHOW_RC(nRetVal, "OpenNI Context initilized");
+    SHOW_RC(nRetVal, "Context initilized");
     bIsContextReady = (nRetVal == XN_STATUS_OK);
     if (bIsContextReady) addLicence("PrimeSense", "0KOIk2JeIBYClPWVnMoRKn5cdY4=");
     return bIsContextReady;
@@ -193,6 +192,8 @@ bool ofxOpenNI::initContext(){
 //--------------------------------------------------------------
 bool ofxOpenNI::initDevice(){
     if (initContext()) {
+        if (bIsDeviceReady) return true;
+        ofLogNotice(LOG_NAME) << "Init device...";
         XnStatus nRetVal = XN_STATUS_OK;
         NodeInfoList deviceList;
         EnumerationErrors errors;
@@ -213,10 +214,11 @@ bool ofxOpenNI::initDevice(){
         
         nRetVal = g_Context.CreateProductionTree(nInfo, g_Device);
         SHOW_RC(nRetVal, "Creating production tree for device " + ofToString(instanceID));
-        return (nRetVal == XN_STATUS_OK);
+        bIsDeviceReady = (nRetVal == XN_STATUS_OK);
     } else {
-        return false;
+        bIsDeviceReady = false;
     }
+    return bIsDeviceReady;
 }
 
 //--------------------------------------------------------------
@@ -1313,7 +1315,7 @@ bool ofxOpenNI::isContextReady(){
 
 //--------------------------------------------------------------
 int ofxOpenNI::getNumDevices(){
-    if (numDevices == 0) initDevice();
+    if (!bIsContextReady) setup();
 	return numDevices;
 }
 
