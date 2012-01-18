@@ -123,15 +123,16 @@ public:
     void setUseBackBuffer(bool b);
     bool getUseBackBuffer();
     
+    ofxOpenNIUser&	getTrackedUser(int index); // only returns tracked users upto getNumTrackedUsers()
     int	getNumTrackedUsers();
     
-    ofxOpenNIUser&	getTrackedUser(int nID); // only returns tracked users
-    ofxOpenNIUser& getUser(int nID); // finds a user if it exists (whether tracked or not)
+    ofxOpenNIUser& getUser(XnUserID nID); // finds a user if it exists (whether tracked or not)
+    void setMaxNumUsers(int numUsers);
+    int	getMaxNumUsers();
     
     void setBaseUserClass(ofxOpenNIUser & user);
     
-    void setMaxNumUsers(int numUsers);
-    int	getMaxNumUsers();
+   
     
     void resetUserTracking(XnUserID nID, bool forceImmediateRestart = false);
     

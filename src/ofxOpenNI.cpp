@@ -1023,13 +1023,13 @@ int	ofxOpenNI::getNumTrackedUsers(){
 }
 
 //--------------------------------------------------------------
-ofxOpenNIUser&	ofxOpenNI::getTrackedUser(int nID){
+ofxOpenNIUser&	ofxOpenNI::getTrackedUser(int index){
     if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
-    return currentTrackedUsers[currentTrackedUserIDs[nID]];
+    return currentTrackedUsers[currentTrackedUserIDs[index]];
 }
 
 //--------------------------------------------------------------
-ofxOpenNIUser&	ofxOpenNI::getUser(int nID){
+ofxOpenNIUser&	ofxOpenNI::getUser(XnUserID nID){
     if (nID == 0) {
         ofLogError(LOG_NAME) << "You have requested a user ID of 0 - perhaps you wanted to use getTrackedUser()" << endl 
             << "OR you need to iterate using something like: for (int i = 1; i <= openNIDevices[0].getMaxNumUsers(); i++)" << endl
@@ -1037,6 +1037,7 @@ ofxOpenNIUser&	ofxOpenNI::getUser(int nID){
         baseUser.id = 0;
         return baseUser;
     }
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     map<XnUserID,ofxOpenNIUser>::iterator it = currentTrackedUsers.find(nID);
     if (it != currentTrackedUsers.end()){
         return (*it).second;
