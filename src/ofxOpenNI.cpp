@@ -920,18 +920,6 @@ void ofxOpenNI::generateUserTracking(){
 		}
 	}
     
-    //	set<XnUserID>::iterator it;
-    //	for (it = previousTrackedUserIDs.begin(); it != previousTrackedUserIDs.end(); it++){
-    //		if (trackedUserIDs.find(*it) == trackedUserIDs.end()){
-    //			//currentTrackedUsers.erase(*it);
-    //            ofxOpenNIUser & user = currentTrackedUsers[*it];
-    //            //user.bIsTracking = false;
-    //		}
-    //	}
-    //
-    //	previousTrackedUserIDs = trackedUserIDs;
-    //	currentTrackedUserIDs.assign(previousTrackedUserIDs.begin(), previousTrackedUserIDs.end());
-    
     currentTrackedUserIDs.assign(trackedUserIDs.begin(), trackedUserIDs.end());
     
 }
@@ -971,10 +959,9 @@ void ofxOpenNI::generatePointClouds(ofxOpenNIUser & user){
 
 //--------------------------------------------------------------
 void ofxOpenNI::generateUserPixels(ofxOpenNIUser & user){
-    
+
     if (user.maskPixels.getWidth() != getWidth() || user.maskPixels.getHeight() != getHeight()){
         user.maskPixels.allocate(getWidth(), getHeight(), OF_IMAGE_COLOR_ALPHA);
-        //if (user.bUseMaskTexture) user.maskTexture.allocate(getWidth(), getHeight(), GL_RGBA);
     }
 	
     int nIndex = 0;
@@ -995,7 +982,6 @@ void ofxOpenNI::generateUserPixels(ofxOpenNIUser & user){
         }
     }
     user.bNewPixels = true;
-    //if (user.bUseMaskTexture) user.maskTexture.loadData(user.maskPixels.getPixels(), getWidth(), getHeight(), GL_RGBA);
 }
 
 /**************************************************************
@@ -1179,7 +1165,11 @@ bool ofxOpenNI::isNewFrame(){
 //--------------------------------------------------------------
 ofPixels& ofxOpenNI::getDepthPixels(){
 	if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(mutex);
-	return *currentDepthPixels;
+	if (bUseBackBuffer){
+        return *currentDepthPixels;
+    }else{
+        return *backDepthPixels;
+    }
 }
 
 //--------------------------------------------------------------
@@ -1189,13 +1179,22 @@ ofShortPixels& ofxOpenNI::getDepthRawPixels(){
 		ofLogWarning(LOG_NAME) << "g_bIsDepthRawOnOption was disabled, enabling raw pixels";
 		g_bIsDepthRawOnOption = true;
 	}
-	return *currentDepthRawPixels;
+    if (bUseBackBuffer){
+        return *currentDepthRawPixels;
+    }else{
+        return *backDepthRawPixels;
+    }
+	
 }
 
 //--------------------------------------------------------------
 ofPixels& ofxOpenNI::getImagePixels(){
 	if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(mutex);
-	return *currentImagePixels;
+    if (bUseBackBuffer){
+        return *currentImagePixels;
+    }else{
+        return *backImagePixels;
+    }
 }
 
 //--------------------------------------------------------------
