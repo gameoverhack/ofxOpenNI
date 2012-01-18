@@ -3,13 +3,16 @@
 //--------------------------------------------------------------
 void testApp::setup() {
 
+    ofSetLogLevel(OF_LOG_NOTICE);
+    
     numDevices = openNIDevices[0].getNumDevices();
     
     for (int deviceID = 0; deviceID < numDevices; deviceID++){
-        openNIDevices[deviceID].setLogLevel(OF_LOG_NOTICE);
+        //openNIDevices[deviceID].setLogLevel(OF_LOG_VERBOSE);
         openNIDevices[deviceID].setup();
         openNIDevices[deviceID].addDepthGenerator();
         openNIDevices[deviceID].addImageGenerator();
+        openNIDevices[deviceID].setRegister(true); // this registers all the image pixels to the depth pixels
     }
     
     verdana.loadFont(ofToDataPath("verdana.ttf"), 24);
@@ -45,13 +48,26 @@ void testApp::draw(){
 //--------------------------------------------------------------
 void testApp::exit(){
     for (int deviceID = 0; deviceID < numDevices; deviceID++){
-        openNIDevices[deviceID].stop(); // this is not always called OR clean! The dtor should work but still has problems...grrr
+        openNIDevices[deviceID].stop();
     }
 }
 
 //--------------------------------------------------------------
 void testApp::keyPressed(int key){
-
+    switch (key) {
+        case 't':
+            for (int deviceID = 0; deviceID < numDevices; deviceID++){
+                openNIDevices[deviceID].toggleRegister();
+            }
+            break;
+        case 'x':
+            for (int deviceID = 0; deviceID < numDevices; deviceID++){
+                openNIDevices[deviceID].stop();
+            }
+            break;
+        default:
+            break;
+    }
 }
 
 //--------------------------------------------------------------

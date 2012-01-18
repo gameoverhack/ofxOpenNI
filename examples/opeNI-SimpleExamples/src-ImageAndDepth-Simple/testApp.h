@@ -10,6 +10,7 @@ public:
 	void setup();
 	void update();
 	void draw();
+    void exit();
 
 	void keyPressed  (int key);
 	void keyReleased(int key);
@@ -19,6 +20,8 @@ public:
 	void mouseReleased(int x, int y, int button);
 	void windowResized(int w, int h);
 
+    ofTrueTypeFont verdana;
+    
 	ofxOpenNI openNIDevice;
     
 };

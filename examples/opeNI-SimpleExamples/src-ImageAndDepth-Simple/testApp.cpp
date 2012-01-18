@@ -3,12 +3,16 @@
 //--------------------------------------------------------------
 void testApp::setup() {
 
+    ofSetLogLevel(OF_LOG_NOTICE);
+    
     openNIDevice.setup();
-    openNIDevice.setLogLevel(OF_LOG_NOTICE);
+    openNIDevice.setLogLevel(OF_LOG_VERBOSE);
     openNIDevice.addDepthGenerator();
     openNIDevice.addImageGenerator();   // comment this out
     //openNIDevice.addInfraGenerator(); // and uncomment this to see infrared generator
+                                        // or press the 'i' key when running
     
+    verdana.loadFont(ofToDataPath("verdana.ttf"), 24);
 }
 
 //--------------------------------------------------------------
@@ -21,20 +25,40 @@ void testApp::draw(){
     
 	ofSetColor(255, 255, 255);
     
-    openNIDevices.drawDebug(); // draws all generators
+    openNIDevice.drawDebug(); // draws all generators
     //openNIDevice.drawDepth(0, 0);
     //openNIDevice.drawImage(640, 0);
     
-	ofSetColor(0, 255, 0);
-	string msg = "FPS: " + ofToString(ofGetFrameRate());
-	ofDrawBitmapString(msg, 20, ofGetHeight() - 20);
+    ofSetColor(0, 255, 0);
+	string msg = " MILLIS: " + ofToString(ofGetElapsedTimeMillis()) + " FPS: " + ofToString(ofGetFrameRate());
+	verdana.drawString(msg, 20, ofGetHeight() - 26);
     
 }
 
+//--------------------------------------------------------------
+void testApp::exit(){
+    openNIDevice.stop();
+}
 
 //--------------------------------------------------------------
 void testApp::keyPressed(int key){
 
+    switch (key) {
+        case 'i':
+            if (openNIDevice.isImageOn()){
+                openNIDevice.removeImageGenerator();
+                openNIDevice.addInfraGenerator();
+                break;
+            }
+            if (openNIDevice.isInfraOn()){
+                openNIDevice.removeInfraGenerator();
+                openNIDevice.addImageGenerator();
+                break;
+            }
+            break;
+        default:
+            break;
+    }
 }
 
 //--------------------------------------------------------------
