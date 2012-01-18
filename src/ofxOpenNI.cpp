@@ -72,14 +72,12 @@ ofxOpenNI::ofxOpenNI(){
 
 //--------------------------------------------------------------
 ofxOpenNI::~ofxOpenNI(){
-
     // don't use ofLog here!!!
     cout << LOG_NAME << ": destructor called" << endl;
     if (bIsShuttingDown) {
         cout << LOG_NAME << ": ...already shut down" << endl;
         return;
     }
-    
     stop();
     bIsShuttingDown = true;
 }
@@ -142,37 +140,92 @@ void ofxOpenNI::stop(){
     if (bIsThreaded) {
         cout << LOG_NAME << ": trying to lock" << endl;
         lock();
-        cout << LOG_NAME << ": trying one last update of generator" << endl;
-        g_Context.WaitNoneUpdateAll(); // maybe this helps?
-        unlock();
-        lock();
-        cout << LOG_NAME << ": trying to shut down generator" << endl;
-        g_Context.StopGeneratingAll();
+        if (isThreadRunning()){
+            cout << LOG_NAME << ": trying to stop thread" << endl;
+            stopThread();
+            bIsThreaded = false;
+        }
+        if (g_bIsUserOn){
+            for (XnUserID nID = 1; nID <= maxNumUsers; nID++) {
+                if (currentTrackedUsers[nID].bIsFound) {
+                    cout << LOG_NAME << ": trying to kill user " << nID << endl;
+                    resetUserTracking(nID);
+                    currentTrackedUsers.erase(currentTrackedUsers.find(nID));
+                }
+            }
+//            cout << LOG_NAME << ": trying to stop user generator" << endl;
+//            g_User.StopGenerating();
+//            g_User.Release();
+        }
+        //cout << LOG_NAME << ": trying one last update of generator" << endl;
+        //g_Context.WaitNoneUpdateAll(); // maybe this helps?
         cout << LOG_NAME << ": trying to unlock" << endl;
-        unlock();
-        //if (isThreadRunning()) stopThread();
+        //unlock();
         cout << LOG_NAME << ": waiting for thread to end" << endl;
         if (isThreadRunning()) waitForThread(true);
-    } else {
-        g_Context.StopGeneratingAll();
+
     }
     
-    cout << LOG_NAME << ": releasing all nodes" << endl;
+//    cout << LOG_NAME << ": trying to stop generator" << endl;
+//    g_Context.StopGeneratingAll();
     
-    bIsThreaded = false;
-    bIsContextReady = false;
+    cout << LOG_NAME << ": releasing all nodes" << endl;
 
     instanceCount--; // ok this will probably cause problems when dynamically creating and destroying -> you'd need to do it in order!
-
-    g_Depth.Release();
-    g_Image.Release();
-    g_Infra.Release();
-    g_User.Release();
-    g_Audio.Release();
-    g_Player.Release();
-    g_Context.Release();
     
-    //ofLogVerbose(LOG_NAME) shouldn't use that here - as it's a singleton???
+    if (g_bIsDepthOn){
+        cout << LOG_NAME << ": releasing depth generator" << endl;
+        g_Depth.StopGenerating();
+        g_Depth.Release();
+        g_bIsDepthOn = false;
+    }
+    
+    if (g_bIsImageOn){
+        cout << LOG_NAME << ": releasing image generator" << endl;
+        g_Image.StopGenerating();
+        g_Image.Release();
+        g_bIsImageOn = false;
+    }
+
+    if (g_bIsInfraOn){
+        cout << LOG_NAME << ": releasing infra generator" << endl;
+        g_Infra.StopGenerating();
+        g_Infra.Release();
+        g_bIsInfraOn = false;
+    }
+
+    if (g_bIsUserOn){
+        cout << LOG_NAME << ": releasing user generator" << endl;
+        g_User.StopGenerating();
+        g_User.Release();
+        g_bIsUserOn = false;
+    }
+
+    if (g_bIsAudioOn){
+        cout << LOG_NAME << ": releasing audio generator" << endl;
+        g_Audio.StopGenerating();
+        g_Audio.Release();
+    }
+
+    if (g_bIsPlayerOn){
+        cout << LOG_NAME << ": releasing player generator" << endl;
+        g_Player.Release();
+        g_bIsPlayerOn = false;
+    }
+
+    if (bIsDeviceReady){
+        cout << LOG_NAME << ": releasing device" << endl;
+        g_Device.Release();
+        bIsDeviceReady = false;
+    }
+
+    if (bIsContextReady){
+        cout << LOG_NAME << ": releasing context" << endl;
+        g_Context.StopGeneratingAll();
+        g_Context.Release();
+        bIsContextReady = false;
+    }
+
     cout << LOG_NAME << ": full stopped" << endl;
 }
 
@@ -1595,7 +1648,7 @@ void ofxOpenNI::startTrackingUser(XnUserID nID){
 //--------------------------------------------------------------
 void ofxOpenNI::stopTrackingUser(XnUserID nID){
     XnStatus nRetVal = XN_STATUS_OK;
-    if (g_User.GetSkeletonCap().IsCalibrating(nID) || g_User.GetSkeletonCap().IsCalibrated(nID)){
+    if (g_User.GetSkeletonCap().IsCalibrating(nID)){// || g_User.GetSkeletonCap().IsCalibrated(nID)){
         ofLogNotice(LOG_NAME) << "Calibration stopped for user" << nID;
         nRetVal = g_User.GetSkeletonCap().AbortCalibration(nID);
         CHECK_ERR_RC(nRetVal, "Get skeleton capability - stop calibrating");
