@@ -123,6 +123,9 @@ public:
 	void setUseTexture(bool useTexture);
 	void setDepthColoring(DepthColoring coloring);
 	
+    void setUseBackBuffer(bool b);
+    bool getUseBackBuffer();
+    
     int	getNumTrackedUsers();
     
     ofxOpenNIUser&	getTrackedUser(int nID); // only returns tracked users
@@ -131,20 +134,12 @@ public:
     void setMaxNumUsers(int numUsers);
     int	getMaxNumUsers();
     
-//    void setUseMaskPixels(bool b);
-//    bool getUseMaskPixels();
-//    
-//	  void setUsePointClouds(bool b);
-//    bool getUsePointClouds();
-    
-    void setUseBackBuffer(bool b);
-    bool getUseBackBuffer();
+    void resetUserTracking(XnUserID nID, bool forceImmediateRestart = false);
     
 	void setUserSmoothing(float smooth);
 	float getUserSmoothing();
     
-    void setUserDetectionConfidence(float level);
-    float getUserDetectionConfidence();
+    bool getAutoUserCalibrationPossible();
     
 	bool toggleCalibratedRGBDepth();
 	bool enableCalibratedRGBDepth();
@@ -232,7 +227,7 @@ private:
     bool bIsContextReady;
     bool bIsShuttingDown;
     bool bUseBackBuffer;
-    bool bNeedsPose;
+    bool bAutoCalibrationPossible;
 	bool bUseTexture;
 	bool bNewPixels;
 	bool bNewFrame;
@@ -292,22 +287,20 @@ private:
 //    static void XN_CALLBACK_TYPE UserCB_handleCalibrationProgress(xn::SkeletonCapability& skeletonCapability, XnUserID nID, XnCalibrationStatus calibrationStatus, void* pCookie);
     static void XN_CALLBACK_TYPE UserCB_handleCalibrationEnd(xn::SkeletonCapability& skeletonCapability, XnUserID nID, XnCalibrationStatus calibrationStatus, void* pCookie);
     
-    // user pose functions
+    // user tracking functions
     XnChar	userCalibrationPose[20];
-    void startTracking(XnUserID nID);
-    void stopTracking(XnUserID nID);
+    void stopTrackingUser(XnUserID nID);
+    void startTrackingUser(XnUserID nID);
     void requestCalibration(XnUserID nID);
     void startPoseDetection(XnUserID nID);
     void stopPoseDetection(XnUserID nID);
-    bool needsPoseForCalibration();
     
     // user storage
 	map<XnUserID,ofxOpenNIUser> currentTrackedUsers;
-    set<XnUserID> previousTrackedUserIDs;
+//    set<XnUserID> previousTrackedUserIDs;
 	vector<XnUserID> currentTrackedUserIDs;
     
     int maxNumUsers;
-    float userDetectionConfidence;
     float userSmoothFactor;
 
 	int instanceID;

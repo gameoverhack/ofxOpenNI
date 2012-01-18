@@ -34,6 +34,8 @@ ofxOpenNIUser::ofxOpenNIUser(){
     cloudPointDrawSize = 2;
     cloudPointResolution = 2;
     
+    limbDetectionConfidence =  0.3f;
+    
     bUseMaskPixels = false;
     bUseMaskTexture = false;
     bUsePointCloud = false;
@@ -204,6 +206,16 @@ ofPixels & ofxOpenNIUser::getMaskPixels(){
 //--------------------------------------------------------------
 ofTexture & ofxOpenNIUser::getMaskTextureReference(){
     return maskTexture;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNIUser::setLimbDetectionConfidence(float level){
+    limbDetectionConfidence = level;
+}
+
+//--------------------------------------------------------------
+float ofxOpenNIUser::getLimbDetectionConfidence(){
+    return limbDetectionConfidence;
 }
 
 //--------------------------------------------------------------

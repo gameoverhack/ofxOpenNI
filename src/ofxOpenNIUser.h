@@ -138,6 +138,9 @@ public:
     void setUsePointCloud(bool b);
     bool getUsePointCloud();
     
+    void setLimbDetectionConfidence(float level);
+    float getLimbDetectionConfidence();
+    
     int getNumLimbs();
 	ofxOpenNILimb & getLimb(Limb limb);
     
@@ -166,8 +169,11 @@ private:
     ofTexture maskTexture;
     
     int id;
+    
     int cloudPointDrawSize;
     int cloudPointResolution;
+    
+    float limbDetectionConfidence;
     
     bool bUseMaskPixels;
     bool bUseMaskTexture;
