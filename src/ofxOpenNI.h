@@ -130,9 +130,13 @@ public:
     void setMaxNumUsers(int numUsers);
     int	getMaxNumUsers();
     
-    void setBaseUserClass(ofxOpenNIUser & user);
+    void setUseMaskTextureAllUsers(bool b);
+    void setUseMaskPixelsAllUsers(bool b);
+    void setUsePointCloudsAllUsers(bool b);
+    void setPointCloudDrawSizeAllUsers(int size);
+    void setPointCloudResolutionAllUsers(int resolution);
     
-   
+    void setBaseUserClass(ofxOpenNIUser & user);
     
     void resetUserTracking(XnUserID nID, bool forceImmediateRestart = false);
     
@@ -141,9 +145,9 @@ public:
     
     bool getAutoUserCalibrationPossible();
     
-	bool toggleCalibratedRGBDepth();
-	bool enableCalibratedRGBDepth();
-	bool disableCalibratedRGBDepth();
+    void toggleRegister();
+	void setRegister(bool b);
+    bool getRegister();
     
 	ofPixels& getDepthPixels();
 	ofShortPixels& getDepthRawPixels();
@@ -228,6 +232,7 @@ private:
     
     bool bUseBackBuffer;
 	bool bUseTexture;
+    bool bUseRegistration;
     
     bool bAutoCalibrationPossible;
     

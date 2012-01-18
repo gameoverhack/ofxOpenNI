@@ -60,6 +60,7 @@ ofxOpenNI::ofxOpenNI(){
     bIsDeviceReady = false;
     bIsShuttingDown = false;
     bUseBackBuffer = false;
+    bUseRegistration = false;
     bAutoCalibrationPossible = false;
 	bUseTexture = true;
 	bNewPixels = false;
@@ -248,6 +249,8 @@ void ofxOpenNI::stop(){
     cout << LOG_NAME << ": releasing all nodes" << endl;
     
     instanceCount--; // ok this will probably cause problems when dynamically creating and destroying -> you'd need to do it in order!
+    
+    bUseRegistration = false;
     
     if (g_bIsDepthOn){
         cout << LOG_NAME << ": releasing depth generator" << endl;
@@ -1050,11 +1053,46 @@ ofxOpenNIUser&	ofxOpenNI::getUser(XnUserID nID){
 }
 
 //--------------------------------------------------------------
+void ofxOpenNI::setUseMaskTextureAllUsers(bool b){
+    for (XnUserID nID = 1; nID <= maxNumUsers; ++nID){
+        currentTrackedUsers[nID].bUseMaskTexture = b;
+    }
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setUseMaskPixelsAllUsers(bool b){
+    for (XnUserID nID = 1; nID <= maxNumUsers; ++nID){
+        currentTrackedUsers[nID].bUseMaskPixels = b;
+    }
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setUsePointCloudsAllUsers(bool b){
+    for (XnUserID nID = 1; nID <= maxNumUsers; ++nID){
+        currentTrackedUsers[nID].bUsePointCloud = b;
+    }
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setPointCloudDrawSizeAllUsers(int size){
+    for (XnUserID nID = 1; nID <= maxNumUsers; ++nID){
+        currentTrackedUsers[nID].cloudPointDrawSize = size;
+    }
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setPointCloudResolutionAllUsers(int resolution){
+    for (XnUserID nID = 1; nID <= maxNumUsers; ++nID){
+        currentTrackedUsers[nID].cloudPointResolution = resolution;
+    }
+}
+
+//--------------------------------------------------------------
 void ofxOpenNI::setBaseUserClass(ofxOpenNIUser & user){
     baseUser = user;
-    int numUsers = maxNumUsers;
-    setMaxNumUsers(0);
-    setMaxNumUsers(numUsers);
+    for (XnUserID nID = 1; nID <= maxNumUsers; ++nID){
+        currentTrackedUsers[nID] = user;
+    }
 }
 
 //--------------------------------------------------------------
@@ -1091,61 +1129,39 @@ int	ofxOpenNI::getMaxNumUsers(){
  *************************************************************/
 
 //--------------------------------------------------------------
-bool ofxOpenNI::toggleCalibratedRGBDepth(){
-	
-	if (!g_Image.IsValid()){
-		ofLogError(LOG_NAME) << "No Image generator found: cannot register viewport";
-		return false;
-	}
-	
-	// Toggle registering view point to image map
-	if (g_Depth.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT)){
-		
-		if (g_Depth.GetAlternativeViewPointCap().IsViewPointAs(g_Image)){
-			disableCalibratedRGBDepth();
-		} else {
-			enableCalibratedRGBDepth();
-		}
-		
-	} else return false;
-	
-	return true;
+void ofxOpenNI::toggleRegister(){
+	setRegister(!bUseRegistration);
 }
 
 //--------------------------------------------------------------
-bool ofxOpenNI::enableCalibratedRGBDepth(){
-	if (!g_Image.IsValid()){
-		ofLogError(LOG_NAME) << "No Image generator found: cannot register viewport";
-		return false;
-	}
-	
-	// Register view point to image map
-	if (g_Depth.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT)){
-		
-		XnStatus nRetVal = g_Depth.GetAlternativeViewPointCap().SetViewPoint(g_Image);
-		SHOW_RC(nRetVal, "Register viewpoint depth to RGB")
-		if (nRetVal!=XN_STATUS_OK) return false;
-	} else {
-		ofLogVerbose(LOG_NAME) << "Alternative viewpoint not supported";
-		return false;
-	}
-	
-	return true;
+void ofxOpenNI::setRegister(bool b){
+    if (!g_Depth.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT)){
+        ofLogVerbose(LOG_NAME) << "Alternative viewpoint not supported";
+        bUseRegistration = false;
+    }
+    bUseRegistration = false;
+    if (b){
+        if (!g_Image.IsValid()){
+            ofLogError(LOG_NAME) << "No Image generator found: cannot register image to depth";
+            bUseRegistration = false;
+            return;
+        }
+        // Register view point to image map
+        XnStatus nRetVal = g_Depth.GetAlternativeViewPointCap().SetViewPoint(g_Image);
+        SHOW_RC(nRetVal, "Register viewpoint depth to RGB");
+        bUseRegistration = (nRetVal == XN_STATUS_OK);
+        return;
+    }else{
+        XnStatus nRetVal = g_Depth.GetAlternativeViewPointCap().ResetViewPoint();
+        SHOW_RC(nRetVal, "Unregister viewpoint depth to RGB");
+        bUseRegistration = !(nRetVal == XN_STATUS_OK);
+        return;
+    }
 }
 
 //--------------------------------------------------------------
-bool ofxOpenNI::disableCalibratedRGBDepth(){
-	// Unregister view point from (image) any map
-	if (g_Depth.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT)){
-		XnStatus nRetVal = g_Depth.GetAlternativeViewPointCap().ResetViewPoint();
-		SHOW_RC(nRetVal, "Unregister viewpoint depth to RGB");
-		if (nRetVal!=XN_STATUS_OK) return false;
-	} else {
-		ofLogVerbose(LOG_NAME) << "Alternative viewpoint not supported";
-		return false;
-	}
-	
-	return true;
+bool ofxOpenNI::getRegister(){
+	return bUseRegistration;
 }
 
 /**************************************************************
@@ -1621,9 +1637,6 @@ void ofxOpenNI::drawDebug(float x, float y, float w, float h){
 	if (!bIsContextReady) return;
     
     int generatorCount = g_bIsDepthOn + g_bIsImageOn + g_bIsInfraOn;
-    //if (g_bIsDepthOn) generatorCount++;
-    //if (g_bIsImageOn) generatorCount++;
-    //if (g_bIsInfraOn) generatorCount++;
     float fullWidth = getWidth() * generatorCount;
     float fullHeight = getHeight();
     
@@ -1649,7 +1662,7 @@ void ofxOpenNI::drawDebug(float x, float y, float w, float h){
         for (int nID = 1; nID <= maxNumUsers; nID++) {
             ofxOpenNIUser & user = getUser(nID);
             ofSetColor(255, 255, 0);
-            ofDrawBitmapString(user.getDebugInfo(), 8, getHeight() + (nID) * 30);
+            ofDrawBitmapString(user.getDebugInfo(), 8, getHeight() - (30*maxNumUsers) + (nID-1) * 30);
         }
     }
     ofPopMatrix();
