@@ -66,8 +66,8 @@ ofxOpenNI::ofxOpenNI(){
     
 	CreateRainbowPallet();
 
-    logLevel = OF_LOG_NOTICE;
-    //setLogLevel(OF_LOG_NOTICE);
+    logLevel = OF_LOG_SILENT;
+
 }
 
 //--------------------------------------------------------------
@@ -90,6 +90,7 @@ bool ofxOpenNI::setup(bool threaded){
     XnStatus nRetVal = XN_STATUS_OK;
 	bIsThreaded = threaded;
     
+    if (ofGetLogLevel() < logLevel) logLevel = ofGetLogLevel();
     setLogLevel(logLevel);
     
 	if (!initContext()){
@@ -708,6 +709,7 @@ void ofxOpenNI::updateUsers(){
 			trackedUserIDs.insert(user.id);
             
             if (user.bIsSkeleton != lastbIsSkeleton){
+                ofLogNotice(LOG_NAME) << "Skeleton" << (string)(user.bIsSkeleton ? "found" : "lost") << "for user" << user.id;
                 ofxOpenNIUserEvent event = ofxOpenNIUserEvent(user.id, instanceID, (user.bIsSkeleton ? USER_SKELETON_FOUND : USER_SKELETON_LOST));
                 ofNotifyEvent(userEvent, event, this);
             }
@@ -1571,7 +1573,7 @@ void ofxOpenNI::cameraToWorld(const vector<ofVec2f>& c, vector<ofVec3f>& w){
 void ofxOpenNI::startTrackingUser(XnUserID nID){
     XnStatus nRetVal = XN_STATUS_OK;
     if (nID > maxNumUsers){
-        ofLogVerbose(LOG_NAME) << "Start tracking cancelled for user" << nID << "since maxNumUsers is" << maxNumUsers;
+        ofLogNotice(LOG_NAME) << "Start tracking cancelled for user" << nID << "since maxNumUsers is" << maxNumUsers;
         stopTrackingUser(nID);
         return;
     } else {
@@ -1591,12 +1593,18 @@ void ofxOpenNI::startTrackingUser(XnUserID nID){
 //--------------------------------------------------------------
 void ofxOpenNI::stopTrackingUser(XnUserID nID){
     XnStatus nRetVal = XN_STATUS_OK;
-    ofLogNotice(LOG_NAME) << "Stop tracking user" << nID;
+    if (g_User.GetSkeletonCap().IsCalibrating(nID) || g_User.GetSkeletonCap().IsCalibrated(nID)){
+        ofLogNotice(LOG_NAME) << "Calibration stopped for user" << nID;
+        nRetVal = g_User.GetSkeletonCap().AbortCalibration(nID);
+        CHECK_ERR_RC(nRetVal, "Get skeleton capability - stop calibrating");
+    }
     if (g_User.GetSkeletonCap().IsTracking(nID)){
+        ofLogNotice(LOG_NAME) << "Skeleton tracking stopped for user" << nID;
         nRetVal = g_User.GetSkeletonCap().Reset(nID);
-        CHECK_ERR_RC(nRetVal, "Get skeleton capability - stop tracking (maybe we didn't have a skeleton?");
+        CHECK_ERR_RC(nRetVal, "Get skeleton capability - stop tracking");
     }
     if (nID > maxNumUsers) return;
+    ofLogNotice(LOG_NAME) << "Stop tracking user" << nID;
     ofxOpenNIUserEvent event = ofxOpenNIUserEvent(nID, instanceID, USER_TRACKING_STOPPED);
     ofNotifyEvent(userEvent, event, this);
     currentTrackedUsers[nID].bIsFound = false;
