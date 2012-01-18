@@ -1057,6 +1057,7 @@ void ofxOpenNI::setUseMaskTextureAllUsers(bool b){
     for (XnUserID nID = 1; nID <= maxNumUsers; ++nID){
         currentTrackedUsers[nID].bUseMaskTexture = b;
     }
+    if (b) setUseMaskPixelsAllUsers(b); // should I also auto turn off pixels? probably :-)
 }
 
 //--------------------------------------------------------------
