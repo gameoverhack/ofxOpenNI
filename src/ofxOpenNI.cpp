@@ -1030,13 +1030,30 @@ ofxOpenNIUser&	ofxOpenNI::getTrackedUser(int nID){
 
 //--------------------------------------------------------------
 ofxOpenNIUser&	ofxOpenNI::getUser(int nID){
+    if (nID == 0) {
+        ofLogError(LOG_NAME) << "You have requested a user ID of 0 - perhaps you wanted to use getTrackedUser()" << endl 
+            << "OR you need to iterate using something like: for (int i = 1; i <= openNIDevices[0].getMaxNumUsers(); i++)" << endl
+            << "Returning a reference to the baseUserClass user (it doesn't do anything!!!)!";
+        baseUser.id = 0;
+        return baseUser;
+    }
     map<XnUserID,ofxOpenNIUser>::iterator it = currentTrackedUsers.find(nID);
     if (it != currentTrackedUsers.end()){
         return (*it).second;
     } else {
-        ofLogError() << "User ID not found. Probably you need to setMaxNumUsers to a higher value! Returning a dummy user (it doesn't do anything!!!)!";
-        return staticDummyUser;
+        ofLogError() << "User ID not found. Probably you need to setMaxNumUsers to a higher value!" << endl
+            << "Returning a reference to the baseUserClass user (it doesn't do anything!!!)!";
+        baseUser.id = 0;
+        return baseUser;
     }
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setBaseUserClass(ofxOpenNIUser & user){
+    baseUser = user;
+    int numUsers = maxNumUsers;
+    setMaxNumUsers(0);
+    setMaxNumUsers(numUsers);
 }
 
 //--------------------------------------------------------------
@@ -1052,9 +1069,9 @@ void ofxOpenNI::setMaxNumUsers(int numUsers){
         }
     } else {
         for (XnUserID nID = oldMaxUsers + 1; nID <= maxNumUsers; ++nID){
-            ofxOpenNIUser user;
-            user.id = nID;
-            currentTrackedUsers.insert(pair<XnUserID, ofxOpenNIUser>(nID, user));
+            //ofxOpenNIUser user;
+            baseUser.id = nID;
+            currentTrackedUsers.insert(pair<XnUserID, ofxOpenNIUser>(nID, baseUser));
         }
     }
     

@@ -48,8 +48,6 @@
 #include "ofxOpenNIUser.h"
 #include "ofxOpenNIUtils.h"
 
-#define MAX_NUMBER_USERS 20
-
 using namespace xn;
 
 class ofxOpenNI : public ofThread {
@@ -129,6 +127,8 @@ public:
     
     ofxOpenNIUser&	getTrackedUser(int nID); // only returns tracked users
     ofxOpenNIUser& getUser(int nID); // finds a user if it exists (whether tracked or not)
+    
+    void setBaseUserClass(ofxOpenNIUser & user);
     
     void setMaxNumUsers(int numUsers);
     int	getMaxNumUsers();
@@ -300,6 +300,8 @@ private:
 	map<XnUserID,ofxOpenNIUser> currentTrackedUsers;
 //    set<XnUserID> previousTrackedUserIDs;
 	vector<XnUserID> currentTrackedUserIDs;
+    
+    ofxOpenNIUser baseUser;
     
     int maxNumUsers;
     float userSmoothFactor;
