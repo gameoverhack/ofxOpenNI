@@ -68,7 +68,6 @@ public:
 	bool addUserGenerator();
     bool addGestureGenerator();
     bool addAudioGenerator();
-	bool addPlayerGenerator();
 
     bool removeDepthGenerator();
     bool removeImageGenerator();
@@ -76,7 +75,6 @@ public:
     bool removeUserGenerator();
     bool removeGestureGenerator();
     bool removeAudioGenerator();
-    bool removePlayerGenerator();
     
 	void update();
 	
@@ -197,7 +195,6 @@ public:
 	xn::IRGenerator& getIRGenerator();
     xn::UserGenerator& getUserGenerator();
 	xn::AudioGenerator& getAudioGenerator();
-	xn::Player& getPlayer();
 	
 	xn::DepthMetaData& getDepthMetaData();
 	xn::ImageMetaData& getImageMetaData();
@@ -247,7 +244,6 @@ private:
     bool g_bIsUserOn;
     bool g_bIsGestureOn;
 	bool g_bIsAudioOn;
-	bool g_bIsPlayerOn;
 	bool g_bIsDepthRawOnOption;
 	
     bool bIsThreaded;
@@ -303,7 +299,6 @@ private:
 	xn::UserGenerator g_User;
     xn::GestureGenerator g_Gesture;
 	xn::AudioGenerator g_Audio;
-	xn::Player g_Player;
     
 	// meta data
 	xn::DepthMetaData g_DepthMD;

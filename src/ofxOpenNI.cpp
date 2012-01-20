@@ -53,7 +53,6 @@ ofxOpenNI::ofxOpenNI(){
     g_bIsUserOn = false;
     g_bIsGestureOn = false;
 	g_bIsAudioOn = false;
-	g_bIsPlayerOn = false;
 	
 	depthColoring = COLORING_RAINBOW;
 	
@@ -304,12 +303,6 @@ void ofxOpenNI::stop(){
         g_Audio.Release();
     }
     
-    if (g_bIsPlayerOn){
-        cout << LOG_NAME << ": releasing player generator" << endl;
-        g_Player.Release();
-        g_bIsPlayerOn = false;
-    }
-    
     if (bIsDeviceReady){
         cout << LOG_NAME << ": releasing device" << endl;
         g_Device.Release();
@@ -384,6 +377,9 @@ bool ofxOpenNI::addDepthGenerator(){
     }
 	if (g_Depth.IsValid()){
         allocateDepthBuffers();
+        //TODO: re-implement depthRaw set/get...seems to have disappeared :-(
+        //g_bIsDepthRawOnOption = true;
+        //allocateDepthRawBuffers();
 		nRetVal = g_Depth.StartGenerating();
 		SHOW_RC(nRetVal, "Starting depth generator");
         g_bIsDepthOn = (nRetVal == XN_STATUS_OK);
@@ -534,12 +530,6 @@ bool ofxOpenNI::addAudioGenerator(){
     return false;
 }
 
-//--------------------------------------------------------------
-bool ofxOpenNI::addPlayerGenerator(){
-	ofLogWarning(LOG_NAME) << "Not yet implimented";
-    return false;
-}
-
 /**************************************************************
  *
  *      removing generator methods
@@ -618,12 +608,6 @@ bool ofxOpenNI::removeGestureGenerator(){
 
 //--------------------------------------------------------------
 bool ofxOpenNI::removeAudioGenerator(){
-    ofLogWarning(LOG_NAME) << "Not yet implimented";
-    return false;
-}
-
-//--------------------------------------------------------------
-bool ofxOpenNI::removePlayerGenerator(){
     ofLogWarning(LOG_NAME) << "Not yet implimented";
     return false;
 }
@@ -1769,11 +1753,6 @@ xn::AudioGenerator& ofxOpenNI::getAudioGenerator(){
 }
 
 //--------------------------------------------------------------
-xn::Player& ofxOpenNI::getPlayer(){
-	return g_Player;
-}
-
-//--------------------------------------------------------------
 xn::DepthMetaData& ofxOpenNI::getDepthMetaData(){
 	return g_DepthMD;
 }
@@ -1977,6 +1956,7 @@ void XN_CALLBACK_TYPE ofxOpenNI::GestureCB_handleGestureRecognized(xn::GestureGe
 void XN_CALLBACK_TYPE ofxOpenNI::GestureCB_handleGestureProgress(xn::GestureGenerator& gestureGenerator, const XnChar* strGesture, const XnPoint3D* pIDPosition, XnFloat fProgress, void* pCookie){
     ofxOpenNI* openNI = static_cast<ofxOpenNI*>(pCookie);
 	ofLogVerbose(openNI->LOG_NAME) << "(CB) Gesture Progress";
+    // TODO: add useProgress and add events here? or just leave it out?
 }
 
 /**************************************************************
