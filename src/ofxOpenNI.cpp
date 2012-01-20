@@ -1194,7 +1194,7 @@ int	ofxOpenNI::getMaxNumUsers(){
  *************************************************************/
 
 //--------------------------------------------------------------
-bool ofxOpenNI::addGesture(string niteGestureName){
+bool ofxOpenNI::addGesture(string niteGestureName, ofPoint LeftBottomNear, ofPoint RightTopFar){
     if (!g_bIsGestureOn){
         ofLogError(LOG_NAME) << "Can't add gesture as there isn't a gesture generator - use addGestureGenerator() first";
         return false;
@@ -1203,9 +1203,37 @@ bool ofxOpenNI::addGesture(string niteGestureName){
         ofLogError(LOG_NAME) << "Can't add gesture as this is an unkown type -> use getAvailableGestures to get a vector<string> of gesture names";
         return false;
     }
+    // AddGesture takes a XnBoundingBox3D area:
+    // typedef struct XnBoundingBox3D
+    // {
+    //     XnPoint3D LeftBottomNear;
+    //     XnPoint3D RightTopFar;
+    // } XnBoundingBox3D;
+    // This is in real world co-ordinates ie., mm's to the left/bottom/near
+    // and right/top/far of the sensor see: http://groups.google.com/group/openni-dev/browse_thread/thread/90cbf7414979ad14/cc91592be432ba4c
+    // Lior Cohen:
+    // "LeftBottomNear.X = (-300); 
+    // LeftBottomNear.Y = (-300); 
+    // LeftBottomNear.Z = (1000); 
+    // RightTopFar.X = (300); 
+    // RightTopFar.Y = (300); 
+    // RightTopFar.Z = (2000); 
+    // These two points will create a XnBoundingBox3D with 600x600x1000mm dimensions and hanging in mid air from the sensor with a center point at (0,0,1500) mm."
+    
+    // TODO: add id's to area so we can fire events specifically for these bounding areas
+    XnBoundingBox3D * boundingBox3D = NULL;
+    if (LeftBottomNear != NULL && RightTopFar != NULL) {
+        ofLogWarning(LOG_NAME) << "LeftBottomNear and RightTopFar should be in world co-ordinates ie., they are in mm's and left.x/bottom.y from the centre of the sensor is negative, whilst right.x/top.y is positive; depth.z is always positive starting at 0 to maxDepth (10000) mm";
+        boundingBox3D = new XnBoundingBox3D;
+        boundingBox3D->LeftBottomNear = toXn(LeftBottomNear);
+        boundingBox3D->RightTopFar = toXn(RightTopFar);
+        // TODO: implement multimap to track active gesture hot spots??
+    }
+    
     ofLogNotice(LOG_NAME) << "Adding NITE gesture" << niteGestureName;
-	XnStatus nRetVal = XN_STATUS_OK;
-	nRetVal = g_Gesture.AddGesture(niteGestureName.c_str(), NULL);
+	
+    XnStatus nRetVal = XN_STATUS_OK;
+	nRetVal = g_Gesture.AddGesture(niteGestureName.c_str(), boundingBox3D);
 	BOOL_RC(nRetVal, "Adding simple (NITE) gesture " + niteGestureName);
 }
 
@@ -1863,9 +1891,11 @@ void ofxOpenNI::drawDebug(float x, float y, float w, float h){
             ofDrawBitmapString(user.getDebugInfo(), 8, getHeight() - (30*maxNumUsers) + (nID-1) * 30);
         }
     }
+    
     ofPopMatrix();
     ofPopMatrix();
     ofPopStyle();
+    
 }
 
 /**************************************************************
@@ -2011,8 +2041,8 @@ void ofxOpenNI::cameraToWorld(const vector<ofVec2f>& c, vector<ofVec3f>& w){
 	//lock();
 	const XnDepthPixel* d = currentDepthRawPixels->getPixels();
 	unsigned int pixel;
-	for (int i=0; i<nPoints; ++i){
-		pixel  = (int)c[i].x + (int)c[i].y * g_DepthMD.XRes();
+	for (int i = 0; i < nPoints; ++i){
+		pixel = (int)c[i].x + (int)c[i].y * g_DepthMD.XRes();
 		if (pixel >= g_DepthMD.XRes() * g_DepthMD.YRes())
 			continue;
 		

@@ -272,8 +272,24 @@ inline void getDepthColor(DepthColoring depthColoring, const unsigned short & de
 
 void YUV422ToRGB888(const XnUInt8* pYUVImage, XnUInt8* pRGBImage, XnUInt32 nYUVSize, XnUInt32 nRGBSize);
 
+//class ofxOpenNICube{
+//    
+//public:
+//    
+//    ofxOpenNICube();
+//    
+//    ofPoint LeftBottomNear;
+//    ofPoint RightTopFar;
+//    
+//};
+//
+////--------------------------------------------------------------
+//inline ofxOpenNICube toOf(const XnBoundingBox3D & r){
+//    return *(ofxOpenNICube*)&r;
+//}
+
 //--------------------------------------------------------------
-inline ofPoint toOf(const XnPoint3D & p){
+static inline ofPoint toOf(const XnPoint3D & p){
 	return *(ofPoint*)&p;
 	/*
 	 this is more future safe, but currently unnecessary and slower:
@@ -282,8 +298,7 @@ inline ofPoint toOf(const XnPoint3D & p){
 }
 
 //--------------------------------------------------------------
-inline XnPoint3D toXn(const ofPoint & p){
-	
+static inline XnPoint3D toXn(const ofPoint & p){
 	return *(XnPoint3D*)&p;
 	/*
 	 this is more future safe, but currently unnecessary and slower:

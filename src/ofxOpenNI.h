@@ -149,7 +149,7 @@ public:
     bool getAutoUserCalibrationPossible();
     
     // gesture methods
-    bool addGesture(string niteGestureName);
+    bool addGesture(string niteGestureName, ofPoint LeftBottomNear = NULL, ofPoint RightTopFar = NULL);
     bool removeGesture(string niteGestureName);
     
     vector<string> & getAvailableGestures();
@@ -320,7 +320,7 @@ private:
     void stopPoseDetection(XnUserID nID);
     
     // user storage
-	map<XnUserID,ofxOpenNIUser> currentTrackedUsers;
+	map<XnUserID, ofxOpenNIUser> currentTrackedUsers;
 	vector<XnUserID> currentTrackedUserIDs;
     
     ofxOpenNIUser baseUser;
@@ -330,6 +330,7 @@ private:
 
     // gesture storage
     vector<string> availableGestures;
+    //multimap<string, XnBoundingBox3D> currentGestureAreas;
     ofxOpenNIGestureEvent lastGestureEvent;
     int minTimeBetweenGestures;
     
