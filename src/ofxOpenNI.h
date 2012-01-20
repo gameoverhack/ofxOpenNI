@@ -158,9 +158,18 @@ public:
     void setMinTimeBetweenGestures(int millis);
     int getMinTimeBetweenGestures();
     
+    // generator 'capabilities'
     void toggleRegister();
 	void setRegister(bool b);
     bool getRegister();
+    
+    void toggleMirror();
+	void setMirror(bool b);
+    bool getMirror();
+    
+    void toggleSync();
+	void setSync(bool b);
+    bool getSync();
     
 	ofPixels& getDepthPixels();
 	ofShortPixels& getDepthRawPixels();
@@ -248,7 +257,10 @@ private:
     
     bool bUseBackBuffer;
 	bool bUseTexture;
+    
     bool bUseRegistration;
+    bool bUseMirror;
+    bool bUseSync;
     
     bool bAutoCalibrationPossible;
     

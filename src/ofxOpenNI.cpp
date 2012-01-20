@@ -60,9 +60,14 @@ ofxOpenNI::ofxOpenNI(){
     bIsContextReady = false;
     bIsDeviceReady = false;
     bIsShuttingDown = false;
-    bUseBackBuffer = false;
+    
     bUseRegistration = false;
+    bUseSync = false;
+    bUseMirror = false;
+    
     bAutoCalibrationPossible = false;
+    
+    bUseBackBuffer = false;
 	bUseTexture = true;
 	bNewPixels = false;
 	bNewFrame = false;
@@ -253,6 +258,8 @@ void ofxOpenNI::stop(){
     instanceCount--; // ok this will probably cause problems when dynamically creating and destroying -> you'd need to do it in order!
     
     bUseRegistration = false;
+    bUseSync = false;
+    bUseMirror = false;
     
     if (g_bIsDepthOn){
         cout << LOG_NAME << ": releasing depth generator" << endl;
@@ -383,6 +390,7 @@ bool ofxOpenNI::addDepthGenerator(){
 	} else {
 		ofLogError(LOG_NAME) << "Depth generator is invalid!";
 	}
+    setMirror(bUseMirror);
 	return g_bIsDepthOn;
 }
 
@@ -416,6 +424,7 @@ bool ofxOpenNI::addImageGenerator(){
 	} else {
 		ofLogError(LOG_NAME) << "Image generator is invalid!";
 	}
+    setMirror(bUseMirror);
 	return g_bIsImageOn;
 }
 
@@ -449,6 +458,7 @@ bool ofxOpenNI::addInfraGenerator(){
 	} else {
 		ofLogError(LOG_NAME) << "IR generator is invalid!";
 	}
+    setMirror(bUseMirror);
 	return g_bIsInfraOn;
 }
 
@@ -1331,6 +1341,11 @@ void ofxOpenNI::toggleRegister(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::setRegister(bool b){
+    XnStatus nRetVal = XN_STATUS_OK;
+    if (!g_bIsDepthOn){
+        ofLogVerbose(LOG_NAME) << "Depth generator is not on";
+        return;
+    }
     if (!g_Depth.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT)){
         ofLogVerbose(LOG_NAME) << "Alternative viewpoint not supported";
         bUseRegistration = false;
@@ -1343,12 +1358,12 @@ void ofxOpenNI::setRegister(bool b){
             return;
         }
         // Register view point to image map
-        XnStatus nRetVal = g_Depth.GetAlternativeViewPointCap().SetViewPoint(g_Image);
+        nRetVal = g_Depth.GetAlternativeViewPointCap().SetViewPoint(g_Image);
         SHOW_RC(nRetVal, "Register viewpoint depth to RGB");
         bUseRegistration = (nRetVal == XN_STATUS_OK);
         return;
     }else{
-        XnStatus nRetVal = g_Depth.GetAlternativeViewPointCap().ResetViewPoint();
+        nRetVal = g_Depth.GetAlternativeViewPointCap().ResetViewPoint();
         SHOW_RC(nRetVal, "Unregister viewpoint depth to RGB");
         bUseRegistration = !(nRetVal == XN_STATUS_OK);
         return;
@@ -1358,6 +1373,128 @@ void ofxOpenNI::setRegister(bool b){
 //--------------------------------------------------------------
 bool ofxOpenNI::getRegister(){
 	return bUseRegistration;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::toggleSync(){
+	setSync(!bUseSync);
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setSync(bool b){
+    XnStatus nRetVal = XN_STATUS_OK;
+    if (!g_bIsDepthOn){
+        ofLogVerbose(LOG_NAME) << "Depth generator is not on";
+        return;
+    }
+    if (!g_Depth.IsCapabilitySupported(XN_CAPABILITY_FRAME_SYNC)){
+        ofLogVerbose(LOG_NAME) << "Depth does not support frame sync";
+        bUseSync = false;
+        return;
+    }
+    if (b){
+        bUseSync = true;
+        // Try to start frame sync any nodes that are already on
+        if (g_bIsDepthOn && g_bIsImageOn){
+            nRetVal = g_Depth.GetFrameSyncCap().CanFrameSyncWith(g_Image);
+            if (nRetVal != XN_STATUS_OK) {
+                ofLogError(LOG_NAME) << "Depth cannot sync with image"; //  - doesn't seem to work with my Kinects
+                bUseSync = false;
+                return;
+            }
+            nRetVal = g_Depth.GetFrameSyncCap().FrameSyncWith(g_Image);
+            SHOW_RC(nRetVal, "Frame sync depth and image generators");
+            bUseSync = (nRetVal == XN_STATUS_OK);
+        }
+        if (g_bIsDepthOn && g_bIsInfraOn){
+            nRetVal = g_Depth.GetFrameSyncCap().CanFrameSyncWith(g_Infra);
+            if (nRetVal != XN_STATUS_OK) {
+                ofLogError(LOG_NAME) << "Depth cannot sync with infra";
+                bUseSync = false;
+                return;
+            }
+            nRetVal = g_Depth.GetFrameSyncCap().FrameSyncWith(g_Infra);
+            SHOW_RC(nRetVal, "Frame sync depth and infra generators"); //  - doesn't seem to work with my Kinects
+            bUseSync = (nRetVal == XN_STATUS_OK);
+        }
+    }
+    if (!b){
+        bUseSync = false;
+        // Stop frame sync for any nodes that are already on
+        if (g_bIsDepthOn && g_bIsImageOn){
+            nRetVal = g_Depth.GetFrameSyncCap().StopFrameSyncWith(g_Image);
+            SHOW_RC(nRetVal, "Stop frame sync depth and image generators");
+            bUseSync = (nRetVal == XN_STATUS_OK);
+        }
+        if (g_bIsDepthOn && g_bIsInfraOn){
+            nRetVal = g_Depth.GetFrameSyncCap().StopFrameSyncWith(g_Infra);
+            SHOW_RC(nRetVal, "Stop frame sync depth and infra generators");
+            bUseSync = (nRetVal == XN_STATUS_OK);
+        }
+    }
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::getSync(){
+	return bUseSync;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::toggleMirror(){
+	setMirror(!bUseMirror);
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setMirror(bool b){
+    XnStatus nRetVal = XN_STATUS_OK;
+    bool isMirrorPossible = true;
+    if (g_bIsDepthOn && !g_Depth.IsCapabilitySupported(XN_CAPABILITY_MIRROR)){
+        ofLogVerbose(LOG_NAME) << "Mirror depth capability not supported";
+        isMirrorPossible = false;
+    }
+    if (g_bIsImageOn && !g_Image.IsCapabilitySupported(XN_CAPABILITY_MIRROR)){
+        ofLogVerbose(LOG_NAME) << "Mirror image capability not supported";
+        isMirrorPossible = false;
+    }
+    if (g_bIsInfraOn && !g_Infra.IsCapabilitySupported(XN_CAPABILITY_MIRROR)){
+        ofLogVerbose(LOG_NAME) << "Mirror infra capability not supported";
+        isMirrorPossible = false;
+    }
+    if (!isMirrorPossible) {
+        ofLogError(LOG_NAME) << "Either there are no generators or none of them support mirroring";
+        bUseMirror = false;
+        return;
+    }
+    bUseMirror = b;
+    if (g_bIsDepthOn && g_Depth.GetMirrorCap().IsMirrored() != bUseMirror){
+        nRetVal = g_Depth.GetMirrorCap().SetMirror((XnBool)bUseMirror);
+        SHOW_RC(nRetVal, "Set mirror depth " + (string)(bUseMirror ? "ON" : "OFF"));
+        if (nRetVal != XN_STATUS_OK) {
+            bUseMirror = !bUseMirror;
+            return;
+        }
+    }
+    if (g_bIsImageOn && g_Image.GetMirrorCap().IsMirrored() != bUseMirror){
+        nRetVal = g_Image.GetMirrorCap().SetMirror((XnBool)bUseMirror);
+        SHOW_RC(nRetVal, "Set mirror image " + (string)(bUseMirror ? "ON" : "OFF"));
+        if (nRetVal != XN_STATUS_OK) {
+            bUseMirror = !bUseMirror;
+            return;
+        }
+    }
+    if (g_bIsInfraOn && g_Infra.GetMirrorCap().IsMirrored() != bUseMirror){
+        nRetVal = g_Infra.GetMirrorCap().SetMirror((XnBool)bUseMirror);
+        SHOW_RC(nRetVal, "Set mirror infra " + (string)(bUseMirror ? "ON" : "OFF"));
+        if (nRetVal != XN_STATUS_OK) {
+            bUseMirror = !bUseMirror;
+            return;
+        }
+    }
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::getMirror(){
+	return bUseMirror;
 }
 
 /**************************************************************
