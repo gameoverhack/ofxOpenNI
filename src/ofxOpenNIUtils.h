@@ -36,8 +36,13 @@
 #define SHOW_RC(rc, what)                                                   \
 ofLogVerbose(LOG_NAME) << what << "status:" << xnGetStatusString(rc);
 #define BOOL_RC(rc, what)                                                   \
+if (rc != XN_STATUS_OK) {                                                   \
+ofLogError(LOG_NAME) << what << "status:" << xnGetStatusString(rc);         \
+return false;                                                               \
+}else{                                                                      \
 ofLogVerbose(LOG_NAME) << what << "status:" << xnGetStatusString(rc);       \
-return (rc == XN_STATUS_OK);
+return true;                                                                \
+}
 #define CHECK_ERR_RC(rc, what)                                              \
 if (rc != XN_STATUS_OK) ofLogError(LOG_NAME) << what << "status:" << xnGetStatusString(rc);
 #define BOOL_ERR_RC(rc, what)                                               \
@@ -63,13 +68,19 @@ enum DepthColoring {
     COLORING_COUNT
 };
 
-enum userStatusType {
+enum UserStatusType {
     USER_TRACKING_STOPPED = 0,
     USER_TRACKING_STARTED,
     USER_CALIBRATION_STOPPED,
     USER_CALIBRATION_STARTED,
     USER_SKELETON_LOST,
     USER_SKELETON_FOUND
+};
+
+enum NiteGestureType {
+    GESTURE_NITE_WAVE,
+    GESTURE_NITE_CLICK,
+    GESTURE_NITE_RAISEHAND
 };
 
 //--------------------------------------------------------------
@@ -258,7 +269,24 @@ inline string boolToString(bool b){
     return (string)(b ? "TRUE" : "FALSE");
 }
 
-inline string getUserStatusAsString(userStatusType type) {
+inline string getGestureTypeAsString(NiteGestureType type){
+    switch (type) {
+        case GESTURE_NITE_WAVE:
+			return "Wave";
+			break;
+		case GESTURE_NITE_CLICK:
+			return "Click";
+			break;
+		case GESTURE_NITE_RAISEHAND:
+			return "RaiseHand";
+			break;
+        default:
+			return "UNKNOWN_GESTURE_TYPE";
+			break;
+    }
+};
+
+inline string getUserStatusAsString(UserStatusType type){
 	switch (type) {
         case USER_TRACKING_STOPPED:
 			return "USER_TRACKING_STOPPED";

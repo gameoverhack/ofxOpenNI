@@ -65,14 +65,16 @@ public:
 	bool addDepthGenerator();
 	bool addImageGenerator();
 	bool addInfraGenerator();
-	bool addAudioGenerator();
 	bool addUserGenerator();
+    bool addGestureGenerator();
+    bool addAudioGenerator();
 	bool addPlayerGenerator();
 
     bool removeDepthGenerator();
     bool removeImageGenerator();
     bool removeInfraGenerator();
     bool removeUserGenerator();
+    bool removeGestureGenerator();
     bool removeAudioGenerator();
     bool removePlayerGenerator();
     
@@ -115,6 +117,7 @@ public:
 	bool isImageOn();
     bool isInfraOn();
     bool isUserOn();
+    bool isGestureOn();
     bool isAudioOn();
     
 	void setUseTexture(bool useTexture);
@@ -144,6 +147,10 @@ public:
 	float getUserSmoothing();
     
     bool getAutoUserCalibrationPossible();
+    
+    // gesture methods
+    bool addGesture(NiteGestureType niteGesture);
+    bool removeGesture(NiteGestureType niteGesture);
     
     void toggleRegister();
 	void setRegister(bool b);
@@ -209,6 +216,7 @@ private:
 	bool allocateImageBuffers();
 	bool allocateIRBuffers();
     bool allocateUsers();
+    bool allocateGestures();
     
     void generateDepthPixels();
 	void generateImagePixels();
@@ -221,6 +229,7 @@ private:
 	bool g_bIsImageOn;
 	bool g_bIsInfraOn;
     bool g_bIsUserOn;
+    bool g_bIsGestureOn;
 	bool g_bIsAudioOn;
 	bool g_bIsPlayerOn;
 	bool g_bIsDepthRawOnOption;
@@ -273,6 +282,7 @@ private:
 	xn::ImageGenerator g_Image;
 	xn::IRGenerator g_Infra;
 	xn::UserGenerator g_User;
+    xn::GestureGenerator g_Gesture;
 	xn::AudioGenerator g_Audio;
 	xn::Player g_Player;
     
@@ -304,7 +314,6 @@ private:
     
     // user storage
 	map<XnUserID,ofxOpenNIUser> currentTrackedUsers;
-//    set<XnUserID> previousTrackedUserIDs;
 	vector<XnUserID> currentTrackedUserIDs;
     
     ofxOpenNIUser baseUser;
@@ -312,6 +321,10 @@ private:
     int maxNumUsers;
     float userSmoothFactor;
 
+    // gesture callbacks
+    static void XN_CALLBACK_TYPE GestureCB_handleGestureRecognized(xn::GestureGenerator& gestureGenerator, const XnChar* strGesture, const XnPoint3D* pIDPosition, const XnPoint3D* pEndPosition, void* pCookie);
+    static void XN_CALLBACK_TYPE GestureCB_handleGestureProgress(xn::GestureGenerator& gestureGenerator, const XnChar* strGesture, const XnPoint3D* pIDPosition, XnFloat fProgress, void* pCookie);
+    
 	int instanceID;
     ofLogLevel logLevel;
     

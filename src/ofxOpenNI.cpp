@@ -51,6 +51,7 @@ ofxOpenNI::ofxOpenNI(){
 	g_bIsImageOn = false;
 	g_bIsInfraOn = false;
     g_bIsUserOn = false;
+    g_bIsGestureOn = false;
 	g_bIsAudioOn = false;
 	g_bIsPlayerOn = false;
 	
@@ -280,6 +281,13 @@ void ofxOpenNI::stop(){
         g_bIsUserOn = false;
     }
     
+    if (g_bIsGestureOn){
+        cout << LOG_NAME << ": releasing gesture generator" << endl;
+        g_Gesture.StopGenerating();
+        g_Gesture.Release();
+        g_bIsGestureOn = false;
+    }
+    
     if (g_bIsAudioOn){
         cout << LOG_NAME << ": releasing audio generator" << endl;
         g_Audio.StopGenerating();
@@ -382,7 +390,7 @@ bool ofxOpenNI::addImageGenerator(){
         return false;
     }
     if (g_bIsInfraOn){
-        ofLogWarning() << "Can't add infra generator - ther is already has an image generator and you can only have one or the other!";
+        ofLogWarning() << "Can't add infra generator - there is already a image generator and you can only have one or the other!";
         return false;
     }
 	XnStatus nRetVal = XN_STATUS_OK;
@@ -415,7 +423,7 @@ bool ofxOpenNI::addInfraGenerator(){
         return false;
     }
     if (g_bIsImageOn){
-        ofLogWarning() << "Can't add image generator - ther is already has an infra generator and you can only have one or the other!";
+        ofLogWarning() << "Can't add image generator - there is already a infra generator and you can only have one or the other!";
         return false;
     }
 	XnStatus nRetVal = XN_STATUS_OK;
@@ -479,6 +487,35 @@ bool ofxOpenNI::addUserGenerator(){
 }
 
 //--------------------------------------------------------------
+bool ofxOpenNI::addGestureGenerator(){
+    if (g_bIsGestureOn){
+        ofLogWarning() << "Can't add gesture generator - there is already a gesture generator and you can only have one";
+        return false;
+    }
+	XnStatus nRetVal = XN_STATUS_OK;
+    g_bIsGestureOn = false;
+	ofLogNotice(LOG_NAME) << "Adding gesture generator...";
+	if (!bIsContextReady){
+		ofLogError(LOG_NAME) << "Context is not setup - please call ofxOpenNI::setup() first";
+	}
+    nRetVal = g_Gesture.Create(g_Context);
+    SHOW_RC(nRetVal, "Creating gesture generator");
+    g_bIsGestureOn = (nRetVal == XN_STATUS_OK);
+    if (!g_bIsGestureOn){
+        ofLogError(LOG_NAME) << "Could not add gesture generator node to context";
+    }
+	if (g_Gesture.IsValid()){
+        allocateGestures();
+		nRetVal = g_Gesture.StartGenerating();
+		SHOW_RC(nRetVal, "Starting gesture generator");
+        g_bIsGestureOn = (nRetVal == XN_STATUS_OK);
+	} else {
+		ofLogError(LOG_NAME) << "Gesture generator is invalid!";
+	}
+	return g_bIsGestureOn;
+}
+
+//--------------------------------------------------------------
 bool ofxOpenNI::addAudioGenerator(){
 	ofLogWarning(LOG_NAME) << "Not yet implimented";
     return false;
@@ -507,7 +544,7 @@ bool ofxOpenNI::removeDepthGenerator(){
     SHOW_RC(nRetVal, "Stop generating depth");
     g_bIsDepthOn = (nRetVal != XN_STATUS_OK);
     if (!g_bIsDepthOn) g_Depth.Release();
-    return g_bIsDepthOn;
+    return !g_bIsDepthOn;
 }
 
 //--------------------------------------------------------------
@@ -521,7 +558,7 @@ bool ofxOpenNI::removeImageGenerator(){
     SHOW_RC(nRetVal, "Stop generating image");
     g_bIsImageOn = (nRetVal != XN_STATUS_OK);
     if (!g_bIsImageOn) g_Image.Release();
-    return g_bIsImageOn;
+    return !g_bIsImageOn;
 }
 
 //--------------------------------------------------------------
@@ -535,7 +572,7 @@ bool ofxOpenNI::removeInfraGenerator(){
     SHOW_RC(nRetVal, "Stop generating infra");
     g_bIsInfraOn = (nRetVal != XN_STATUS_OK);
     if (!g_bIsInfraOn) g_Infra.Release();
-    return g_bIsInfraOn;
+    return !g_bIsInfraOn;
 }
 
 //--------------------------------------------------------------
@@ -549,7 +586,21 @@ bool ofxOpenNI::removeUserGenerator(){
     SHOW_RC(nRetVal, "Stop generating user");
     g_bIsUserOn = (nRetVal != XN_STATUS_OK);
     if (!g_bIsUserOn) g_User.Release();
-    return g_bIsUserOn;
+    return !g_bIsUserOn;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::removeGestureGenerator(){
+    if (!g_bIsGestureOn){
+        ofLogWarning() << "No gesture generator - can't remove!";
+        return false;
+    }
+    XnStatus nRetVal = XN_STATUS_OK;
+    nRetVal = g_Gesture.StopGenerating();
+    SHOW_RC(nRetVal, "Stop generating gesture");
+    g_bIsGestureOn = (nRetVal != XN_STATUS_OK);
+    if (!g_bIsGestureOn) g_Gesture.Release();
+    return !g_bIsGestureOn;
 }
 
 //--------------------------------------------------------------
@@ -627,27 +678,24 @@ bool ofxOpenNI::allocateUsers(){
     
     setMaxNumUsers(maxNumUsers); // default to 4
     
-    // get user generator reference
-    xn::UserGenerator& userGenerator = g_User;
-    
     // register user callbacks
     XnCallbackHandle User_CallbackHandler;
     XnCallbackHandle Calibration_CallbackHandler;
     
-	nRetVal = userGenerator.RegisterUserCallbacks(UserCB_handleNewUser, UserCB_handleLostUser, this, User_CallbackHandler);
+	nRetVal = g_User.RegisterUserCallbacks(UserCB_handleNewUser, UserCB_handleLostUser, this, User_CallbackHandler);
     BOOL_ERR_RC(nRetVal, "Register user New/Lost callbacks");
     
-	nRetVal = userGenerator.GetSkeletonCap().RegisterToCalibrationStart(UserCB_handleCalibrationStart, this, Calibration_CallbackHandler);
+	nRetVal = g_User.GetSkeletonCap().RegisterToCalibrationStart(UserCB_handleCalibrationStart, this, Calibration_CallbackHandler);
     BOOL_ERR_RC(nRetVal, "Register user Calibration Start callback");
     
 //    nRetVal = userGenerator.GetSkeletonCap().RegisterToCalibrationInProgress(UserCB_handleCalibrationProgress, this, Calibration_CallbackHandler);
 //    BOOL_ERR_RC(nRetVal, "Register user Calibration Progress callback");
     
-	nRetVal = userGenerator.GetSkeletonCap().RegisterToCalibrationComplete(UserCB_handleCalibrationEnd, this, Calibration_CallbackHandler);
+	nRetVal = g_User.GetSkeletonCap().RegisterToCalibrationComplete(UserCB_handleCalibrationEnd, this, Calibration_CallbackHandler);
     BOOL_ERR_RC(nRetVal, "Register user Calibration End callback");
     
     // check need for calibration
-    if (userGenerator.GetSkeletonCap().NeedPoseForCalibration()){
+    if (g_User.GetSkeletonCap().NeedPoseForCalibration()){
         ofLogNotice(LOG_NAME) << "User generator DOES require pose for calibration";
         bAutoCalibrationPossible = false;
     } else {
@@ -656,20 +704,30 @@ bool ofxOpenNI::allocateUsers(){
     } 
     
     // we add these even if no pose is required so that individual users can be forced to strike a pose
-    if(!userGenerator.IsCapabilitySupported(XN_CAPABILITY_POSE_DETECTION)) {
+    if(!g_User.IsCapabilitySupported(XN_CAPABILITY_POSE_DETECTION)) {
         ofLogError(LOG_NAME) << "Pose detection not supported";
     } else {
         XnCallbackHandle Pose_CallbackHandler;
-        nRetVal = userGenerator.GetPoseDetectionCap().RegisterToPoseDetected(UserCB_handlePoseDetected, this, Pose_CallbackHandler);
+        nRetVal = g_User.GetPoseDetectionCap().RegisterToPoseDetected(UserCB_handlePoseDetected, this, Pose_CallbackHandler);
         BOOL_ERR_RC(nRetVal, "Register user Pose Detected callback");
         
-        nRetVal = userGenerator.GetSkeletonCap().GetCalibrationPose(userCalibrationPose);
+        nRetVal = g_User.GetSkeletonCap().GetCalibrationPose(userCalibrationPose);
         BOOL_ERR_RC(nRetVal, "Get calibration pose");
     }
     
-	nRetVal = userGenerator.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_ALL);
+	nRetVal = g_User.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_ALL);
     BOOL_RC(nRetVal, "Set skeleton profile");
     
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::allocateGestures(){
+    XnStatus nRetVal = XN_STATUS_OK;
+    //last_gesture.gesture_timestamp = 0;
+
+	XnCallbackHandle Gesture_CallbackHandler;
+	nRetVal = g_Gesture.RegisterGestureCallbacks(GestureCB_handleGestureRecognized, GestureCB_handleGestureProgress, this, Gesture_CallbackHandler);
+    BOOL_RC(nRetVal, "Register gesture callback handlers");
 }
 
 /**************************************************************
@@ -1124,6 +1182,47 @@ int	ofxOpenNI::getMaxNumUsers(){
 
 /**************************************************************
  *
+ *      getters/setters: user properties
+ *
+ *************************************************************/
+
+//--------------------------------------------------------------
+bool ofxOpenNI::addGesture(NiteGestureType niteGesture){
+    if (!g_bIsGestureOn){
+        ofLogError(LOG_NAME) << "Can't add gesture as there isn't a gesture generator - use addGestureGenerator() first";
+        return false;
+    }
+    string niteGestureName = getGestureTypeAsString(niteGesture);
+    if (niteGestureName == "UNKNOWN_GESTURE_TYPE"){
+        ofLogError(LOG_NAME) << "Can't add gesture as this is an unkown type -> see NiteGestureType and getGestureTypeAsString in ofxOpenNIUtils.h";
+        return false;
+    }
+    ofLogNotice(LOG_NAME) << "Adding NITE gesture" << niteGestureName;
+	XnStatus nRetVal = XN_STATUS_OK;	
+	nRetVal = g_Gesture.AddGesture(niteGestureName.c_str(), NULL);
+	BOOL_RC(nRetVal, "Adding simple (openNI) gesture " + niteGestureName);
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::removeGesture(NiteGestureType niteGesture){
+    if (!g_bIsGestureOn){
+        ofLogError(LOG_NAME) << "Can't add gesture as there isn't a gesture generator - use addGestureGenerator() first";
+        return false;
+    }
+    string niteGestureName = getGestureTypeAsString(niteGesture);
+    if (niteGestureName == "UNKNOWN_GESTURE_TYPE"){
+        ofLogError(LOG_NAME) << "Can't add gesture as this is an unkown type -> see NiteGestureType and getGestureTypeAsString in ofxOpenNIUtils.h";
+        return false;
+    }
+    // TODO: double check that supplied gesture name is correct!
+    ofLogNotice(LOG_NAME) << "Removing NITE gesture" << niteGestureName;
+	XnStatus nRetVal = XN_STATUS_OK;	
+	nRetVal = g_Gesture.RemoveGesture(niteGestureName.c_str());
+	BOOL_RC(nRetVal, "Removing simple (openNI) gesture " + niteGestureName);
+}
+
+/**************************************************************
+ *
  *      getters/setters: rgb to depth calibration properties
  *
  *************************************************************/
@@ -1360,6 +1459,11 @@ bool ofxOpenNI::isInfraOn(){
 //--------------------------------------------------------------
 bool ofxOpenNI::isUserOn(){
     return g_bIsUserOn;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::isGestureOn(){
+    return g_bIsGestureOn;
 }
 
 //--------------------------------------------------------------
@@ -1614,6 +1718,23 @@ void XN_CALLBACK_TYPE ofxOpenNI::UserCB_handleCalibrationEnd(xn::SkeletonCapabil
             openNI->startPoseDetection(nID);
 		}
 	}
+}
+/**************************************************************
+ *
+ *      callbacks: gesture generator callback handlers
+ *
+ *************************************************************/
+
+//--------------------------------------------------------------
+void XN_CALLBACK_TYPE ofxOpenNI::GestureCB_handleGestureRecognized(xn::GestureGenerator& gestureGenerator, const XnChar* strGesture, const XnPoint3D* pIDPosition, const XnPoint3D* pEndPosition, void* pCookie){
+    ofxOpenNI* openNI = static_cast<ofxOpenNI*>(pCookie);
+	ofLogVerbose(openNI->LOG_NAME) << "(CB) Gesture Recognized";
+}
+
+//--------------------------------------------------------------
+void XN_CALLBACK_TYPE ofxOpenNI::GestureCB_handleGestureProgress(xn::GestureGenerator& gestureGenerator, const XnChar* strGesture, const XnPoint3D* pIDPosition, XnFloat fProgress, void* pCookie){
+    ofxOpenNI* openNI = static_cast<ofxOpenNI*>(pCookie);
+	ofLogVerbose(openNI->LOG_NAME) << "(CB) Gesture Progress";
 }
 
 /**************************************************************
