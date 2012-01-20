@@ -190,17 +190,4 @@ private:
 
 };
 
-class ofxOpenNIUserEvent {
-
-public:
-    
-    ofxOpenNIUserEvent();
-    ofxOpenNIUserEvent(XnUserID _userID, int _deviceID, UserStatusType _userStatus) : userID(_userID), deviceID(_deviceID), userStatus(_userStatus){};
-    
-    XnUserID userID;
-    UserStatusType userStatus;
-    int deviceID;
-    
-};
-
 #endif

@@ -72,6 +72,7 @@ ofxOpenNI::ofxOpenNI(){
     fps = 30;
     
     maxNumUsers = 4;
+    minTimeBetweenGestures = 0;
     
 	CreateRainbowPallet();
     
@@ -285,6 +286,8 @@ void ofxOpenNI::stop(){
         cout << LOG_NAME << ": releasing gesture generator" << endl;
         g_Gesture.StopGenerating();
         g_Gesture.Release();
+        availableGestures.clear();
+        minTimeBetweenGestures = 0;
         g_bIsGestureOn = false;
     }
     
@@ -505,10 +508,10 @@ bool ofxOpenNI::addGestureGenerator(){
         ofLogError(LOG_NAME) << "Could not add gesture generator node to context";
     }
 	if (g_Gesture.IsValid()){
-        allocateGestures();
 		nRetVal = g_Gesture.StartGenerating();
 		SHOW_RC(nRetVal, "Starting gesture generator");
         g_bIsGestureOn = (nRetVal == XN_STATUS_OK);
+        if (g_bIsGestureOn) allocateGestures();
 	} else {
 		ofLogError(LOG_NAME) << "Gesture generator is invalid!";
 	}
@@ -623,6 +626,7 @@ bool ofxOpenNI::removePlayerGenerator(){
 
 //--------------------------------------------------------------
 bool ofxOpenNI::allocateDepthBuffers(){
+    ofLogVerbose(LOG_NAME) << "Allocating depth";
     bool ok = setGeneratorResolution(g_Depth, width, height, fps);
     if (!ok) return false;
     maxDepth = g_Depth.GetDeviceMaxDepth();
@@ -636,6 +640,7 @@ bool ofxOpenNI::allocateDepthBuffers(){
 
 //--------------------------------------------------------------
 bool ofxOpenNI::allocateDepthRawBuffers(){
+    ofLogVerbose(LOG_NAME) << "Allocating depth raw";
     bool ok = setGeneratorResolution(g_Depth, width, height, fps);
     if (!ok) return false;
     maxDepth = g_Depth.GetDeviceMaxDepth();
@@ -648,6 +653,7 @@ bool ofxOpenNI::allocateDepthRawBuffers(){
 
 //--------------------------------------------------------------
 bool ofxOpenNI::allocateImageBuffers(){
+    ofLogVerbose(LOG_NAME) << "Allocating image";
     bool ok = setGeneratorResolution(g_Image, width, height, fps);
     if (!ok) return false;
     imagePixels[0].allocate(width, height, OF_IMAGE_COLOR);
@@ -660,6 +666,7 @@ bool ofxOpenNI::allocateImageBuffers(){
 
 //--------------------------------------------------------------
 bool ofxOpenNI::allocateIRBuffers(){
+    ofLogVerbose(LOG_NAME) << "Allocating infra";
     bool ok = setGeneratorResolution(g_Infra, width, height, fps);
     if (!ok) return false;
     imagePixels[0].allocate(width, height, OF_IMAGE_GRAYSCALE);
@@ -672,7 +679,7 @@ bool ofxOpenNI::allocateIRBuffers(){
 
 //--------------------------------------------------------------
 bool ofxOpenNI::allocateUsers(){
-    
+    ofLogVerbose(LOG_NAME) << "Allocating users";
     XnStatus nRetVal = XN_STATUS_OK;
     bool ok = false;
     
@@ -722,9 +729,9 @@ bool ofxOpenNI::allocateUsers(){
 
 //--------------------------------------------------------------
 bool ofxOpenNI::allocateGestures(){
+    ofLogVerbose(LOG_NAME) << "Allocating gestures";
     XnStatus nRetVal = XN_STATUS_OK;
-    //last_gesture.gesture_timestamp = 0;
-
+    lastGestureEvent.gestureTimestampMillis = 0; // used to know this is first event in CB handlers
 	XnCallbackHandle Gesture_CallbackHandler;
 	nRetVal = g_Gesture.RegisterGestureCallbacks(GestureCB_handleGestureRecognized, GestureCB_handleGestureProgress, this, Gesture_CallbackHandler);
     BOOL_RC(nRetVal, "Register gesture callback handlers");
@@ -1187,38 +1194,100 @@ int	ofxOpenNI::getMaxNumUsers(){
  *************************************************************/
 
 //--------------------------------------------------------------
-bool ofxOpenNI::addGesture(NiteGestureType niteGesture){
+bool ofxOpenNI::addGesture(string niteGestureName){
     if (!g_bIsGestureOn){
         ofLogError(LOG_NAME) << "Can't add gesture as there isn't a gesture generator - use addGestureGenerator() first";
         return false;
     }
-    string niteGestureName = getGestureTypeAsString(niteGesture);
-    if (niteGestureName == "UNKNOWN_GESTURE_TYPE"){
-        ofLogError(LOG_NAME) << "Can't add gesture as this is an unkown type -> see NiteGestureType and getGestureTypeAsString in ofxOpenNIUtils.h";
+    if (!isGestureAvailable(niteGestureName)){
+        ofLogError(LOG_NAME) << "Can't add gesture as this is an unkown type -> use getAvailableGestures to get a vector<string> of gesture names";
         return false;
     }
     ofLogNotice(LOG_NAME) << "Adding NITE gesture" << niteGestureName;
-	XnStatus nRetVal = XN_STATUS_OK;	
+	XnStatus nRetVal = XN_STATUS_OK;
 	nRetVal = g_Gesture.AddGesture(niteGestureName.c_str(), NULL);
-	BOOL_RC(nRetVal, "Adding simple (openNI) gesture " + niteGestureName);
+	BOOL_RC(nRetVal, "Adding simple (NITE) gesture " + niteGestureName);
 }
 
 //--------------------------------------------------------------
-bool ofxOpenNI::removeGesture(NiteGestureType niteGesture){
+bool ofxOpenNI::removeGesture(string niteGestureName){
     if (!g_bIsGestureOn){
-        ofLogError(LOG_NAME) << "Can't add gesture as there isn't a gesture generator - use addGestureGenerator() first";
+        ofLogError(LOG_NAME) << "Can't remove gesture as there isn't a gesture generator - use addGestureGenerator() first";
         return false;
     }
-    string niteGestureName = getGestureTypeAsString(niteGesture);
-    if (niteGestureName == "UNKNOWN_GESTURE_TYPE"){
-        ofLogError(LOG_NAME) << "Can't add gesture as this is an unkown type -> see NiteGestureType and getGestureTypeAsString in ofxOpenNIUtils.h";
+    if (!isGestureAvailable(niteGestureName)){
+        ofLogError(LOG_NAME) << "Can't remove gesture as this is an unkown type -> use getAvailableGestures to get a vector<string> of gesture names";
         return false;
     }
-    // TODO: double check that supplied gesture name is correct!
     ofLogNotice(LOG_NAME) << "Removing NITE gesture" << niteGestureName;
 	XnStatus nRetVal = XN_STATUS_OK;	
 	nRetVal = g_Gesture.RemoveGesture(niteGestureName.c_str());
-	BOOL_RC(nRetVal, "Removing simple (openNI) gesture " + niteGestureName);
+	BOOL_RC(nRetVal, "Removing simple (NITE) gesture " + niteGestureName);
+}
+
+//--------------------------------------------------------------
+vector<string> & ofxOpenNI::getAvailableGestures(){
+    if (!g_bIsGestureOn){
+        ofLogError(LOG_NAME) << "Can't get available gestures there isn't a gesture generator - use addGestureGenerator() first";
+        availableGestures.clear();
+        return availableGestures;
+    }
+    if (availableGestures.size() == 0){
+        XnStatus nRetVal = XN_STATUS_OK;
+        XnUInt16 nGestures = g_Gesture.GetNumberOfAvailableGestures();
+        if (nGestures == 0){
+            ofLogError(LOG_NAME) << "No gestures available";
+            return availableGestures;
+        }
+        availableGestures.resize(nGestures);
+        XnChar* astrGestures[nGestures];
+        for (int i = 0; i < nGestures; i++){
+            astrGestures[i] = new XnChar[255];
+        }
+        nRetVal = g_Gesture.EnumerateGestures(*astrGestures, nGestures);
+        SHOW_RC(nRetVal, "Enumerating gestures");
+        if (nRetVal != XN_STATUS_OK) {
+            ofLogError(LOG_NAME) << "Could not enumerate gestures";
+            return availableGestures;
+        }
+        ofLogNotice(LOG_NAME) << nGestures << "gestures available";
+        for (int i = 0; i < nGestures; i++){
+            ofLogVerbose(LOG_NAME) << i << "-" << astrGestures[i] << "- use addGesture(\"" << astrGestures[i] << "\") to recieve events for this gesture";
+            availableGestures[i] = (string)astrGestures[i];
+            delete [] astrGestures[i];
+        }
+    }
+    return availableGestures;
+}
+
+bool ofxOpenNI::isGestureAvailable(string niteGestureName){
+    if (!g_bIsGestureOn){
+        ofLogError(LOG_NAME) << "Gesture not available because there isn't a gesture generator - use addGestureGenerator() first";
+        return false;
+    }
+    if (availableGestures.size() == 0){
+        if(getAvailableGestures().size() == 0){
+            return false;
+        }
+    }
+    bool available = false;
+    for (int i = 0; i < availableGestures.size(); i++){
+        if (availableGestures[i] == niteGestureName) {
+            available = true;
+            break;
+        }
+    }
+    return available;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setMinTimeBetweenGestures(int millis){
+    minTimeBetweenGestures = millis;
+}
+
+//--------------------------------------------------------------
+int ofxOpenNI::getMinTimeBetweenGestures(){
+    return minTimeBetweenGestures;
 }
 
 /**************************************************************
@@ -1728,7 +1797,15 @@ void XN_CALLBACK_TYPE ofxOpenNI::UserCB_handleCalibrationEnd(xn::SkeletonCapabil
 //--------------------------------------------------------------
 void XN_CALLBACK_TYPE ofxOpenNI::GestureCB_handleGestureRecognized(xn::GestureGenerator& gestureGenerator, const XnChar* strGesture, const XnPoint3D* pIDPosition, const XnPoint3D* pEndPosition, void* pCookie){
     ofxOpenNI* openNI = static_cast<ofxOpenNI*>(pCookie);
-	ofLogVerbose(openNI->LOG_NAME) << "(CB) Gesture Recognized";
+	ofLogVerbose(openNI->LOG_NAME) << "(CB) Gesture Recognized: ID position (x y z) [" << (int)pIDPosition->X << (int)pIDPosition->Y << (int)pIDPosition->Z << "] end position (x y z) [" << (int)pEndPosition->X << (int)pEndPosition->Y << (int)pEndPosition->Z << "]";	
+    ofxOpenNIGestureEvent & lastGestureEvent = openNI->lastGestureEvent;
+	if (lastGestureEvent.gestureTimestampMillis == 0 || ofGetElapsedTimeMillis() > lastGestureEvent.gestureTimestampMillis + openNI->minTimeBetweenGestures) { // Filter by a minimum time between firing gestures
+        lastGestureEvent = ofxOpenNIGestureEvent(strGesture, openNI->instanceID, GESTURE_RECOGNIZED, 1.0, ofPoint(pEndPosition->X, pEndPosition->Y, pEndPosition->Z), ofGetElapsedTimeMillis());
+		ofNotifyEvent(openNI->gestureEvent, lastGestureEvent);
+	} else {
+		ofLogVerbose(openNI->LOG_NAME) << "Gesture FILTERED by time:" << ofGetElapsedTimeMillis() << (lastGestureEvent.gestureTimestampMillis + openNI->minTimeBetweenGestures);
+	}
+
 }
 
 //--------------------------------------------------------------

@@ -67,7 +67,6 @@ enum DepthColoring {
     COLORING_STATUS,
     COLORING_COUNT
 };
-
 enum UserStatusType {
     USER_TRACKING_STOPPED = 0,
     USER_TRACKING_STARTED,
@@ -77,10 +76,38 @@ enum UserStatusType {
     USER_SKELETON_FOUND
 };
 
-enum NiteGestureType {
-    GESTURE_NITE_WAVE,
-    GESTURE_NITE_CLICK,
-    GESTURE_NITE_RAISEHAND
+enum GestureStatusType {
+    GESTURE_PROGRESS = 0,
+    GESTURE_RECOGNIZED
+};
+
+class ofxOpenNIUserEvent {
+    
+public:
+    
+    ofxOpenNIUserEvent(){};
+    ofxOpenNIUserEvent(XnUserID _userID, int _deviceID, UserStatusType _userStatus) : userID(_userID), deviceID(_deviceID), userStatus(_userStatus){};
+    
+    XnUserID userID;
+    UserStatusType userStatus;
+    int deviceID;
+    
+};
+
+class ofxOpenNIGestureEvent {
+    
+public:
+    
+    ofxOpenNIGestureEvent(){};
+    ofxOpenNIGestureEvent(string _gestureName, int _deviceID, GestureStatusType _gestureStatus, float _gestureProgress, ofPoint _gesturePosition, int _gestureTimestampMillis) : gestureName(_gestureName), deviceID(_deviceID), gestureStatus(_gestureStatus), gestureProgress(_gestureProgress), gesturePosition(_gesturePosition), gestureTimestampMillis(_gestureTimestampMillis){};
+    
+    string gestureName;
+    GestureStatusType gestureStatus;
+    float gestureProgress;
+    ofPoint gesturePosition;
+    int gestureTimestampMillis;
+    int deviceID;
+    
 };
 
 //--------------------------------------------------------------
@@ -121,6 +148,7 @@ static void CreateRainbowPallet(){
 	rainbowPalletInit = true;
 }
 
+//--------------------------------------------------------------
 inline void getDepthColor(DepthColoring depthColoring, const unsigned short & depth, ofColor & color, int maxDepth){
     
     float max;
@@ -244,6 +272,7 @@ inline void getDepthColor(DepthColoring depthColoring, const unsigned short & de
 
 void YUV422ToRGB888(const XnUInt8* pYUVImage, XnUInt8* pRGBImage, XnUInt32 nYUVSize, XnUInt32 nRGBSize);
 
+//--------------------------------------------------------------
 inline ofPoint toOf(const XnPoint3D & p){
 	return *(ofPoint*)&p;
 	/*
@@ -252,6 +281,7 @@ inline ofPoint toOf(const XnPoint3D & p){
 	 */
 }
 
+//--------------------------------------------------------------
 inline XnPoint3D toXn(const ofPoint & p){
 	
 	return *(XnPoint3D*)&p;
@@ -265,28 +295,28 @@ inline XnPoint3D toXn(const ofPoint & p){
 	 */
 }
 
+//--------------------------------------------------------------
 inline string boolToString(bool b){
     return (string)(b ? "TRUE" : "FALSE");
 }
 
-inline string getGestureTypeAsString(NiteGestureType type){
-    switch (type) {
-        case GESTURE_NITE_WAVE:
-			return "Wave";
+//--------------------------------------------------------------
+inline string getGestureStatusAsString(GestureStatusType type) {
+	switch (type) {
+        case GESTURE_PROGRESS:
+			return "GESTURE_PROGRESS";
 			break;
-		case GESTURE_NITE_CLICK:
-			return "Click";
+		case GESTURE_RECOGNIZED:
+			return "GESTURE_RECOGNIZED";
 			break;
-		case GESTURE_NITE_RAISEHAND:
-			return "RaiseHand";
-			break;
-        default:
-			return "UNKNOWN_GESTURE_TYPE";
+		default:
+			return "UNKNOWN_GESTURE_STATUS_TYPE";
 			break;
     }
-};
+}
 
-inline string getUserStatusAsString(UserStatusType type){
+//--------------------------------------------------------------
+inline string getUserStatusAsString(UserStatusType type) {
 	switch (type) {
         case USER_TRACKING_STOPPED:
 			return "USER_TRACKING_STOPPED";
@@ -312,6 +342,7 @@ inline string getUserStatusAsString(UserStatusType type){
     }
 }
 
+//--------------------------------------------------------------
 inline string getCalibrationStatusAsString(XnCalibrationStatus type) {
 	switch (type) {
 		case XN_CALIBRATION_STATUS_OK:
@@ -356,6 +387,7 @@ inline string getCalibrationStatusAsString(XnCalibrationStatus type) {
 	}
 }
 
+//--------------------------------------------------------------
 inline string getNodeTypeAsString(XnProductionNodeType type) {
 	switch (type) {
 		case XN_NODE_TYPE_INVALID:

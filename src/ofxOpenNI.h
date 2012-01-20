@@ -149,8 +149,14 @@ public:
     bool getAutoUserCalibrationPossible();
     
     // gesture methods
-    bool addGesture(NiteGestureType niteGesture);
-    bool removeGesture(NiteGestureType niteGesture);
+    bool addGesture(string niteGestureName);
+    bool removeGesture(string niteGestureName);
+    
+    vector<string> & getAvailableGestures();
+    bool isGestureAvailable(string niteGestureName);
+    
+    void setMinTimeBetweenGestures(int millis);
+    int getMinTimeBetweenGestures();
     
     void toggleRegister();
 	void setRegister(bool b);
@@ -192,6 +198,7 @@ public:
     string LOG_NAME;
     
     ofEvent<ofxOpenNIUserEvent> userEvent;
+    ofEvent<ofxOpenNIGestureEvent> gestureEvent;
 
 protected:
 	
@@ -321,6 +328,11 @@ private:
     int maxNumUsers;
     float userSmoothFactor;
 
+    // gesture storage
+    vector<string> availableGestures;
+    ofxOpenNIGestureEvent lastGestureEvent;
+    int minTimeBetweenGestures;
+    
     // gesture callbacks
     static void XN_CALLBACK_TYPE GestureCB_handleGestureRecognized(xn::GestureGenerator& gestureGenerator, const XnChar* strGesture, const XnPoint3D* pIDPosition, const XnPoint3D* pEndPosition, void* pCookie);
     static void XN_CALLBACK_TYPE GestureCB_handleGestureProgress(xn::GestureGenerator& gestureGenerator, const XnChar* strGesture, const XnPoint3D* pIDPosition, XnFloat fProgress, void* pCookie);
