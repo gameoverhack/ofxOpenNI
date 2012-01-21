@@ -67,6 +67,7 @@ public:
 	bool addInfraGenerator();
 	bool addUserGenerator();
     bool addGestureGenerator();
+    bool addHandsGenerator();
     bool addAudioGenerator();
 
     bool removeDepthGenerator();
@@ -74,6 +75,7 @@ public:
     bool removeInfraGenerator();
     bool removeUserGenerator();
     bool removeGestureGenerator();
+    bool removeHandsGenerator();
     bool removeAudioGenerator();
     
 	void update();
@@ -116,6 +118,7 @@ public:
     bool isInfraOn();
     bool isUserOn();
     bool isGestureOn();
+    bool isHandsOn();
     bool isAudioOn();
     
 	void setUseTexture(bool useTexture);
@@ -194,6 +197,8 @@ public:
 	xn::ImageGenerator& getImageGenerator();
 	xn::IRGenerator& getIRGenerator();
     xn::UserGenerator& getUserGenerator();
+    xn::GestureGenerator& getGestureGenerator();
+    xn::HandsGenerator& getHandsGenerator();
 	xn::AudioGenerator& getAudioGenerator();
 	
 	xn::DepthMetaData& getDepthMetaData();
@@ -205,6 +210,7 @@ public:
     
     ofEvent<ofxOpenNIUserEvent> userEvent;
     ofEvent<ofxOpenNIGestureEvent> gestureEvent;
+    //ofEvent<ofxOpenNIHandEvent> handEvent;
 
 protected:
 	
@@ -212,15 +218,16 @@ protected:
     
 private:
     
-	//void openCommon();
-	//void initConstants();
     bool initContext();
     bool initDevice();
     
-    bool setGeneratorResolution(MapGenerator & generator, int w, int h, int f);
+    bool setGeneratorResolution(xn::MapGenerator & generator, int w, int h, int f);
     
     bool addLicence(string sVendor, string sKey);
     void logErrors(xn::EnumerationErrors & errors);
+    
+    void addGenerator(XnPredefinedProductionNodeType type, bool & bIsOn);
+    void removeGenerator(XnPredefinedProductionNodeType type, bool & bIsOn);
     
 	void updateGenerators();
     
@@ -243,6 +250,7 @@ private:
 	bool g_bIsInfraOn;
     bool g_bIsUserOn;
     bool g_bIsGestureOn;
+    bool g_bIsHandsOn;
 	bool g_bIsAudioOn;
 	bool g_bIsDepthRawOnOption;
 	
@@ -298,6 +306,8 @@ private:
 	xn::IRGenerator g_Infra;
 	xn::UserGenerator g_User;
     xn::GestureGenerator g_Gesture;
+    xn::HandsGenerator g_Hands;
+    xn::SceneAnalyzer g_Scene;
 	xn::AudioGenerator g_Audio;
     
 	// meta data

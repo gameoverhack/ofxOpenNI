@@ -52,6 +52,7 @@ ofxOpenNI::ofxOpenNI(){
 	g_bIsInfraOn = false;
     g_bIsUserOn = false;
     g_bIsGestureOn = false;
+    g_bIsHandsOn = false;
 	g_bIsAudioOn = false;
 	
 	depthColoring = COLORING_RAINBOW;
@@ -264,6 +265,7 @@ void ofxOpenNI::stop(){
         cout << LOG_NAME << ": releasing depth generator" << endl;
         g_Depth.StopGenerating();
         g_Depth.Release();
+        g_bIsDepthRawOnOption = false;
         g_bIsDepthOn = false;
     }
     
@@ -295,6 +297,13 @@ void ofxOpenNI::stop(){
         availableGestures.clear();
         minTimeBetweenGestures = 0;
         g_bIsGestureOn = false;
+    }
+    
+    if (g_bIsHandsOn){
+        cout << LOG_NAME << ": releasing hands generator" << endl;
+        g_Hands.StopGenerating();
+        g_Hands.Release();
+        g_bIsHandsOn = false;
     }
     
     if (g_bIsAudioOn){
@@ -359,175 +368,135 @@ void ofxOpenNI::logErrors(xn::EnumerationErrors & errors){
 
 //--------------------------------------------------------------
 bool ofxOpenNI::addDepthGenerator(){
-    if (g_bIsDepthOn){
-        ofLogWarning() << "Already has an depth generator - can't add twice!";
-        return false;
-    }
-	XnStatus nRetVal = XN_STATUS_OK;
-    g_bIsDepthOn = false;
-	ofLogNotice(LOG_NAME) << "Adding depth generator...";
-	if (!bIsContextReady){
-		ofLogError(LOG_NAME) << "Context is not setup - please call ofxOpenNI::setup() first";
-	}
-    nRetVal = g_Depth.Create(g_Context);
-    SHOW_RC(nRetVal, "Creating depth generator");
-    g_bIsDepthOn = (nRetVal == XN_STATUS_OK);
-    if (!g_bIsDepthOn){
-        ofLogError(LOG_NAME) << "Could not add depth generator node to context";
-    }
-	if (g_Depth.IsValid()){
-        allocateDepthBuffers();
-        //TODO: re-implement depthRaw set/get...seems to have disappeared :-(
-        //g_bIsDepthRawOnOption = true;
-        //allocateDepthRawBuffers();
-		nRetVal = g_Depth.StartGenerating();
-		SHOW_RC(nRetVal, "Starting depth generator");
-        g_bIsDepthOn = (nRetVal == XN_STATUS_OK);
-	} else {
-		ofLogError(LOG_NAME) << "Depth generator is invalid!";
-	}
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    addGenerator(XN_NODE_TYPE_DEPTH, g_bIsDepthOn);
+    if (g_bIsDepthOn) allocateDepthBuffers();
     setMirror(bUseMirror);
 	return g_bIsDepthOn;
 }
 
 //--------------------------------------------------------------
 bool ofxOpenNI::addImageGenerator(){
-    if (g_bIsImageOn){
-        ofLogWarning() << "Already has an image generator - can't add twice!";
-        return false;
-    }
-    if (g_bIsInfraOn){
-        ofLogWarning() << "Can't add infra generator - there is already a image generator and you can only have one or the other!";
-        return false;
-    }
-	XnStatus nRetVal = XN_STATUS_OK;
-    g_bIsImageOn = false;
-	ofLogNotice(LOG_NAME) << "Adding image generator...";
-	if (!bIsContextReady){
-		ofLogError(LOG_NAME) << "Context is not setup - please call ofxOpenNI::setup() first";
-	}
-    nRetVal = g_Image.Create(g_Context);
-    SHOW_RC(nRetVal, "Creating image generator");
-    g_bIsImageOn = (nRetVal == XN_STATUS_OK);
-    if (!g_bIsImageOn){
-        ofLogError(LOG_NAME) << "Could not add image generator node to context";
-    }
-	if (g_Image.IsValid()){
-        allocateImageBuffers();
-		nRetVal = g_Image.StartGenerating();
-		SHOW_RC(nRetVal, "Starting image generator");
-        g_bIsImageOn = (nRetVal == XN_STATUS_OK);
-	} else {
-		ofLogError(LOG_NAME) << "Image generator is invalid!";
-	}
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    addGenerator(XN_NODE_TYPE_IMAGE, g_bIsImageOn);
+    if (g_bIsImageOn) allocateImageBuffers();
     setMirror(bUseMirror);
 	return g_bIsImageOn;
 }
 
 //--------------------------------------------------------------
 bool ofxOpenNI::addInfraGenerator(){
-    if (g_bIsInfraOn){
-        ofLogWarning() << "Already has an infra generator - can't add twice!";
-        return false;
-    }
-    if (g_bIsImageOn){
-        ofLogWarning() << "Can't add image generator - there is already a infra generator and you can only have one or the other!";
-        return false;
-    }
-	XnStatus nRetVal = XN_STATUS_OK;
-    g_bIsInfraOn = false;
-	ofLogNotice(LOG_NAME) << "Adding ir generator...";
-	if (!bIsContextReady){
-		ofLogError(LOG_NAME) << "Context is not setup - please call ofxOpenNI::setup() first";
-	}
-    nRetVal = g_Infra.Create(g_Context);
-    SHOW_RC(nRetVal, "Creating IR generator");
-    g_bIsInfraOn = (nRetVal == XN_STATUS_OK);
-    if (!g_bIsInfraOn){
-        ofLogError(LOG_NAME) << "Could not add IR generator node to context";
-    }
-	if (g_Infra.IsValid()){
-        allocateIRBuffers();
-		nRetVal = g_Infra.StartGenerating();
-		SHOW_RC(nRetVal, "Starting IR generator");
-        g_bIsInfraOn = (nRetVal == XN_STATUS_OK);
-	} else {
-		ofLogError(LOG_NAME) << "IR generator is invalid!";
-	}
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    addGenerator(XN_NODE_TYPE_IR, g_bIsInfraOn);
+    if (g_bIsInfraOn) allocateIRBuffers();
     setMirror(bUseMirror);
 	return g_bIsInfraOn;
 }
 
 //--------------------------------------------------------------
 bool ofxOpenNI::addUserGenerator(){
-    if (g_bIsUserOn){
-        ofLogWarning() << "Already has a user generator - can't add twice!";
-        return false;
-    }
-    XnStatus nRetVal = XN_STATUS_OK;
-    g_bIsUserOn = false;
-    ofLogNotice(LOG_NAME) << "Adding user generator...";
-    
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     if (instanceID > 0) {
-        ofLogWarning(LOG_NAME) << "Currently it seems only possible to have a user generator on one device in a single process!!";
-        // some people say it could be done like thus: http://openni-discussions.979934.n3.nabble.com/OpenNI-dev-Skeleton-tracking-with-multiple-kinects-not-solved-with-new-OpenNI-td2832613.html ... but itdidn't work for me .... 
-        // ok it's not possible yet according to: http://groups.google.com/group/openni-dev/browse_thread/thread/188a2ac823584117
-        return false;   // uncomment this to see what happens
+        // see: http://groups.google.com/group/openni-dev/browse_thread/thread/188a2ac823584117
+        ofLogWarning(LOG_NAME) << "Currently it is only possible to have a user generator on one device in a single process!!";
+        g_bIsUserOn = false;
+        return g_bIsUserOn;   // uncomment this to see what happens
     }
-    
-    if (!bIsContextReady){
-		ofLogError(LOG_NAME) << "Context is not setup - please call ofxOpenNI::setup() first";
-	}
-    nRetVal = g_User.Create(g_Context);
-    SHOW_RC(nRetVal, "Creating user generator");
-    g_bIsUserOn = (nRetVal == XN_STATUS_OK);
-    if (!g_bIsUserOn){
-        ofLogError(LOG_NAME) << "Could not add user generator node to context";
-    }
-	if (g_User.IsValid()){
-        allocateUsers();
-		nRetVal = g_User.StartGenerating();
-		SHOW_RC(nRetVal, "Starting user generator");
-        g_bIsUserOn = (nRetVal == XN_STATUS_OK);
-	} else {
-		ofLogError(LOG_NAME) << "User generator is invalid!";
-	}
+    addGenerator(XN_NODE_TYPE_USER, g_bIsUserOn);
+    if (g_bIsUserOn) allocateUsers();
 	return g_bIsUserOn;
 }
 
 //--------------------------------------------------------------
 bool ofxOpenNI::addGestureGenerator(){
-    if (g_bIsGestureOn){
-        ofLogWarning() << "Can't add gesture generator - there is already a gesture generator and you can only have one";
-        return false;
-    }
-	XnStatus nRetVal = XN_STATUS_OK;
-    g_bIsGestureOn = false;
-	ofLogNotice(LOG_NAME) << "Adding gesture generator...";
-	if (!bIsContextReady){
-		ofLogError(LOG_NAME) << "Context is not setup - please call ofxOpenNI::setup() first";
-	}
-    nRetVal = g_Gesture.Create(g_Context);
-    SHOW_RC(nRetVal, "Creating gesture generator");
-    g_bIsGestureOn = (nRetVal == XN_STATUS_OK);
-    if (!g_bIsGestureOn){
-        ofLogError(LOG_NAME) << "Could not add gesture generator node to context";
-    }
-	if (g_Gesture.IsValid()){
-		nRetVal = g_Gesture.StartGenerating();
-		SHOW_RC(nRetVal, "Starting gesture generator");
-        g_bIsGestureOn = (nRetVal == XN_STATUS_OK);
-        if (g_bIsGestureOn) allocateGestures();
-	} else {
-		ofLogError(LOG_NAME) << "Gesture generator is invalid!";
-	}
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    addGenerator(XN_NODE_TYPE_GESTURE, g_bIsGestureOn);
+    if (g_bIsGestureOn) allocateGestures();
 	return g_bIsGestureOn;
 }
 
 //--------------------------------------------------------------
+bool ofxOpenNI::addHandsGenerator(){
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    addGenerator(XN_NODE_TYPE_HANDS, g_bIsHandsOn);
+    //if (g_bIsHandsOn) allocateHands();
+	return g_bIsHandsOn;
+}
+
+//--------------------------------------------------------------
 bool ofxOpenNI::addAudioGenerator(){
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
 	ofLogWarning(LOG_NAME) << "Not yet implimented";
     return false;
+}
+
+void ofxOpenNI::addGenerator(XnPredefinedProductionNodeType type, bool & bIsOn){
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    string generatorType = getNodeTypeAsString(type);
+    ofLogNotice(LOG_NAME) << "Adding generator type" << generatorType;
+    XnStatus nRetVal = XN_STATUS_OK;
+    if (!bIsContextReady){
+		ofLogError(LOG_NAME) << "Context is not setup - please call ofxOpenNI::setup() first";
+        bIsOn = false;
+        return;
+	}
+    if (bIsOn){
+        ofLogWarning() << "Can't add" <<  generatorType << " - there is already a generator of this type and you can only have one";
+        bIsOn = false;
+        return;
+    }
+    bIsOn = false;
+    switch (type) {
+		case XN_NODE_TYPE_DEPTH:
+			nRetVal = g_Depth.Create(g_Context);
+            SHOW_RC(nRetVal, "Creating " + generatorType + " generator");
+            if (!setGeneratorResolution(g_Depth, width, height, fps)) return;
+            if (g_Depth.IsValid()) nRetVal = g_Depth.StartGenerating();
+			break;
+		case XN_NODE_TYPE_IMAGE:
+			nRetVal = g_Image.Create(g_Context);
+            SHOW_RC(nRetVal, "Creating " + generatorType + " generator");
+            if (!setGeneratorResolution(g_Image, width, height, fps)) return;
+            if (g_Image.IsValid()) nRetVal = g_Image.StartGenerating();
+			break;
+		case XN_NODE_TYPE_AUDIO:
+			nRetVal = g_Audio.Create(g_Context);
+            SHOW_RC(nRetVal, "Creating " + generatorType + " generator");
+            if (g_Audio.IsValid()) nRetVal = g_Audio.StartGenerating();
+			break;
+		case XN_NODE_TYPE_IR:
+			nRetVal = g_Infra.Create(g_Context);
+            SHOW_RC(nRetVal, "Creating " + generatorType + " generator");
+            if (!setGeneratorResolution(g_Infra, width, height, fps)) return;
+            if (g_Infra.IsValid()) nRetVal = g_Infra.StartGenerating();
+			break;
+		case XN_NODE_TYPE_USER:
+			nRetVal = g_User.Create(g_Context);
+            SHOW_RC(nRetVal, "Creating " + generatorType + " generator");
+            if (g_User.IsValid()) nRetVal = g_User.StartGenerating();
+			break;
+		case XN_NODE_TYPE_GESTURE:
+			nRetVal = g_Gesture.Create(g_Context);
+            SHOW_RC(nRetVal, "Creating " + generatorType + " generator");
+            if (g_Gesture.IsValid()) nRetVal = g_Gesture.StartGenerating();
+			break;
+		case XN_NODE_TYPE_SCENE:
+			nRetVal = g_Scene.Create(g_Context);
+            SHOW_RC(nRetVal, "Creating " + generatorType + " generator");
+            if (g_Scene.IsValid()) nRetVal = g_Scene.StartGenerating();
+			break;
+		case XN_NODE_TYPE_HANDS:
+			nRetVal = g_Hands.Create(g_Context);
+            SHOW_RC(nRetVal, "Creating " + generatorType + " generator");
+            if (g_Hands.IsValid()) nRetVal = g_Hands.StartGenerating();
+			break;
+		default:
+			ofLogError(LOG_NAME) << "Don't know how to add this type of generator/node";
+            return;
+			break;
+    }
+    SHOW_RC(nRetVal, "Starting " + generatorType + " generator");
+    bIsOn = (nRetVal == XN_STATUS_OK);
 }
 
 /**************************************************************
@@ -538,78 +507,110 @@ bool ofxOpenNI::addAudioGenerator(){
 
 //--------------------------------------------------------------
 bool ofxOpenNI::removeDepthGenerator(){
-    if (!g_bIsDepthOn){
-        ofLogWarning() << "No depth generator - can't remove!";
-        return false;
-    }
-    XnStatus nRetVal = XN_STATUS_OK;
-    nRetVal = g_Depth.StopGenerating();
-    SHOW_RC(nRetVal, "Stop generating depth");
-    g_bIsDepthOn = (nRetVal != XN_STATUS_OK);
-    if (!g_bIsDepthOn) g_Depth.Release();
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    removeGenerator(XN_NODE_TYPE_DEPTH, g_bIsDepthOn);
     return !g_bIsDepthOn;
 }
 
 //--------------------------------------------------------------
 bool ofxOpenNI::removeImageGenerator(){
-    if (!g_bIsImageOn){
-        ofLogWarning() << "No image generator - can't remove!";
-        return false;
-    }
-    XnStatus nRetVal = XN_STATUS_OK;
-    nRetVal = g_Image.StopGenerating();
-    SHOW_RC(nRetVal, "Stop generating image");
-    g_bIsImageOn = (nRetVal != XN_STATUS_OK);
-    if (!g_bIsImageOn) g_Image.Release();
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    removeGenerator(XN_NODE_TYPE_IMAGE, g_bIsImageOn);
     return !g_bIsImageOn;
 }
 
 //--------------------------------------------------------------
 bool ofxOpenNI::removeInfraGenerator(){
-    if (!g_bIsInfraOn){
-        ofLogWarning() << "No infra generator - can't remove!";
-        return false;
-    }
-    XnStatus nRetVal = XN_STATUS_OK;
-    nRetVal = g_Infra.StopGenerating();
-    SHOW_RC(nRetVal, "Stop generating infra");
-    g_bIsInfraOn = (nRetVal != XN_STATUS_OK);
-    if (!g_bIsInfraOn) g_Infra.Release();
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    removeGenerator(XN_NODE_TYPE_IR, g_bIsInfraOn);
     return !g_bIsInfraOn;
 }
 
 //--------------------------------------------------------------
 bool ofxOpenNI::removeUserGenerator(){
-    if (!g_bIsUserOn){
-        ofLogWarning() << "No user generator - can't remove!";
-        return false;
-    }
-    XnStatus nRetVal = XN_STATUS_OK;
-    nRetVal = g_User.StopGenerating();
-    SHOW_RC(nRetVal, "Stop generating user");
-    g_bIsUserOn = (nRetVal != XN_STATUS_OK);
-    if (!g_bIsUserOn) g_User.Release();
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    removeGenerator(XN_NODE_TYPE_USER, g_bIsUserOn);
     return !g_bIsUserOn;
 }
 
 //--------------------------------------------------------------
 bool ofxOpenNI::removeGestureGenerator(){
-    if (!g_bIsGestureOn){
-        ofLogWarning() << "No gesture generator - can't remove!";
-        return false;
-    }
-    XnStatus nRetVal = XN_STATUS_OK;
-    nRetVal = g_Gesture.StopGenerating();
-    SHOW_RC(nRetVal, "Stop generating gesture");
-    g_bIsGestureOn = (nRetVal != XN_STATUS_OK);
-    if (!g_bIsGestureOn) g_Gesture.Release();
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    removeGenerator(XN_NODE_TYPE_GESTURE, g_bIsGestureOn);
     return !g_bIsGestureOn;
 }
 
 //--------------------------------------------------------------
+bool ofxOpenNI::removeHandsGenerator(){
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    removeGenerator(XN_NODE_TYPE_HANDS, g_bIsHandsOn);
+    return !g_bIsHandsOn;
+}
+
+//--------------------------------------------------------------
 bool ofxOpenNI::removeAudioGenerator(){
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     ofLogWarning(LOG_NAME) << "Not yet implimented";
     return false;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::removeGenerator(XnPredefinedProductionNodeType type, bool & bIsOn){
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    string generatorType = getNodeTypeAsString(type);
+    ofLogNotice(LOG_NAME) << "Removing generator type" << generatorType;
+    XnStatus nRetVal = XN_STATUS_OK;
+    if (!bIsContextReady){
+		ofLogError(LOG_NAME) << "Context is not setup - please call ofxOpenNI::setup() first";
+        bIsOn = false;
+        return;
+	}
+    if (!bIsOn){
+        ofLogWarning() << "Can't remove" <<  generatorType << " as it's not on!";
+        bIsOn = false;
+        return;
+    }
+    bIsOn = false;
+    switch (type) {
+		case XN_NODE_TYPE_DEPTH:
+			nRetVal = g_Depth.StopGenerating();
+            if (nRetVal == XN_STATUS_OK) g_Depth.Release();
+			break;
+		case XN_NODE_TYPE_IMAGE:
+            nRetVal = g_Image.StopGenerating();
+            if (nRetVal == XN_STATUS_OK) g_Image.Release();
+			break;
+		case XN_NODE_TYPE_AUDIO:
+            nRetVal = g_Audio.StopGenerating();
+            if (nRetVal == XN_STATUS_OK) g_Audio.Release();
+			break;
+		case XN_NODE_TYPE_IR:
+            nRetVal = g_Infra.StopGenerating();
+            if (nRetVal == XN_STATUS_OK) g_Infra.Release();
+			break;
+		case XN_NODE_TYPE_USER:
+            nRetVal = g_User.StopGenerating();
+            if (nRetVal == XN_STATUS_OK) g_User.Release();
+			break;
+		case XN_NODE_TYPE_GESTURE:
+            nRetVal = g_Gesture.StopGenerating();
+            if (nRetVal == XN_STATUS_OK) g_Gesture.Release();
+			break;
+		case XN_NODE_TYPE_SCENE:
+            nRetVal = g_Scene.StopGenerating();
+            if (nRetVal == XN_STATUS_OK) g_Scene.Release();
+			break;
+		case XN_NODE_TYPE_HANDS:
+            nRetVal = g_Hands.StopGenerating();
+            if (nRetVal == XN_STATUS_OK) g_Hands.Release();
+			break;
+		default:
+			ofLogError(LOG_NAME) << "Don't know how to remove this type of generator/node";
+            return;
+			break;
+    }
+    SHOW_RC(nRetVal, "Stopping " + generatorType + " generator");
+    bIsOn = !(nRetVal == XN_STATUS_OK);
 }
 
 /**************************************************************
@@ -621,8 +622,6 @@ bool ofxOpenNI::removeAudioGenerator(){
 //--------------------------------------------------------------
 bool ofxOpenNI::allocateDepthBuffers(){
     ofLogVerbose(LOG_NAME) << "Allocating depth";
-    bool ok = setGeneratorResolution(g_Depth, width, height, fps);
-    if (!ok) return false;
     maxDepth = g_Depth.GetDeviceMaxDepth();
     depthPixels[0].allocate(width, height, OF_IMAGE_COLOR_ALPHA);
     depthPixels[1].allocate(width, height, OF_IMAGE_COLOR_ALPHA);
@@ -635,40 +634,34 @@ bool ofxOpenNI::allocateDepthBuffers(){
 //--------------------------------------------------------------
 bool ofxOpenNI::allocateDepthRawBuffers(){
     ofLogVerbose(LOG_NAME) << "Allocating depth raw";
-    bool ok = setGeneratorResolution(g_Depth, width, height, fps);
-    if (!ok) return false;
     maxDepth = g_Depth.GetDeviceMaxDepth();
     depthRawPixels[0].allocate(width, height, OF_PIXELS_MONO);
     depthRawPixels[1].allocate(width, height, OF_PIXELS_MONO);
     currentDepthRawPixels = &depthRawPixels[0];
     backDepthRawPixels = &depthRawPixels[1];
-    return ok;
+    return true;
 }
 
 //--------------------------------------------------------------
 bool ofxOpenNI::allocateImageBuffers(){
     ofLogVerbose(LOG_NAME) << "Allocating image";
-    bool ok = setGeneratorResolution(g_Image, width, height, fps);
-    if (!ok) return false;
     imagePixels[0].allocate(width, height, OF_IMAGE_COLOR);
     imagePixels[1].allocate(width, height, OF_IMAGE_COLOR);
     currentImagePixels = &imagePixels[0];
     backImagePixels = &imagePixels[1];
     if (bUseTexture) imageTexture.allocate(width, height, GL_RGB);
-    return ok;
+    return true;
 }
 
 //--------------------------------------------------------------
 bool ofxOpenNI::allocateIRBuffers(){
     ofLogVerbose(LOG_NAME) << "Allocating infra";
-    bool ok = setGeneratorResolution(g_Infra, width, height, fps);
-    if (!ok) return false;
     imagePixels[0].allocate(width, height, OF_IMAGE_GRAYSCALE);
     imagePixels[1].allocate(width, height, OF_IMAGE_GRAYSCALE);
     currentImagePixels = &imagePixels[0];
     backImagePixels = &imagePixels[1];
     if (bUseTexture) imageTexture.allocate(width, height, GL_LUMINANCE);
-    return ok;
+    return true;
 }
 
 //--------------------------------------------------------------
@@ -718,7 +711,6 @@ bool ofxOpenNI::allocateUsers(){
     
 	nRetVal = g_User.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_ALL);
     BOOL_RC(nRetVal, "Set skeleton profile");
-    
 }
 
 //--------------------------------------------------------------
@@ -1609,13 +1601,11 @@ bool ofxOpenNI::setResolution(int w, int h, int f){
 }
 
 //--------------------------------------------------------------
-bool ofxOpenNI::setGeneratorResolution(MapGenerator & generator, int w, int h, int f){
-    //if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(mutex);
-    
+bool ofxOpenNI::setGeneratorResolution(xn::MapGenerator & generator, int w, int h, int f){
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(mutex);
     XnMapOutputMode mapMode;
     XnStatus nRetVal = XN_STATUS_OK;
     mapMode.nXRes = w; mapMode.nYRes = h; mapMode.nFPS  = f;
-    
     if (generator.IsValid()){
         nRetVal = generator.SetMapOutputMode(mapMode);
         BOOL_RC(nRetVal, "Setting " + (string)generator.GetName() + " resolution: " + ofToString(mapMode.nXRes) + " x " + ofToString(mapMode.nYRes) + " at " + ofToString(mapMode.nFPS) + "fps");
@@ -1685,6 +1675,11 @@ bool ofxOpenNI::isGestureOn(){
 }
 
 //--------------------------------------------------------------
+bool ofxOpenNI::isHandsOn(){
+    return g_bIsHandsOn;
+}
+
+//--------------------------------------------------------------
 bool ofxOpenNI::isAudioOn(){
     return g_bIsAudioOn;
 }
@@ -1734,17 +1729,27 @@ xn::DepthGenerator& ofxOpenNI::getDepthGenerator(){
 
 //--------------------------------------------------------------
 xn::ImageGenerator& ofxOpenNI::getImageGenerator(){
-	return g_Image;;
+	return g_Image;
 }
 
 //--------------------------------------------------------------
 xn::IRGenerator& ofxOpenNI::getIRGenerator(){
-	return g_Infra;;
+	return g_Infra;
 }
 
 //--------------------------------------------------------------
 xn::UserGenerator& ofxOpenNI::getUserGenerator(){
-	return g_User;;
+	return g_User;
+}
+
+//--------------------------------------------------------------
+xn::GestureGenerator& ofxOpenNI::getGestureGenerator(){
+	return g_Gesture;
+}
+
+//--------------------------------------------------------------
+xn::HandsGenerator& ofxOpenNI::getHandsGenerator(){
+	return g_Hands;
 }
 
 //--------------------------------------------------------------
