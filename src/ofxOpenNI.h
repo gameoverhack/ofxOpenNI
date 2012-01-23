@@ -150,6 +150,8 @@ public:
     bool getAutoUserCalibrationPossible();
     
     // gesture methods
+    bool addGesturesAll();
+    bool removeGesturesAll();
     bool addGesture(string niteGestureName, ofPoint LeftBottomNear = NULL, ofPoint RightTopFar = NULL);
     bool removeGesture(string niteGestureName);
     
@@ -158,6 +160,25 @@ public:
     
     void setMinTimeBetweenGestures(int millis);
     int getMinTimeBetweenGestures();
+    
+    // hands methods
+    bool addFocusGesturesAll();
+    bool removeFocusGesturesAll();
+    bool addFocusGesture(string niteGestureName, ofPoint LeftBottomNear = NULL, ofPoint RightTopFar = NULL);
+    bool removeFocusGesture(string niteGestureName);
+    
+    ofxOpenNIHand& getTrackedHand(int index); // only returns tracked hands upto getNumTrackedHands()
+    int	getNumTrackedHands();
+    
+    ofxOpenNIHand& getHand(XnUserID nID); // finds a hand if it exists (whether tracked or not)
+    void setMaxNumHands(int numHands);
+    int	getMaxNumHands();
+    
+    void setMinTimeBetweenHands(int millis);
+    int getMinTimeBetweenHands();
+    
+    void setMinDistanceBetweenHands(int worldDistance);
+    int getMinDistanceBetweenHands();
     
     // generator 'capabilities'
     void toggleRegister();
@@ -210,7 +231,7 @@ public:
     
     ofEvent<ofxOpenNIUserEvent> userEvent;
     ofEvent<ofxOpenNIGestureEvent> gestureEvent;
-    //ofEvent<ofxOpenNIHandEvent> handEvent;
+    ofEvent<ofxOpenNIHandEvent> handEvent;
 
 protected:
 	
@@ -237,6 +258,7 @@ private:
 	bool allocateIRBuffers();
     bool allocateUsers();
     bool allocateGestures();
+    bool allocateHands();
     
     void generateDepthPixels();
 	void generateImagePixels();
@@ -306,9 +328,11 @@ private:
 	xn::IRGenerator g_Infra;
 	xn::UserGenerator g_User;
     xn::GestureGenerator g_Gesture;
+    xn::GestureGenerator g_HandsFocusGesture;
     xn::HandsGenerator g_Hands;
     xn::SceneAnalyzer g_Scene;
 	xn::AudioGenerator g_Audio;
+    vector<xn::GestureGenerator> gestures;
     
 	// meta data
 	xn::DepthMetaData g_DepthMD;
@@ -339,7 +363,6 @@ private:
     // user storage
 	map<XnUserID, ofxOpenNIUser> currentTrackedUsers;
 	vector<XnUserID> currentTrackedUserIDs;
-    
     ofxOpenNIUser baseUser;
     
     int maxNumUsers;
@@ -353,9 +376,26 @@ private:
     
     // gesture callbacks
     static void XN_CALLBACK_TYPE GestureCB_handleGestureRecognized(xn::GestureGenerator& gestureGenerator, const XnChar* strGesture, const XnPoint3D* pIDPosition, const XnPoint3D* pEndPosition, void* pCookie);
-    static void XN_CALLBACK_TYPE GestureCB_handleGestureProgress(xn::GestureGenerator& gestureGenerator, const XnChar* strGesture, const XnPoint3D* pIDPosition, XnFloat fProgress, void* pCookie);
+    static void XN_CALLBACK_TYPE GestureCB_handleGestureProgress(xn::GestureGenerator& gestureGenerator, const XnChar* strGesture, const XnPoint3D* pIDPosition, XnFloat fProgres, void* pCookie);
     
-	int instanceID;
+    // hands storage
+    //map<XnUserID, ofxOpenNIHand> currentTrackedHands;
+	//vector<XnUserID> currentTrackedHandIDs;
+    vector<ofxOpenNIHand> currentTrackedHands;
+    ofxOpenNIHand baseHand;
+    ofxOpenNIHandEvent lastHandEvent;
+    int maxNumHands;
+    int minTimeBetweenHands;
+    int minDistanceBetweenHands;
+    
+    // hands callbacks
+    static void XN_CALLBACK_TYPE HandsCB_handleGestureRecognized(xn::GestureGenerator& gestureGenerator, const XnChar* strGesture, const XnPoint3D* pIDPosition, const XnPoint3D* pEndPosition, void* pCookie);
+    static void XN_CALLBACK_TYPE HandsCB_handleGestureProgress(xn::GestureGenerator& gestureGenerator, const XnChar* strGesture, const XnPoint3D* pIDPosition, XnFloat fProgress, void* pCookie);
+    static void XN_CALLBACK_TYPE HandsCB_handleHandCreate(xn::HandsGenerator& handsGenerator, XnUserID nID, const XnPoint3D* pPosition, XnFloat fTime, void* pCookie);
+	static void XN_CALLBACK_TYPE HandsCB_handleHandUpdate(xn::HandsGenerator& handsGenerator, XnUserID nID, const XnPoint3D* pPosition, XnFloat fTime, void* pCookie);
+	static void XN_CALLBACK_TYPE HandsCB_handleHandDestroy(xn::HandsGenerator& handsGenerator, XnUserID nID, XnFloat fTime, void* pCookie);
+	
+    int instanceID;
     ofLogLevel logLevel;
     
     // block copy ctor and assignment operator

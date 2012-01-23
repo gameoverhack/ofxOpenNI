@@ -81,12 +81,20 @@ enum GestureStatusType {
     GESTURE_RECOGNIZED
 };
 
+enum HandStatusType {
+    HAND_TRACKING_STOPPED = 0,
+    HAND_TRACKING_STARTED,
+    HAND_FOCUS_GESTURE_PROGRESS,
+    HAND_FOCUS_GESTURE_RECOGNIZED,
+};
+
 class ofxOpenNIUserEvent {
     
 public:
     
     ofxOpenNIUserEvent(){};
-    ofxOpenNIUserEvent(XnUserID _userID, int _deviceID, UserStatusType _userStatus) : userID(_userID), deviceID(_deviceID), userStatus(_userStatus){};
+    ofxOpenNIUserEvent(XnUserID _userID, int _deviceID, UserStatusType _userStatus) 
+    : userID(_userID), deviceID(_deviceID), userStatus(_userStatus){};
     
     XnUserID userID;
     UserStatusType userStatus;
@@ -99,14 +107,79 @@ class ofxOpenNIGestureEvent {
 public:
     
     ofxOpenNIGestureEvent(){};
-    ofxOpenNIGestureEvent(string _gestureName, int _deviceID, GestureStatusType _gestureStatus, float _gestureProgress, ofPoint _gesturePosition, int _gestureTimestampMillis) : gestureName(_gestureName), deviceID(_deviceID), gestureStatus(_gestureStatus), gestureProgress(_gestureProgress), gesturePosition(_gesturePosition), gestureTimestampMillis(_gestureTimestampMillis){};
+    ofxOpenNIGestureEvent(int _deviceID,
+                          string _gestureName,
+                          GestureStatusType _gestureStatus,
+                          float _gestureProgress,
+                          ofPoint _gesturePosition,
+                          int _gestureTimestampMillis) 
+    :
+    deviceID(_deviceID),
+    gestureName(_gestureName),
+    gestureStatus(_gestureStatus),
+    gestureProgress(_gestureProgress),
+    gesturePosition(_gesturePosition),
+    gestureTimestampMillis(_gestureTimestampMillis){};
     
     string gestureName;
+    int deviceID;
     GestureStatusType gestureStatus;
     float gestureProgress;
     ofPoint gesturePosition;
     int gestureTimestampMillis;
+    
+};
+
+class ofxOpenNIHandEvent {
+    
+public:
+    
+    ofxOpenNIHandEvent(){};
+    ofxOpenNIHandEvent(XnUserID _handID,
+                       int _deviceID,
+                       string _handFocusGestureName,
+                       HandStatusType _handStatus,
+                       float _handFocusGestureProgress,
+                       ofPoint _handFocusGesturePosition,
+                       int _handTimestampMillis) 
+    :
+    handID(_handID),
+    handFocusGestureName(_handFocusGestureName),
+    deviceID(_deviceID),
+    handStatus(_handStatus),
+    handFocusGestureProgress(_handFocusGestureProgress),
+    handFocusGesturePosition(_handFocusGesturePosition),
+    handTimestampMillis(_handTimestampMillis){};
+    
+    XnUserID handID;
     int deviceID;
+    string handFocusGestureName;
+    HandStatusType handStatus;
+    float handFocusGestureProgress;
+    ofPoint handFocusGesturePosition;
+    int handTimestampMillis;
+    
+};
+
+class ofxOpenNIHand {
+    
+public:
+    
+    ofxOpenNIHand(){};
+    
+    XnUserID getID(){return id;};
+    bool isTracking(){return bIsTracking;};
+    ofPoint & getPosition(){return position;};
+    ofPoint & getWorldPosition(){return worldPosition;};
+    
+private:
+    
+    friend class ofxOpenNI;
+    
+    bool bIsTracking;
+	XnUserID id;
+    ofPoint	position;
+	ofPoint worldPosition;
     
 };
 
@@ -313,6 +386,27 @@ static inline XnPoint3D toXn(const ofPoint & p){
 //--------------------------------------------------------------
 inline string boolToString(bool b){
     return (string)(b ? "TRUE" : "FALSE");
+}
+
+//--------------------------------------------------------------
+inline string getHandStatusAsString(HandStatusType type) {
+	switch (type) {
+        case HAND_TRACKING_STOPPED:
+			return "HAND_TRACKING_STOPPED";
+			break;
+		case HAND_TRACKING_STARTED:
+			return "HAND_TRACKING_STARTED";
+			break;
+        case HAND_FOCUS_GESTURE_PROGRESS:
+			return "HAND_FOCUS_GESTURE_PROGRESS";
+			break;
+		case HAND_FOCUS_GESTURE_RECOGNIZED:
+			return "HAND_FOCUS_GESTURE_RECOGNIZED";
+			break;
+		default:
+			return "UNKNOWN_HAND_STATUS_TYPE";
+			break;
+    }
 }
 
 //--------------------------------------------------------------

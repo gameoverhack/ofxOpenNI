@@ -79,6 +79,10 @@ ofxOpenNI::ofxOpenNI(){
     maxNumUsers = 4;
     minTimeBetweenGestures = 0;
     
+    maxNumHands = 1;
+    minTimeBetweenHands = 500;
+    minDistanceBetweenHands = 100;
+    
 	CreateRainbowPallet();
     
     logLevel = OF_LOG_SILENT;
@@ -303,6 +307,8 @@ void ofxOpenNI::stop(){
         cout << LOG_NAME << ": releasing hands generator" << endl;
         g_Hands.StopGenerating();
         g_Hands.Release();
+        g_HandsFocusGesture.StopGenerating();
+        g_HandsFocusGesture.Release();
         g_bIsHandsOn = false;
     }
     
@@ -419,7 +425,7 @@ bool ofxOpenNI::addGestureGenerator(){
 bool ofxOpenNI::addHandsGenerator(){
     if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     addGenerator(XN_NODE_TYPE_HANDS, g_bIsHandsOn);
-    //if (g_bIsHandsOn) allocateHands();
+    if (g_bIsHandsOn) allocateHands();
 	return g_bIsHandsOn;
 }
 
@@ -489,6 +495,9 @@ void ofxOpenNI::addGenerator(XnPredefinedProductionNodeType type, bool & bIsOn){
 			nRetVal = g_Hands.Create(g_Context);
             SHOW_RC(nRetVal, "Creating " + generatorType + " generator");
             if (g_Hands.IsValid()) nRetVal = g_Hands.StartGenerating();
+            nRetVal = g_HandsFocusGesture.Create(g_Context);
+            SHOW_RC(nRetVal, "Creating " + getNodeTypeAsString(XN_NODE_TYPE_GESTURE) + " generator for focus gestures (needed with hands)");
+            if (g_HandsFocusGesture.IsValid()) nRetVal = g_HandsFocusGesture.StartGenerating();
 			break;
 		default:
 			ofLogError(LOG_NAME) << "Don't know how to add this type of generator/node";
@@ -603,6 +612,8 @@ void ofxOpenNI::removeGenerator(XnPredefinedProductionNodeType type, bool & bIsO
 		case XN_NODE_TYPE_HANDS:
             nRetVal = g_Hands.StopGenerating();
             if (nRetVal == XN_STATUS_OK) g_Hands.Release();
+            nRetVal = g_HandsFocusGesture.StopGenerating();
+            if (nRetVal == XN_STATUS_OK) g_HandsFocusGesture.Release();
 			break;
 		default:
 			ofLogError(LOG_NAME) << "Don't know how to remove this type of generator/node";
@@ -721,6 +732,18 @@ bool ofxOpenNI::allocateGestures(){
 	XnCallbackHandle Gesture_CallbackHandler;
 	nRetVal = g_Gesture.RegisterGestureCallbacks(GestureCB_handleGestureRecognized, GestureCB_handleGestureProgress, this, Gesture_CallbackHandler);
     BOOL_RC(nRetVal, "Register gesture callback handlers");
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::allocateHands(){
+    ofLogVerbose(LOG_NAME) << "Allocating hands";
+    XnStatus nRetVal = XN_STATUS_OK;
+    gestures.resize(10);
+    XnCallbackHandle Hands_CallbackHandler;
+    nRetVal = g_HandsFocusGesture.RegisterGestureCallbacks(HandsCB_handleGestureRecognized, HandsCB_handleGestureProgress, this, Hands_CallbackHandler);
+    BOOL_ERR_RC(nRetVal, "Register hands focus gesture callback handlers");
+    nRetVal = g_Hands.RegisterHandCallbacks(HandsCB_handleHandCreate, HandsCB_handleHandUpdate, HandsCB_handleHandDestroy, this, Hands_CallbackHandler);
+    BOOL_RC(nRetVal, "Register hands callback handlers");
 }
 
 /**************************************************************
@@ -1073,7 +1096,7 @@ bool ofxOpenNI::getAutoUserCalibrationPossible(){
 
 //--------------------------------------------------------------
 int	ofxOpenNI::getNumTrackedUsers(){
-    return currentTrackedUserIDs.size() - 1;
+    return currentTrackedUserIDs.size();
 }
 
 //--------------------------------------------------------------
@@ -1101,6 +1124,33 @@ ofxOpenNIUser&	ofxOpenNI::getUser(XnUserID nID){
         baseUser.id = 0;
         return baseUser;
     }
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setMaxNumUsers(int numUsers){
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    maxNumUsers = numUsers;
+    int oldMaxUsers = currentTrackedUsers.size();
+    
+    if (maxNumUsers < oldMaxUsers) {
+        for (XnUserID nID = maxNumUsers + 1; nID <= oldMaxUsers; ++nID){
+            map<XnUserID, ofxOpenNIUser>::iterator it = currentTrackedUsers.find(nID);
+            currentTrackedUsers.erase(it);
+        }
+    } else {
+        for (XnUserID nID = oldMaxUsers + 1; nID <= maxNumUsers; ++nID){
+            //ofxOpenNIUser user;
+            baseUser.id = nID;
+            currentTrackedUsers.insert(pair<XnUserID, ofxOpenNIUser>(nID, baseUser));
+        }
+    }
+    
+    ofLogVerbose(LOG_NAME) << "Resized tracked user map from" << oldMaxUsers << "to" << currentTrackedUsers.size();
+}
+
+//--------------------------------------------------------------
+int	ofxOpenNI::getMaxNumUsers(){
+    return maxNumUsers; // currentTrackedUsers.size()
 }
 
 //--------------------------------------------------------------
@@ -1146,38 +1196,99 @@ void ofxOpenNI::setBaseUserClass(ofxOpenNIUser & user){
     }
 }
 
-//--------------------------------------------------------------
-void ofxOpenNI::setMaxNumUsers(int numUsers){
-    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
-    maxNumUsers = numUsers;
-    int oldMaxUsers = currentTrackedUsers.size();
-    
-    if (maxNumUsers < oldMaxUsers) {
-        for (XnUserID nID = maxNumUsers + 1; nID <= oldMaxUsers; ++nID){
-            map<XnUserID, ofxOpenNIUser>::iterator it = currentTrackedUsers.find(nID);
-            currentTrackedUsers.erase(it);
-        }
-    } else {
-        for (XnUserID nID = oldMaxUsers + 1; nID <= maxNumUsers; ++nID){
-            //ofxOpenNIUser user;
-            baseUser.id = nID;
-            currentTrackedUsers.insert(pair<XnUserID, ofxOpenNIUser>(nID, baseUser));
-        }
-    }
-    
-    ofLogVerbose(LOG_NAME) << "Resized tracked user map from" << oldMaxUsers << "to" << currentTrackedUsers.size();
-}
-
-//--------------------------------------------------------------
-int	ofxOpenNI::getMaxNumUsers(){
-    return maxNumUsers; // currentTrackedUsers.size()
-}
-
 /**************************************************************
  *
- *      getters/setters: user properties
+ *      getters/setters: gesture properties
  *
  *************************************************************/
+
+//--------------------------------------------------------------
+vector<string> & ofxOpenNI::getAvailableGestures(){
+    if (!g_bIsGestureOn && !g_bIsHandsOn){
+        ofLogError(LOG_NAME) << "Can't get available gestures there isn't a gesture generator - use addGestureGenerator() or addHandsGenerator() first";
+        availableGestures.clear();
+        return availableGestures;
+    }
+    if (availableGestures.size() == 0){
+        XnStatus nRetVal = XN_STATUS_OK;
+        XnUInt16 nGestures = 0;
+        if (g_bIsGestureOn) nGestures = g_Gesture.GetNumberOfAvailableGestures();
+        if (g_bIsHandsOn) nGestures = g_HandsFocusGesture.GetNumberOfAvailableGestures();
+        if (nGestures == 0){
+            ofLogError(LOG_NAME) << "No gestures available";
+            return availableGestures;
+        }
+        availableGestures.resize(nGestures);
+        XnChar* astrGestures[nGestures];
+        for (int i = 0; i < nGestures; i++){
+            astrGestures[i] = new XnChar[255];
+        }
+        if (g_bIsGestureOn) nRetVal = g_Gesture.EnumerateGestures(*astrGestures, nGestures);
+        if (g_bIsHandsOn) nRetVal = g_HandsFocusGesture.EnumerateGestures(*astrGestures, nGestures);
+        SHOW_RC(nRetVal, "Enumerating gestures");
+        if (nRetVal != XN_STATUS_OK) {
+            ofLogError(LOG_NAME) << "Could not enumerate gestures";
+            return availableGestures;
+        }
+        ofLogNotice(LOG_NAME) << nGestures << "gestures available";
+        for (int i = 0; i < nGestures; i++){
+            ofLogVerbose(LOG_NAME) << i << "-" << astrGestures[i] << "- use addGesture(\"" << astrGestures[i] << "\") to recieve events for this gesture";
+            availableGestures[i] = (string)astrGestures[i];
+            delete [] astrGestures[i];
+        }
+    }
+    return availableGestures;
+}
+
+bool ofxOpenNI::isGestureAvailable(string niteGestureName){
+    if (!g_bIsGestureOn && !g_bIsHandsOn){
+        ofLogError(LOG_NAME) << "Gesture not available because there isn't a gesture generator - use addGestureGenerator() or addHandsGenerator() first";
+        return false;
+    }
+    if (availableGestures.size() == 0){
+        if(getAvailableGestures().size() == 0){
+            return false;
+        }
+    }
+    bool available = false;
+    for (int i = 0; i < availableGestures.size(); i++){
+        if (availableGestures[i] == niteGestureName) {
+            available = true;
+            break;
+        }
+    }
+    return available;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::addGesturesAll(){
+    if (!g_bIsGestureOn){
+        ofLogError(LOG_NAME) << "Can't add all gestures as there isn't a gesture generator - use addGestureGenerator() first";
+        return false;
+    }
+    if (getAvailableGestures().size() == 0){
+        ofLogError(LOG_NAME) << "Can't add all gestures as there are none available";
+        return false;
+    }
+    for (int i = 0; i < availableGestures.size(); i++) {
+        addGesture(availableGestures[i]);
+    }
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::removeGesturesAll(){
+    if (!g_bIsGestureOn){
+        ofLogError(LOG_NAME) << "Can't remove all gestures as there isn't a gesture generator - use addGestureGenerator() first";
+        return false;
+    }
+    if (getAvailableGestures().size() == 0){
+        ofLogError(LOG_NAME) << "Can't remove all gestures as there are none available";
+        return false;
+    }
+    for (int i = 0; i < availableGestures.size(); i++) {
+        removeGesture(availableGestures[i]);
+    }
+}
 
 //--------------------------------------------------------------
 bool ofxOpenNI::addGesture(string niteGestureName, ofPoint LeftBottomNear, ofPoint RightTopFar){
@@ -1240,61 +1351,6 @@ bool ofxOpenNI::removeGesture(string niteGestureName){
 }
 
 //--------------------------------------------------------------
-vector<string> & ofxOpenNI::getAvailableGestures(){
-    if (!g_bIsGestureOn){
-        ofLogError(LOG_NAME) << "Can't get available gestures there isn't a gesture generator - use addGestureGenerator() first";
-        availableGestures.clear();
-        return availableGestures;
-    }
-    if (availableGestures.size() == 0){
-        XnStatus nRetVal = XN_STATUS_OK;
-        XnUInt16 nGestures = g_Gesture.GetNumberOfAvailableGestures();
-        if (nGestures == 0){
-            ofLogError(LOG_NAME) << "No gestures available";
-            return availableGestures;
-        }
-        availableGestures.resize(nGestures);
-        XnChar* astrGestures[nGestures];
-        for (int i = 0; i < nGestures; i++){
-            astrGestures[i] = new XnChar[255];
-        }
-        nRetVal = g_Gesture.EnumerateGestures(*astrGestures, nGestures);
-        SHOW_RC(nRetVal, "Enumerating gestures");
-        if (nRetVal != XN_STATUS_OK) {
-            ofLogError(LOG_NAME) << "Could not enumerate gestures";
-            return availableGestures;
-        }
-        ofLogNotice(LOG_NAME) << nGestures << "gestures available";
-        for (int i = 0; i < nGestures; i++){
-            ofLogVerbose(LOG_NAME) << i << "-" << astrGestures[i] << "- use addGesture(\"" << astrGestures[i] << "\") to recieve events for this gesture";
-            availableGestures[i] = (string)astrGestures[i];
-            delete [] astrGestures[i];
-        }
-    }
-    return availableGestures;
-}
-
-bool ofxOpenNI::isGestureAvailable(string niteGestureName){
-    if (!g_bIsGestureOn){
-        ofLogError(LOG_NAME) << "Gesture not available because there isn't a gesture generator - use addGestureGenerator() first";
-        return false;
-    }
-    if (availableGestures.size() == 0){
-        if(getAvailableGestures().size() == 0){
-            return false;
-        }
-    }
-    bool available = false;
-    for (int i = 0; i < availableGestures.size(); i++){
-        if (availableGestures[i] == niteGestureName) {
-            available = true;
-            break;
-        }
-    }
-    return available;
-}
-
-//--------------------------------------------------------------
 void ofxOpenNI::setMinTimeBetweenGestures(int millis){
     minTimeBetweenGestures = millis;
 }
@@ -1302,6 +1358,165 @@ void ofxOpenNI::setMinTimeBetweenGestures(int millis){
 //--------------------------------------------------------------
 int ofxOpenNI::getMinTimeBetweenGestures(){
     return minTimeBetweenGestures;
+}
+
+/**************************************************************
+ *
+ *      getters/setters: hands properties
+ *
+ *************************************************************/
+
+//--------------------------------------------------------------
+bool ofxOpenNI::addFocusGesturesAll(){
+    if (!g_bIsHandsOn){
+        ofLogError(LOG_NAME) << "Can't add all focus gestures as there isn't a gesture generator - use addHandsGenerator() first";
+        return false;
+    }
+    if (getAvailableGestures().size() == 0){
+        ofLogError(LOG_NAME) << "Can't add all focus gestures as there are none available";
+        return false;
+    }
+    for (int i = 0; i < availableGestures.size(); i++) {
+        addGesture(availableGestures[i]);
+    }
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::removeFocusGesturesAll(){
+    if (!g_bIsHandsOn){
+        ofLogError(LOG_NAME) << "Can't remove all focus gestures as there isn't a gesture generator - use addHandsGenerator() first";
+        return false;
+    }
+    if (getAvailableGestures().size() == 0){
+        ofLogError(LOG_NAME) << "Can't remove all gestures as there are none available";
+        return false;
+    }
+    for (int i = 0; i < availableGestures.size(); i++) {
+        removeGesture(availableGestures[i]);
+    }
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::addFocusGesture(string niteGestureName, ofPoint LeftBottomNear, ofPoint RightTopFar){
+    if (!g_bIsHandsOn){
+        ofLogError(LOG_NAME) << "Can't add gesture as there isn't a hand focus gesture generator - use addHandsGenerator() first";
+        return false;
+    }
+    if (!isGestureAvailable(niteGestureName)){
+        ofLogError(LOG_NAME) << "Can't add gesture as this is an unkown type -> use getAvailableGestures to get a vector<string> of gesture names";
+        return false;
+    }
+    
+    // TODO: add id's to area so we can fire events specifically for these bounding areas
+    XnBoundingBox3D * boundingBox3D = NULL;
+    if (LeftBottomNear != NULL && RightTopFar != NULL) {
+        ofLogWarning(LOG_NAME) << "LeftBottomNear and RightTopFar should be in world co-ordinates ie., they are in mm's and left.x/bottom.y from the centre of the sensor is negative, whilst right.x/top.y is positive; depth.z is always positive starting at 0 to maxDepth (10000) mm";
+        boundingBox3D = new XnBoundingBox3D;
+        boundingBox3D->LeftBottomNear = toXn(LeftBottomNear);
+        boundingBox3D->RightTopFar = toXn(RightTopFar);
+        // TODO: implement multimap to track active gesture hot spots??
+    }
+    
+    ofLogNotice(LOG_NAME) << "Adding NITE hand focus gesture" << niteGestureName;
+	
+    XnStatus nRetVal = XN_STATUS_OK;
+	nRetVal = g_HandsFocusGesture.AddGesture(niteGestureName.c_str(), boundingBox3D);
+	BOOL_RC(nRetVal, "Adding simple (NITE) gesture " + niteGestureName);
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::removeFocusGesture(string niteGestureName){
+    if (!g_bIsHandsOn){
+        ofLogError(LOG_NAME) << "Can't remove gesture as there isn't a gesture generator - use addGestureGenerator() first";
+        return false;
+    }
+    if (!isGestureAvailable(niteGestureName)){
+        ofLogError(LOG_NAME) << "Can't remove gesture as this is an unkown type -> use getAvailableGestures to get a vector<string> of gesture names";
+        return false;
+    }
+    ofLogNotice(LOG_NAME) << "Removing NITE hand focus gesture" << niteGestureName;
+	XnStatus nRetVal = XN_STATUS_OK;	
+	nRetVal = g_HandsFocusGesture.RemoveGesture(niteGestureName.c_str());
+	BOOL_RC(nRetVal, "Removing simple (NITE) gesture " + niteGestureName);
+}
+
+//--------------------------------------------------------------
+int	ofxOpenNI::getNumTrackedHands(){
+    return currentTrackedHands.size();
+}
+
+//--------------------------------------------------------------
+ofxOpenNIHand& ofxOpenNI::getTrackedHand(int index){
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    return currentTrackedHands[index];//currentTrackedHands[currentTrackedHandIDs[index]];
+}
+
+////--------------------------------------------------------------
+//ofxOpenNIHand& ofxOpenNI::getHand(XnUserID nID){
+//    if (nID == 0) {
+//        ofLogError(LOG_NAME) << "You have requested a hand ID of 0 - perhaps you wanted to use getTrackedHand()" << endl 
+//        << "OR you need to iterate using something like: for (int i = 1; i <= openNIDevices[0].getMaxNumHands(); i++)" << endl
+//        << "Returning a reference to the baseHandClass hand (it doesn't do anything!!!)!";
+//        baseHand.id = 0;
+//        return baseHand;
+//    }
+//    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+//    map<XnUserID,ofxOpenNIHand>::iterator it = currentTrackedHands.find(nID);
+//    if (it != currentTrackedHands.end()){
+//        return (*it).second;
+//    } else {
+//        ofLogError() << "Hand ID not found. Probably you need to setMaxNumHands to a higher value!" << endl
+//        << "Returning a reference to the baseHandClass hand (it doesn't do anything!!!)!";
+//        baseHand.id = 0;
+//        return baseHand;
+//    }
+//}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setMaxNumHands(int numHands){
+//    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+//    maxNumHands = numHands;
+//    int oldMaxHands = currentTrackedHands.size();
+//    if (maxNumHands < oldMaxHands) {
+//        for (XnUserID nID = maxNumHands + 1; nID <= oldMaxHands; ++nID){
+//            map<XnUserID, ofxOpenNIHand>::iterator it = currentTrackedHands.find(nID);
+//            currentTrackedHands.erase(it);
+//        }
+//    } else {
+//        for (XnUserID nID = oldMaxHands + 1; nID <= maxNumHands; ++nID){
+//            //ofxOpenNIHand hand;
+//            //TODO: setBaseHandClass???
+//            baseHand.id = nID;
+//            currentTrackedHands.insert(pair<XnUserID, ofxOpenNIHand>(nID, baseHand));
+//        }
+//    }
+//    ofLogVerbose(LOG_NAME) << "Resized tracked hands map from" << oldMaxHands << "to" << currentTrackedHands.size();
+    maxNumHands = numHands;
+}
+
+//--------------------------------------------------------------
+int ofxOpenNI::getMaxNumHands(){
+    return maxNumHands;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setMinTimeBetweenHands(int millis){
+    minTimeBetweenHands = millis;
+}
+
+//--------------------------------------------------------------
+int ofxOpenNI::getMinTimeBetweenHands(){
+    return minTimeBetweenHands;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setMinDistanceBetweenHands(int worldDistance){
+    minDistanceBetweenHands = worldDistance;
+}
+
+//--------------------------------------------------------------
+int ofxOpenNI::getMinDistanceBetweenHands(){
+    return minDistanceBetweenHands;
 }
 
 /**************************************************************
@@ -1937,6 +2152,7 @@ void XN_CALLBACK_TYPE ofxOpenNI::UserCB_handleCalibrationEnd(xn::SkeletonCapabil
 		}
 	}
 }
+
 /**************************************************************
  *
  *      callbacks: gesture generator callback handlers
@@ -1946,10 +2162,15 @@ void XN_CALLBACK_TYPE ofxOpenNI::UserCB_handleCalibrationEnd(xn::SkeletonCapabil
 //--------------------------------------------------------------
 void XN_CALLBACK_TYPE ofxOpenNI::GestureCB_handleGestureRecognized(xn::GestureGenerator& gestureGenerator, const XnChar* strGesture, const XnPoint3D* pIDPosition, const XnPoint3D* pEndPosition, void* pCookie){
     ofxOpenNI* openNI = static_cast<ofxOpenNI*>(pCookie);
-	ofLogVerbose(openNI->LOG_NAME) << "(CB) Gesture Recognized: ID position (x y z) [" << (int)pIDPosition->X << (int)pIDPosition->Y << (int)pIDPosition->Z << "] end position (x y z) [" << (int)pEndPosition->X << (int)pEndPosition->Y << (int)pEndPosition->Z << "]";	
+	ofLogVerbose(openNI->LOG_NAME)  << "(CB) Gesture Recognized: ID position (x y z) [" 
+                                    << (int)pIDPosition->X << (int)pIDPosition->Y 
+                                    << (int)pIDPosition->Z << "] end position (x y z) [" 
+                                    << (int)pEndPosition->X << (int)pEndPosition->Y << (int)pEndPosition->Z << "]";
+    
     ofxOpenNIGestureEvent & lastGestureEvent = openNI->lastGestureEvent;
-	if (lastGestureEvent.gestureTimestampMillis == 0 || ofGetElapsedTimeMillis() > lastGestureEvent.gestureTimestampMillis + openNI->minTimeBetweenGestures) { // Filter by a minimum time between firing gestures
-        lastGestureEvent = ofxOpenNIGestureEvent(strGesture, openNI->instanceID, GESTURE_RECOGNIZED, 1.0, ofPoint(pEndPosition->X, pEndPosition->Y, pEndPosition->Z), ofGetElapsedTimeMillis());
+    // Filter by a minimum time between firing gestures
+	if (lastGestureEvent.gestureTimestampMillis == 0 || ofGetElapsedTimeMillis() > lastGestureEvent.gestureTimestampMillis + openNI->minTimeBetweenGestures){ 
+        lastGestureEvent = ofxOpenNIGestureEvent(openNI->instanceID, strGesture, GESTURE_RECOGNIZED, 1.0, *(ofPoint*)&pEndPosition, ofGetElapsedTimeMillis());
 		ofNotifyEvent(openNI->gestureEvent, lastGestureEvent);
 	} else {
 		ofLogVerbose(openNI->LOG_NAME) << "Gesture FILTERED by time:" << ofGetElapsedTimeMillis() << (lastGestureEvent.gestureTimestampMillis + openNI->minTimeBetweenGestures);
@@ -1959,10 +2180,137 @@ void XN_CALLBACK_TYPE ofxOpenNI::GestureCB_handleGestureRecognized(xn::GestureGe
 
 //--------------------------------------------------------------
 void XN_CALLBACK_TYPE ofxOpenNI::GestureCB_handleGestureProgress(xn::GestureGenerator& gestureGenerator, const XnChar* strGesture, const XnPoint3D* pIDPosition, XnFloat fProgress, void* pCookie){
-    ofxOpenNI* openNI = static_cast<ofxOpenNI*>(pCookie);
-	ofLogVerbose(openNI->LOG_NAME) << "(CB) Gesture Progress";
-    // TODO: add useProgress and add events here? or just leave it out?
+    //ofxOpenNI* openNI = static_cast<ofxOpenNI*>(pCookie);
+	//ofLogVerbose(openNI->LOG_NAME) << "(CB) Gesture Progress";
+    //TODO: add useProgress and add events here? or just leave it out?
 }
+
+/**************************************************************
+ *
+ *      callbacks: gesture generator callback handlers
+ *
+ *************************************************************/
+
+//--------------------------------------------------------------
+void XN_CALLBACK_TYPE ofxOpenNI::HandsCB_handleGestureRecognized(xn::GestureGenerator& gestureGenerator, const XnChar* strGesture, const XnPoint3D* pIDPosition, const XnPoint3D* pEndPosition, void* pCookie){
+    ofxOpenNI* openNI = static_cast<ofxOpenNI*>(pCookie);
+//	ofLogVerbose(openNI->LOG_NAME)  << "(CB) Hands Focus Gesture Recognized: ID position (x y z) [" 
+//                                    << (int)pIDPosition->X << (int)pIDPosition->Y 
+//                                    << (int)pIDPosition->Z << "] end position (x y z) [" 
+//                                    << (int)pEndPosition->X << (int)pEndPosition->Y << (int)pEndPosition->Z << "]";
+    
+    ofxOpenNIHandEvent & lastHandEvent = openNI->lastHandEvent;
+    // Filter by a minimum time between firing gestures
+	if (lastHandEvent.handTimestampMillis == 0 || ofGetElapsedTimeMillis() > lastHandEvent.handTimestampMillis + openNI->minTimeBetweenHands){
+        bool startTracking = false;
+        if (openNI->getNumTrackedHands() == 0){
+            // if we don't have any hands lets try to track
+            startTracking = true;
+        }else{
+            startTracking = true; // do negative test by looking for the distance between each existing hand
+            for (int i = 0; i < openNI->getNumTrackedHands(); i++) {
+                
+                // get raw position of this hand
+                ofxOpenNIHand & hand = openNI->currentTrackedHands[i];//[openNI->currentTrackedHandIDs[i]];
+                ofPoint & handWorldPosition = hand.getWorldPosition();
+                
+                // calculate distance between End ID of gesture and this hand
+                float distanceToHand = sqrt( pow( lastHandEvent.handFocusGesturePosition.x - handWorldPosition.x, 2 ) +
+                                             pow( lastHandEvent.handFocusGesturePosition.y - handWorldPosition.y, 2 ) +
+                                             pow( lastHandEvent.handFocusGesturePosition.z - handWorldPosition.z, 2 ) );
+                
+                ofLogVerbose(openNI->LOG_NAME) << "Hand distance =" << distanceToHand;
+                
+                // if the hand is within the min distance then don't track it
+                if (distanceToHand < openNI->minDistanceBetweenHands) {	
+                    startTracking = false;
+                    continue;
+                }
+            }
+        }
+        if (openNI->currentTrackedHands.size() >= openNI->getMaxNumHands()){
+            ofLogVerbose(openNI->LOG_NAME) << "Not tracking because nID > maxNumHands" << openNI->currentTrackedHands.size() << openNI->getMaxNumHands();
+            startTracking = false;
+        }
+        if (startTracking){
+            openNI->g_Hands.StartTracking(*pEndPosition);
+            lastHandEvent = ofxOpenNIHandEvent(-1, openNI->instanceID, strGesture, HAND_FOCUS_GESTURE_RECOGNIZED, 1.0, *(ofPoint*)&pEndPosition, ofGetElapsedTimeMillis());
+            ofNotifyEvent(openNI->handEvent, lastHandEvent);
+        }
+	} else {
+		//ofLogVerbose(openNI->LOG_NAME) << "Gesture FILTERED by time:" << ofGetElapsedTimeMillis() << (lastHandEvent.handTimestampMillis + openNI->minTimeBetweenHands);
+	}
+    
+}
+
+//--------------------------------------------------------------
+void XN_CALLBACK_TYPE ofxOpenNI::HandsCB_handleGestureProgress(xn::GestureGenerator& gestureGenerator, const XnChar* strGesture, const XnPoint3D* pIDPosition, XnFloat fProgress, void* pCookie){
+    //ofxOpenNI* openNI = static_cast<ofxOpenNI*>(pCookie);
+	//ofLogVerbose(openNI->LOG_NAME) << "(CB) Hands Focus Gesture Progress";
+    //TODO: add useProgress and add events here? or just leave it out?
+}
+
+//--------------------------------------------------------------
+void XN_CALLBACK_TYPE ofxOpenNI::HandsCB_handleHandCreate(xn::HandsGenerator& handsGenerator, XnUserID nID, const XnPoint3D* pPosition, XnFloat fTime, void* pCookie){
+    ofxOpenNI* openNI = static_cast<ofxOpenNI*>(pCookie);
+    ofLogVerbose(openNI->LOG_NAME) << "(CB) Hands Create" << nID << openNI->currentTrackedHands.size() + 1 << openNI->getMaxNumHands();
+    if (openNI->currentTrackedHands.size() + 1 < openNI->getMaxNumHands()) {
+        ofLogVerbose(openNI->LOG_NAME) << "Start tracking hand" << nID;
+        ofxOpenNIHand hand;
+        hand.bIsTracking = true;
+        hand.position = openNI->worldToProjective(*(ofPoint*)&pPosition);
+        hand.worldPosition = *(ofPoint*)&pPosition;
+        openNI->currentTrackedHands.push_back(hand);
+        ofxOpenNIHandEvent handEvent = ofxOpenNIHandEvent(nID, openNI->instanceID, "", HAND_TRACKING_STARTED, 1.0, *(ofPoint*)&pPosition, ofGetElapsedTimeMillis());
+        ofNotifyEvent(openNI->handEvent, handEvent);
+    }else{
+        openNI->g_Hands.StopTracking(nID);
+    }
+	
+    
+}
+
+//--------------------------------------------------------------
+void XN_CALLBACK_TYPE ofxOpenNI::HandsCB_handleHandUpdate(xn::HandsGenerator& handsGenerator, XnUserID nID, const XnPoint3D* pPosition, XnFloat fTime, void* pCookie){
+    ofxOpenNI* openNI = static_cast<ofxOpenNI*>(pCookie);
+	ofLogVerbose(openNI->LOG_NAME) << "(CB) Hands Update" << nID;
+    for (int i = 0; i < openNI->getNumTrackedHands(); i++) {
+        ofxOpenNIHand & hand = openNI->currentTrackedHands[i];
+        if (nID == hand.id){
+            ofLogVerbose(openNI->LOG_NAME) << "Updating hand position" << nID;
+            hand.bIsTracking = true;
+            hand.position = openNI->worldToProjective(*(ofPoint*)&pPosition);
+            hand.worldPosition = *(ofPoint*)&pPosition;
+            //ofxOpenNIHandEvent handEvent = ofxOpenNIHandEvent(nID, openNI->instanceID, "", HAND_TRACKING_STARTED, 1.0, *(ofPoint*)&pPosition, ofGetElapsedTimeMillis());
+            //ofNotifyEvent(openNI->handEvent, handEvent);
+            break;
+        }
+    }
+    
+}
+
+//--------------------------------------------------------------
+void XN_CALLBACK_TYPE ofxOpenNI::HandsCB_handleHandDestroy(xn::HandsGenerator& handsGenerator, XnUserID nID, XnFloat fTime, void* pCookie){
+    ofxOpenNI* openNI = static_cast<ofxOpenNI*>(pCookie);
+	ofLogVerbose(openNI->LOG_NAME) << "(CB) Hands Destroy" << nID;
+    //openNI->g_Hands.StopTracking(nID);    
+    vector<ofxOpenNIHand> trackedHandIDs;
+    for (int i = 0; i < openNI->currentTrackedHands.size(); i++){
+        ofxOpenNIHand & hand = openNI->currentTrackedHands[i];
+        if (hand.id != nID){
+            trackedHandIDs.push_back(hand);
+        }else{
+            ofxOpenNIHand & hand = openNI->currentTrackedHands[nID];
+            hand.bIsTracking = false;
+            hand.position = ofPoint(-INFINITY,-INFINITY,-INFINITY);
+            hand.worldPosition = ofPoint(-INFINITY,-INFINITY,-INFINITY);
+            ofxOpenNIHandEvent handEvent = ofxOpenNIHandEvent(nID, openNI->instanceID, "", HAND_TRACKING_STOPPED, 0.0, hand.worldPosition, ofGetElapsedTimeMillis());
+            ofNotifyEvent(openNI->handEvent, handEvent);
+        }
+    }
+    openNI->currentTrackedHands.assign(trackedHandIDs.begin(), trackedHandIDs.end());
+}
+
 
 /**************************************************************
  *
