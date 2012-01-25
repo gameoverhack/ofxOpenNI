@@ -2001,7 +2001,7 @@ xn::AudioMetaData& ofxOpenNI::getAudioMetaData(){
 //--------------------------------------------------------------
 void ofxOpenNI::startTrackingUser(XnUserID nID){
     XnStatus nRetVal = XN_STATUS_OK;
-    if (nID > maxNumUsers){
+    if (nID > getMaxNumUsers()){
         ofLogNotice(LOG_NAME) << "Start tracking cancelled for user" << nID << "since maxNumUsers is" << maxNumUsers;
         stopTrackingUser(nID);
         return;
@@ -2010,12 +2010,12 @@ void ofxOpenNI::startTrackingUser(XnUserID nID){
     }
 	nRetVal = g_User.GetSkeletonCap().StartTracking(nID);
     CHECK_ERR_RC(nRetVal, "Get skeleton capability - start tracking");
-    if (nRetVal == XN_STATUS_OK) {
-        ofxOpenNIUserEvent event = ofxOpenNIUserEvent(nID, instanceID, USER_TRACKING_STARTED);
-        ofNotifyEvent(userEvent, event, this);
+    if (nRetVal == XN_STATUS_OK){
         currentTrackedUsers[nID].bIsFound = true;
         currentTrackedUsers[nID].bIsTracking = true;
         currentTrackedUsers[nID].bIsCalibrating = false;
+        ofxOpenNIUserEvent event = ofxOpenNIUserEvent(nID, instanceID, USER_TRACKING_STARTED);
+        ofNotifyEvent(userEvent, event, this);
     }
 }
 
@@ -2032,14 +2032,14 @@ void ofxOpenNI::stopTrackingUser(XnUserID nID){
         nRetVal = g_User.GetSkeletonCap().Reset(nID);
         CHECK_ERR_RC(nRetVal, "Get skeleton capability - stop tracking");
     }
-    if (nID > maxNumUsers) return;
+    if (nID > getMaxNumUsers()) return;
     ofLogNotice(LOG_NAME) << "Stop tracking user" << nID;
-    ofxOpenNIUserEvent event = ofxOpenNIUserEvent(nID, instanceID, USER_TRACKING_STOPPED);
-    ofNotifyEvent(userEvent, event, this);
     currentTrackedUsers[nID].bIsFound = false;
     currentTrackedUsers[nID].bIsTracking = false;
     currentTrackedUsers[nID].bIsSkeleton = false;
     currentTrackedUsers[nID].bIsCalibrating = false;
+    ofxOpenNIUserEvent event = ofxOpenNIUserEvent(nID, instanceID, USER_TRACKING_STOPPED);
+    ofNotifyEvent(userEvent, event, this);
 }
 
 //--------------------------------------------------------------
@@ -2053,11 +2053,11 @@ void ofxOpenNI::requestCalibration(XnUserID nID){
     }
 	nRetVal = g_User.GetSkeletonCap().RequestCalibration(nID, TRUE);
     CHECK_ERR_RC(nRetVal, "Get skeleton capability - request calibration");
-    if (nRetVal == XN_STATUS_OK) {
-        ofxOpenNIUserEvent event = ofxOpenNIUserEvent(nID, instanceID, USER_CALIBRATION_STARTED);
-        ofNotifyEvent(userEvent, event, this);
+    if (nRetVal == XN_STATUS_OK){
         currentTrackedUsers[nID].bIsFound = true;
         currentTrackedUsers[nID].bIsCalibrating = true;
+        ofxOpenNIUserEvent event = ofxOpenNIUserEvent(nID, instanceID, USER_CALIBRATION_STARTED);
+        ofNotifyEvent(userEvent, event, this);
     }
 }
 
@@ -2073,11 +2073,11 @@ void ofxOpenNI::startPoseDetection(XnUserID nID){
     }
 	nRetVal = g_User.GetPoseDetectionCap().StartPoseDetection(userCalibrationPose, nID);
     SHOW_RC(nRetVal, "Get pose detection capability - start");
-    if (nRetVal == XN_STATUS_OK) {
-        ofxOpenNIUserEvent event = ofxOpenNIUserEvent(nID, instanceID, USER_CALIBRATION_STARTED);
-        ofNotifyEvent(userEvent, event, this);
+    if (nRetVal == XN_STATUS_OK){
         currentTrackedUsers[nID].bIsFound = true;
         currentTrackedUsers[nID].bIsCalibrating = true;
+        ofxOpenNIUserEvent event = ofxOpenNIUserEvent(nID, instanceID, USER_CALIBRATION_STARTED);
+        ofNotifyEvent(userEvent, event, this);
     }
 }
 
@@ -2088,10 +2088,10 @@ void ofxOpenNI::stopPoseDetection(XnUserID nID){
 	nRetVal = g_User.GetPoseDetectionCap().StopPoseDetection(nID);
     CHECK_ERR_RC(nRetVal, "Get pose detection capability - stop");
     if (nID > maxNumUsers) return;
-    if (nRetVal == XN_STATUS_OK) {
+    if (nRetVal == XN_STATUS_OK){
+        currentTrackedUsers[nID].bIsCalibrating = false;
         ofxOpenNIUserEvent event = ofxOpenNIUserEvent(nID, instanceID, USER_CALIBRATION_STOPPED);
         ofNotifyEvent(userEvent, event, this);
-        currentTrackedUsers[nID].bIsCalibrating = false;
     }
 }
 
