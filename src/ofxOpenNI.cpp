@@ -68,6 +68,7 @@ ofxOpenNI::ofxOpenNI(){
     
     bUseBackBuffer = false;
 	bUseTexture = true;
+    bUseSafeThreading = false;
 	bNewPixels = false;
 	bNewFrame = false;
 	
@@ -202,6 +203,7 @@ bool ofxOpenNI::addLicence(string sVendor, string sKey){
 
 //--------------------------------------------------------------
 ofxOpenNI::~ofxOpenNI(){
+    setSafeThreading(true); // probably will not work but worth a try
     // don't use ofLog here!!!
     cout << LOG_NAME << ": destructor called" << endl;
     if (bIsShuttingDown) {
@@ -214,6 +216,7 @@ ofxOpenNI::~ofxOpenNI(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::stop(){
+    setSafeThreading(true);
     // don't use ofLog here!!!
     cout << LOG_NAME << ": stop called" << endl;
     if (bIsShuttingDown) {
@@ -813,7 +816,7 @@ void ofxOpenNI::update(){
 //--------------------------------------------------------------
 void ofxOpenNI::updateGenerators(){
     
-	//if (bIsThreaded) lock(); // with this here I get ~30 fps with 2 Kinects/60 fps with 1 kinect -> BUT no crash on exit!
+	if (bIsThreaded && bUseSafeThreading) lock(); // with this here I get ~30 fps with 2 Kinects/60 fps with 1 kinect -> BUT no crash on exit!
 	
     if (!bIsContextReady) return;
     
@@ -830,7 +833,7 @@ void ofxOpenNI::updateGenerators(){
 	if (g_bIsImageOn && g_Image.IsDataNew()) g_Image.GetMetaData(g_ImageMD);
 	if (g_bIsInfraOn && g_Infra.IsDataNew()) g_Infra.GetMetaData(g_InfraMD);
     
-    if (bIsThreaded) lock(); // with this her I get ~400-500+ fps with 2 Kinects!
+    if (bIsThreaded && !bUseSafeThreading) lock(); // with this her I get ~400-500+ fps with 2 Kinects!
     
     if (g_bIsDepthOn) generateDepthPixels();
 	if (g_bIsImageOn) generateImagePixels();
@@ -1702,6 +1705,17 @@ bool ofxOpenNI::getMirror(){
  *      getters/setters: pixel and texture properties/modes
  *
  *************************************************************/
+
+//--------------------------------------------------------------
+void ofxOpenNI::setSafeThreading(bool b){
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    bUseSafeThreading = b;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::getSafeThreading(){
+    return bUseSafeThreading;
+}
 
 //--------------------------------------------------------------
 void ofxOpenNI::setUseBackBuffer(bool b){

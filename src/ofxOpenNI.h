@@ -29,8 +29,8 @@
 #ifndef	_H_OFXOPENNI
 #define _H_OFXOPENNI
 
-#include <set.h>
-#include <map.h>
+#include <set>
+#include <map>
 
 #include <XnOpenNI.h>
 #include <XnCodecIDs.h>
@@ -107,6 +107,9 @@ public:
 	
     void setLogLevel(XnLogSeverity logLevel);
     void setLogLevel(ofLogLevel logLevel);
+    
+    void setSafeThreading(bool b);
+    bool getSafeThreading();
     
 	int getNumDevices();
 	
@@ -286,6 +289,7 @@ private:
     
     bool bUseBackBuffer;
 	bool bUseTexture;
+    bool bUseSafeThreading;
     
     bool bUseRegistration;
     bool bUseMirror;
