@@ -1716,7 +1716,10 @@ bool ofxOpenNI::getMirror(){
 #include <stdlib.h>
 #include <signal.h>
 void handleSignal(int err){
-    cout << "CAUGHT SIGNAL ERROR: " << err << " This is a known error on Mac OSX with setSafeThreading(false) - this just silences the Mac CrashReporter in a live environment (it will NOT fire if you have GDB running)" << endl;
+    cout << "CAUGHT SIGNAL ERROR: " << err << " either SIGSEGV or SIGBUS" << endl;
+    cout << "It's possible some other bit of your code has sent you here by mistake..." << endl;
+    cout << "...This handler is a NASTY hack due to a known error in ofxOpenNI on (at least) Mac OSX with setSafeThreading(false)" << endl;
+    cout << "this just silences the Mac CrashReporter in a live environment (it will NOT fire if you have GDB running)" << endl;
     exit(0);  
 }
 #endif

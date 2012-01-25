@@ -29,8 +29,13 @@
 #ifndef	_H_OFXOPENNI
 #define _H_OFXOPENNI
 
-#define USE_SIGNALS_HACK 1  // comment this out to NOT use a hack that silences occasional crashes on exit for MAC OSX 
-                            // when not using setSafeThreading(true) see line ~1712 ofxOpenNI.cpp
+// comment this out to NOT use a hack that silences occasional
+// crashes on exit for MAC OSX in a 'production/live' environment
+// NOTE: it does not work if you're using GDB but will work if 
+// you execute the application standalone.
+// use setSafeThreading(true) for a much cleaner solution
+// (but much lower FPS in main thread...;-() see line ~1712 of ofxOpenNI.cpp
+#define USE_SIGNALS_HACK 1
 
 #include <set>
 #include <map>
