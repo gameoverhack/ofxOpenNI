@@ -70,11 +70,15 @@ public:
 
 	void draw() {
 		if(!found) return;
-		//ofPushStyle();
-		ofSetLineWidth(5);
-		//ofSetColor(255,0,0);
-		ofLine(ofVec2f(begin),ofVec2f(end));
-		//ofPopStyle();
+        ofPushStyle();
+        if (start_joint == end_joint) {
+            ofFill();
+            ofCircle(begin.x, begin.y, 10);
+        }else{
+            ofSetLineWidth(5);
+            ofLine(ofVec2f(begin),ofVec2f(end));
+        }
+		ofPopStyle();
 	}
 };
 
@@ -83,10 +87,14 @@ class ofxOpenNIUser {
 public:
     
 	ofxOpenNIUser();
-
 	enum Limb {
-		Neck = 0,
+        Head = 0,
+		Neck,
 
+        // hands
+        LeftHand,
+        RightHand,
+        
 		// left arm + shoulder
 		LeftShoulder,
 		LeftUpperArm,

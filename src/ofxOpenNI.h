@@ -149,6 +149,9 @@ public:
     
     bool getAutoUserCalibrationPossible();
     
+    bool setSkeletonProfile(XnSkeletonProfile profile);
+    XnSkeletonProfile getSkeletonProfile();
+    
     // gesture methods
     bool addGesturesAll();
     bool removeGesturesAll();
@@ -367,6 +370,7 @@ private:
     
     int maxNumUsers;
     float userSmoothFactor;
+    XnSkeletonProfile skeletonProfile;
 
     // gesture storage
     vector<string> availableGestures;

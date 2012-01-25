@@ -47,9 +47,15 @@ ofxOpenNIUser::ofxOpenNIUser(){
     bNewPixels = false;
     
 	limbs.resize(NumLimbs);
-
+    
+    // head
+    limbs[Head].set(XN_SKEL_HEAD, XN_SKEL_HEAD);
 	limbs[Neck].set(XN_SKEL_HEAD, XN_SKEL_NECK);
-
+    
+    // hands
+    limbs[LeftHand].set(XN_SKEL_LEFT_HAND, XN_SKEL_LEFT_HAND);
+    limbs[RightHand].set(XN_SKEL_RIGHT_HAND, XN_SKEL_RIGHT_HAND);
+    
 	// left arm + shoulder
 	limbs[LeftShoulder].set(XN_SKEL_NECK, XN_SKEL_LEFT_SHOULDER);
 	limbs[LeftUpperArm].set(XN_SKEL_LEFT_SHOULDER, XN_SKEL_LEFT_ELBOW);

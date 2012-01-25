@@ -29,7 +29,6 @@
 #include "ofxOpenNI.h"
 
 static int instanceCount = -1;
-static ofxOpenNIUser staticDummyUser;
 
 /**************************************************************
  *
@@ -76,8 +75,9 @@ ofxOpenNI::ofxOpenNI(){
     height = XN_VGA_Y_RES;
     fps = 30;
     
-    maxNumUsers = 4;
+    maxNumUsers = 1;
     minTimeBetweenGestures = 0;
+    skeletonProfile = XN_SKEL_PROFILE_ALL;
     
     maxNumHands = 1;
     minTimeBetweenHands = 500;
@@ -237,13 +237,11 @@ void ofxOpenNI::stop(){
             for (XnUserID nID = 1; nID <= maxNumUsers; nID++) {
                 if (currentTrackedUsers[nID].bIsFound) {
                     cout << LOG_NAME << ": trying to kill user " << nID << endl;
-                    resetUserTracking(nID);
-                    currentTrackedUsers.erase(currentTrackedUsers.find(nID));
+                    stopTrackingUser(nID);
                 }
             }
-            //            cout << LOG_NAME << ": trying to stop user generator" << endl;
-            //            g_User.StopGenerating();
-            //            g_User.Release();
+            currentTrackedUsers.clear();
+            currentTrackedUserIDs.clear();
         }
         //cout << LOG_NAME << ": trying one last update of generator" << endl;
         //g_Context.WaitNoneUpdateAll(); // maybe this helps?
@@ -681,7 +679,7 @@ bool ofxOpenNI::allocateUsers(){
     XnStatus nRetVal = XN_STATUS_OK;
     bool ok = false;
     
-    setMaxNumUsers(maxNumUsers); // default to 4
+    setMaxNumUsers(maxNumUsers); // default to 1
     
     // register user callbacks
     XnCallbackHandle User_CallbackHandler;
@@ -720,8 +718,7 @@ bool ofxOpenNI::allocateUsers(){
         BOOL_ERR_RC(nRetVal, "Get calibration pose");
     }
     
-	nRetVal = g_User.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_ALL);
-    BOOL_RC(nRetVal, "Set skeleton profile");
+	setSkeletonProfile(skeletonProfile);
 }
 
 //--------------------------------------------------------------
@@ -816,7 +813,7 @@ void ofxOpenNI::update(){
 //--------------------------------------------------------------
 void ofxOpenNI::updateGenerators(){
     
-	//if (bIsThreaded) lock(); // with this here I get ~30 fps with 2 Kinects
+	//if (bIsThreaded) lock(); // with this here I get ~30 fps with 2 Kinects/60 fps with 1 kinect -> BUT no crash on exit!
 	
     if (!bIsContextReady) return;
     
@@ -828,7 +825,6 @@ void ofxOpenNI::updateGenerators(){
     //    } else {
     //        g_Context.WaitAnyUpdateAll();
     //    }
-    //if (bIsThreaded) lock(); // with this her I get ~300-400+ fps with 2 Kinects!
     
 	if (g_bIsDepthOn && g_Depth.IsDataNew()) g_Depth.GetMetaData(g_DepthMD);
 	if (g_bIsImageOn && g_Image.IsDataNew()) g_Image.GetMetaData(g_ImageMD);
@@ -943,15 +939,15 @@ void ofxOpenNI::generateUserTracking(){
     xn::UserGenerator & userGenerator = g_User;
     
 	vector<XnUserID> userIDs(maxNumUsers);
-    XnUInt16 xnMaxNumUsers = maxNumUsers + 1;
-    if (xnMaxNumUsers < userGenerator.GetNumberOfUsers()){
+    XnUInt16 xnMaxNumUsers = maxNumUsers;
+    //if (xnMaxNumUsers < userGenerator.GetNumberOfUsers()){
         //ofLogWarning() << "maxNumUsers is set lower than the current number of users...increase them with setMaxNumUsers()";
-    }
+    //}
 	userGenerator.GetUsers(&userIDs[0], xnMaxNumUsers);
     
 	set<XnUserID> trackedUserIDs;
     
-	for (int i = 0; i < maxNumUsers + 1; ++i) {
+	for (int i = 0; i < maxNumUsers; ++i) {
 		if (userGenerator.GetSkeletonCap().IsTracking(userIDs[i])) {
 			ofxOpenNIUser & user = currentTrackedUsers[userIDs[i]];
 			user.id = userIDs[i];
@@ -1080,6 +1076,19 @@ void ofxOpenNI::setUserSmoothing(float smooth){
 //--------------------------------------------------------------
 float ofxOpenNI::getUserSmoothing(){
 	return userSmoothFactor;
+}
+
+bool ofxOpenNI::setSkeletonProfile(XnSkeletonProfile profile){
+    skeletonProfile = profile;
+    if (g_bIsUserOn){
+        XnStatus nRetVal = XN_STATUS_OK;
+        nRetVal = g_User.GetSkeletonCap().SetSkeletonProfile(skeletonProfile);
+        BOOL_RC(nRetVal, "Set skeleton profile");
+    }
+}
+
+XnSkeletonProfile ofxOpenNI::getSkeletonProfile(){
+    return skeletonProfile;
 }
 
 //--------------------------------------------------------------
