@@ -29,6 +29,9 @@
 #ifndef	_H_OFXOPENNI
 #define _H_OFXOPENNI
 
+#define USE_SIGNALS_HACK 1  // comment this out to NOT use a hack that silences occasional crashes on exit for MAC OSX 
+                            // when not using setSafeThreading(true) see line ~1712 ofxOpenNI.cpp
+
 #include <set>
 #include <map>
 

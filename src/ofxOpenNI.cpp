@@ -91,7 +91,9 @@ ofxOpenNI::ofxOpenNI(){
 
 //--------------------------------------------------------------
 bool ofxOpenNI::setup(bool threaded){
-	
+    
+    setSafeThreading(bUseSafeThreading);
+
     XnStatus nRetVal = XN_STATUS_OK;
 	bIsThreaded = threaded;
     
@@ -1702,20 +1704,50 @@ bool ofxOpenNI::getMirror(){
 
 /**************************************************************
  *
- *      getters/setters: pixel and texture properties/modes
+ *      getters/setters: threading
  *
  *************************************************************/
+
+#if defined (TARGET_OSX) && defined (USE_SIGNALS_HACK)
+// this is a nasty and unadvisable hack to silence crashes on exit
+// the correct way to deal with this is to use setSafeThreading(true)
+// BUT then application FPS goes from 400+ to 30-60fps and latency increases...so I'm using this for now :-)
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+void handleSignal(int err){
+    cout << "CAUGHT SIGNAL ERROR: " << err << " This is a known error on Mac OSX with setSafeThreading(false) - this just silences the Mac CrashReporter in a live environment (it will NOT fire if you have GDB running)" << endl;
+    exit(0);  
+}
+#endif
 
 //--------------------------------------------------------------
 void ofxOpenNI::setSafeThreading(bool b){
     if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     bUseSafeThreading = b;
+    if (b) return;
+#if defined (TARGET_OSX) && defined (USE_SIGNALS_HACK)
+    ofLogWarning(LOG_NAME) << "Using a NASTY hack to silence SIGNAL errors on exit - read the comments at line ~1712 of ofxOpenNI.cpp";
+    if (signal(SIGSEGV, handleSignal) == SIG_ERR) ofLogWarning(LOG_NAME) << "Cannot handle SIGSEGV!";
+    if (signal(SIGBUS, handleSignal) == SIG_ERR) ofLogWarning(LOG_NAME) << "Cannot handle SIGBUS!";
+    //if (signal(SIGINT, handleSignal) == SIG_ERR) ofLogWarning(LOG_NAME) << "Cannot handle SIGABRT!";
+    //if (signal(SIGABRT, handleSignal) == SIG_ERR) ofLogWarning(LOG_NAME) << "Cannot handle SIGABRT!";
+    //if (signal(SIGILL, handleSignal) == SIG_ERR) ofLogWarning(LOG_NAME) << "Cannot handle SIGILL!";
+    //if (signal(SIGFPE, handleSignal) == SIG_ERR) ofLogWarning(LOG_NAME) << "Cannot handle SIGFPE!";
+    //if (signal(SIGPIPE, handleSignal) == SIG_ERR) ofLogWarning(LOG_NAME) << "Cannot handle SIGPIPE!";
+#endif
 }
 
 //--------------------------------------------------------------
 bool ofxOpenNI::getSafeThreading(){
     return bUseSafeThreading;
 }
+
+/**************************************************************
+ *
+ *      getters/setters: pixel and texture properties/modes
+ *
+ *************************************************************/
 
 //--------------------------------------------------------------
 void ofxOpenNI::setUseBackBuffer(bool b){
