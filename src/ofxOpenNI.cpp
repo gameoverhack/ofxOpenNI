@@ -1717,9 +1717,9 @@ bool ofxOpenNI::getMirror(){
 #include <signal.h>
 void handleSignal(int err){
     cout << "CAUGHT SIGNAL ERROR: " << err << " either SIGSEGV or SIGBUS" << endl;
-    cout << "It's possible some other bit of your code has sent you here by mistake..." << endl;
-    cout << "...This handler is a NASTY hack due to a known error in ofxOpenNI on (at least) Mac OSX with setSafeThreading(false)" << endl;
+    cout << "This handler is a NASTY hack due to a known error in ofxOpenNI on (at least) Mac OSX with setSafeThreading(false)" << endl;
     cout << "this just silences the Mac CrashReporter in a live environment (it will NOT fire if you have GDB running)" << endl;
+    cout << "...it's possible some other bit of your code has sent you here by mistake..." << endl;
     exit(0);  
 }
 #endif
@@ -2245,13 +2245,14 @@ void XN_CALLBACK_TYPE ofxOpenNI::GestureCB_handleGestureProgress(xn::GestureGene
 
 /**************************************************************
  *
- *      callbacks: gesture generator callback handlers
+ *      callbacks: hands generator callback handlers
  *
  *************************************************************/
 
 //--------------------------------------------------------------
 void XN_CALLBACK_TYPE ofxOpenNI::HandsCB_handleGestureRecognized(xn::GestureGenerator& gestureGenerator, const XnChar* strGesture, const XnPoint3D* pIDPosition, const XnPoint3D* pEndPosition, void* pCookie){
     ofxOpenNI* openNI = static_cast<ofxOpenNI*>(pCookie);
+    
 //	ofLogVerbose(openNI->LOG_NAME)  << "(CB) Hands Focus Gesture Recognized: ID position (x y z) [" 
 //                                    << (int)pIDPosition->X << (int)pIDPosition->Y 
 //                                    << (int)pIDPosition->Z << "] end position (x y z) [" 
@@ -2312,17 +2313,20 @@ void XN_CALLBACK_TYPE ofxOpenNI::HandsCB_handleGestureProgress(xn::GestureGenera
 void XN_CALLBACK_TYPE ofxOpenNI::HandsCB_handleHandCreate(xn::HandsGenerator& handsGenerator, XnUserID nID, const XnPoint3D* pPosition, XnFloat fTime, void* pCookie){
     ofxOpenNI* openNI = static_cast<ofxOpenNI*>(pCookie);
     ofLogVerbose(openNI->LOG_NAME) << "(CB) Hands Create" << nID << openNI->currentTrackedHands.size() + 1 << openNI->getMaxNumHands();
-    if (openNI->currentTrackedHands.size() + 1 < openNI->getMaxNumHands()) {
+    if (openNI->currentTrackedHands.size() < openNI->getMaxNumHands()) {
         ofLogVerbose(openNI->LOG_NAME) << "Start tracking hand" << nID;
         ofxOpenNIHand hand;
+        hand.id = nID;
         hand.bIsTracking = true;
-        hand.position = openNI->worldToProjective(*(ofPoint*)&pPosition);
-        hand.worldPosition = *(ofPoint*)&pPosition;
+        ofPoint p = ofPoint(pPosition->X, pPosition->Y, pPosition->Z);
+        hand.position = openNI->worldToProjective(p);
+        hand.worldPosition = p;
         openNI->currentTrackedHands.push_back(hand);
+        //openNI->g_HandsFocusGesture.StopGenerating();
         ofxOpenNIHandEvent handEvent = ofxOpenNIHandEvent(nID, openNI->instanceID, "", HAND_TRACKING_STARTED, 1.0, *(ofPoint*)&pPosition, ofGetElapsedTimeMillis());
         ofNotifyEvent(openNI->handEvent, handEvent);
     }else{
-        openNI->g_Hands.StopTracking(nID);
+        //openNI->g_Hands.StopTracking(nID);
     }
 	
     
@@ -2337,8 +2341,9 @@ void XN_CALLBACK_TYPE ofxOpenNI::HandsCB_handleHandUpdate(xn::HandsGenerator& ha
         if (nID == hand.id){
             ofLogVerbose(openNI->LOG_NAME) << "Updating hand position" << nID;
             hand.bIsTracking = true;
-            hand.position = openNI->worldToProjective(*(ofPoint*)&pPosition);
-            hand.worldPosition = *(ofPoint*)&pPosition;
+            ofPoint p = ofPoint(pPosition->X, pPosition->Y, pPosition->Z);
+            hand.position = openNI->worldToProjective(p);
+            hand.worldPosition = p;
             //ofxOpenNIHandEvent handEvent = ofxOpenNIHandEvent(nID, openNI->instanceID, "", HAND_TRACKING_STARTED, 1.0, *(ofPoint*)&pPosition, ofGetElapsedTimeMillis());
             //ofNotifyEvent(openNI->handEvent, handEvent);
             break;
@@ -2356,12 +2361,15 @@ void XN_CALLBACK_TYPE ofxOpenNI::HandsCB_handleHandDestroy(xn::HandsGenerator& h
     for (int i = 0; i < openNI->currentTrackedHands.size(); i++){
         ofxOpenNIHand & hand = openNI->currentTrackedHands[i];
         if (hand.id != nID){
+            cout << "ne" << endl;
             trackedHandIDs.push_back(hand);
         }else{
+            cout << "ye" << endl;
             ofxOpenNIHand & hand = openNI->currentTrackedHands[nID];
             hand.bIsTracking = false;
             hand.position = ofPoint(-INFINITY,-INFINITY,-INFINITY);
             hand.worldPosition = ofPoint(-INFINITY,-INFINITY,-INFINITY);
+            //openNI->g_HandsFocusGesture.StartGenerating();
             ofxOpenNIHandEvent handEvent = ofxOpenNIHandEvent(nID, openNI->instanceID, "", HAND_TRACKING_STOPPED, 0.0, hand.worldPosition, ofGetElapsedTimeMillis());
             ofNotifyEvent(openNI->handEvent, handEvent);
         }
@@ -2419,7 +2427,7 @@ void ofxOpenNI::drawDebug(float x, float y, float w, float h){
             ofDrawBitmapString(user.getDebugInfo(), 8, getHeight() - (30*maxNumUsers) + (nID-1) * 30);
         }
     }
-    
+    if (g_bIsHandsOn) drawHands();
     ofPopMatrix();
     ofPopMatrix();
     ofPopStyle();
@@ -2487,11 +2495,9 @@ void ofxOpenNI::drawSkeletons(float x, float y){
 //--------------------------------------------------------------
 void ofxOpenNI::drawSkeletons(float x, float y, float w, float h){
 	if (!bIsContextReady) return;
-    ofPushStyle();
     for(int i = 0;  i < (int)currentTrackedUserIDs.size(); ++i){
         drawSkeleton(x, y, w, h, i);
     }
-	ofPopStyle();
 }
 
 //--------------------------------------------------------------
@@ -2507,11 +2513,59 @@ void ofxOpenNI::drawSkeleton(float x, float y, int nID){
 //--------------------------------------------------------------
 void ofxOpenNI::drawSkeleton(float x, float y, float w, float h, int nID){
 	if(nID - 1 > (int)currentTrackedUserIDs.size()) return;
+    ofPushStyle();
     ofPushMatrix();
     ofTranslate(x, y);
     ofScale(w/getWidth(), h/getHeight(), 1.0f);
 	currentTrackedUsers[currentTrackedUserIDs[nID]].drawSkeleton();
     ofPopMatrix();
+    ofPopStyle();
+}
+
+/**************************************************************
+ *
+ *      drawing: skeleton draw
+ *
+ *************************************************************/
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawHands(){
+    drawHands(0, 0, getWidth(), getHeight());
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawHands(float x, float y){
+    drawHands(x, y, getWidth(), getHeight());
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawHands(float x, float y, float w, float h){
+    ofPushStyle();
+    ofPushMatrix();
+    ofFill();
+    ofSetColor(255, 255, 0);
+    for (int i = 0; i < currentTrackedHands.size(); i++){
+        ofxOpenNIHand & hand = currentTrackedHands[i];
+        cout << hand.position.x << "  " <<  hand.position.y << endl;
+        ofCircle(hand.position.x, hand.position.y, 10);
+    }
+    ofPopMatrix();
+    ofPopStyle();
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawHand(int nID){
+    drawHand(0, 0, getWidth(), getHeight(), nID);
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawHand(float x, float y, int nID){
+    drawHand(x, y, getWidth(), getHeight(), nID);
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawHand(float x, float y, float w, float, int nID){
+    if(nID - 1 > (int)currentTrackedHands.size()) return;
 }
 
 /**************************************************************

@@ -108,6 +108,14 @@ public:
     void drawSkeleton(float x, float y, int nID);
     void drawSkeleton(float x, float y, float w, float, int nID);
     
+    void drawHands();
+    void drawHands(float x, float y);
+    void drawHands(float x, float y, float w, float h);
+    
+    void drawHand(int nID);
+    void drawHand(float x, float y, int nID);
+    void drawHand(float x, float y, float w, float, int nID);
+    
     bool setResolution(int w, int h, int fps);
 
 	float getWidth();
