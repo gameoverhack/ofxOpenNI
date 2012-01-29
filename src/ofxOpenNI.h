@@ -172,8 +172,8 @@ public:
     XnSkeletonProfile getSkeletonProfile();
     
     // gesture methods
-    bool addGesturesAll();
-    bool removeGesturesAll();
+    bool addAllGestures();
+    bool removeAllGestures();
     bool addGesture(string niteGestureName, ofPoint LeftBottomNear = NULL, ofPoint RightTopFar = NULL);
     bool removeGesture(string niteGestureName);
     
@@ -184,10 +184,10 @@ public:
     int getMinTimeBetweenGestures();
     
     // hands methods
-    bool addFocusGesturesAll();
-    bool removeFocusGesturesAll();
-    bool addFocusGesture(string niteGestureName, ofPoint LeftBottomNear = NULL, ofPoint RightTopFar = NULL);
-    bool removeFocusGesture(string niteGestureName);
+    bool addAllHandFocusGestures();
+    bool removeAllHandFocusGestures();
+    bool addHandFocusGesture(string niteGestureName, ofPoint LeftBottomNear = NULL, ofPoint RightTopFar = NULL);
+    bool removeHandFocusGesture(string niteGestureName);
     
     ofxOpenNIHand& getTrackedHand(int index); // only returns tracked hands upto getNumTrackedHands()
     int	getNumTrackedHands();

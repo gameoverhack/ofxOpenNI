@@ -1275,7 +1275,7 @@ bool ofxOpenNI::isGestureAvailable(string niteGestureName){
 }
 
 //--------------------------------------------------------------
-bool ofxOpenNI::addGesturesAll(){
+bool ofxOpenNI::addAllGestures(){
     if (!g_bIsGestureOn){
         ofLogError(LOG_NAME) << "Can't add all gestures as there isn't a gesture generator - use addGestureGenerator() first";
         return false;
@@ -1290,7 +1290,7 @@ bool ofxOpenNI::addGesturesAll(){
 }
 
 //--------------------------------------------------------------
-bool ofxOpenNI::removeGesturesAll(){
+bool ofxOpenNI::removeAllGestures(){
     if (!g_bIsGestureOn){
         ofLogError(LOG_NAME) << "Can't remove all gestures as there isn't a gesture generator - use addGestureGenerator() first";
         return false;
@@ -1381,7 +1381,7 @@ int ofxOpenNI::getMinTimeBetweenGestures(){
  *************************************************************/
 
 //--------------------------------------------------------------
-bool ofxOpenNI::addFocusGesturesAll(){
+bool ofxOpenNI::addAllHandFocusGestures(){
     if (!g_bIsHandsOn){
         ofLogError(LOG_NAME) << "Can't add all focus gestures as there isn't a gesture generator - use addHandsGenerator() first";
         return false;
@@ -1396,7 +1396,7 @@ bool ofxOpenNI::addFocusGesturesAll(){
 }
 
 //--------------------------------------------------------------
-bool ofxOpenNI::removeFocusGesturesAll(){
+bool ofxOpenNI::removeAllHandFocusGestures(){
     if (!g_bIsHandsOn){
         ofLogError(LOG_NAME) << "Can't remove all focus gestures as there isn't a gesture generator - use addHandsGenerator() first";
         return false;
@@ -1411,7 +1411,7 @@ bool ofxOpenNI::removeFocusGesturesAll(){
 }
 
 //--------------------------------------------------------------
-bool ofxOpenNI::addFocusGesture(string niteGestureName, ofPoint LeftBottomNear, ofPoint RightTopFar){
+bool ofxOpenNI::addHandFocusGesture(string niteGestureName, ofPoint LeftBottomNear, ofPoint RightTopFar){
     if (!g_bIsHandsOn){
         ofLogError(LOG_NAME) << "Can't add gesture as there isn't a hand focus gesture generator - use addHandsGenerator() first";
         return false;
@@ -1439,7 +1439,7 @@ bool ofxOpenNI::addFocusGesture(string niteGestureName, ofPoint LeftBottomNear, 
 }
 
 //--------------------------------------------------------------
-bool ofxOpenNI::removeFocusGesture(string niteGestureName){
+bool ofxOpenNI::removeHandFocusGesture(string niteGestureName){
     if (!g_bIsHandsOn){
         ofLogError(LOG_NAME) << "Can't remove gesture as there isn't a gesture generator - use addGestureGenerator() first";
         return false;
