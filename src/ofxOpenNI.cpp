@@ -740,7 +740,6 @@ bool ofxOpenNI::allocateGestures(){
 bool ofxOpenNI::allocateHands(){
     ofLogVerbose(LOG_NAME) << "Allocating hands";
     XnStatus nRetVal = XN_STATUS_OK;
-    gestures.resize(10);
     XnCallbackHandle Hands_CallbackHandler;
     nRetVal = g_HandsFocusGesture.RegisterGestureCallbacks(HandsCB_handleGestureRecognized, HandsCB_handleGestureProgress, this, Hands_CallbackHandler);
     BOOL_ERR_RC(nRetVal, "Register hands focus gesture callback handlers");
@@ -2253,128 +2252,92 @@ void XN_CALLBACK_TYPE ofxOpenNI::GestureCB_handleGestureProgress(xn::GestureGene
 void XN_CALLBACK_TYPE ofxOpenNI::HandsCB_handleGestureRecognized(xn::GestureGenerator& gestureGenerator, const XnChar* strGesture, const XnPoint3D* pIDPosition, const XnPoint3D* pEndPosition, void* pCookie){
     ofxOpenNI* openNI = static_cast<ofxOpenNI*>(pCookie);
     
-//	ofLogVerbose(openNI->LOG_NAME)  << "(CB) Hands Focus Gesture Recognized: ID position (x y z) [" 
-//                                    << (int)pIDPosition->X << (int)pIDPosition->Y 
-//                                    << (int)pIDPosition->Z << "] end position (x y z) [" 
-//                                    << (int)pEndPosition->X << (int)pEndPosition->Y << (int)pEndPosition->Z << "]";
+    if (openNI->currentTrackedHands.size() >= openNI->getMaxNumHands()){
+        //ofLogVerbose(openNI->LOG_NAME) << "Not tracking because nID >= maxNumHands" << openNI->currentTrackedHands.size() << openNI->getMaxNumHands();
+        return;
+    }
     
     ofxOpenNIHandEvent & lastHandEvent = openNI->lastHandEvent;
-    // Filter by a minimum time between firing gestures
-	if (lastHandEvent.handTimestampMillis == 0 || ofGetElapsedTimeMillis() > lastHandEvent.handTimestampMillis + openNI->minTimeBetweenHands){
-        bool startTracking = false;
-        if (openNI->getNumTrackedHands() == 0){
-            // if we don't have any hands lets try to track
-            startTracking = true;
-        }else{
-            startTracking = true; // do negative test by looking for the distance between each existing hand
-            for (int i = 0; i < openNI->getNumTrackedHands(); i++) {
-                
-                // get raw position of this hand
-                ofxOpenNIHand & hand = openNI->currentTrackedHands[i];//[openNI->currentTrackedHandIDs[i]];
-                ofPoint & handWorldPosition = hand.getWorldPosition();
-                
-                // calculate distance between End ID of gesture and this hand
-                float distanceToHand = sqrt( pow( lastHandEvent.handFocusGesturePosition.x - handWorldPosition.x, 2 ) +
-                                             pow( lastHandEvent.handFocusGesturePosition.y - handWorldPosition.y, 2 ) +
-                                             pow( lastHandEvent.handFocusGesturePosition.z - handWorldPosition.z, 2 ) );
-                
-                ofLogVerbose(openNI->LOG_NAME) << "Hand distance =" << distanceToHand;
-                
-                // if the hand is within the min distance then don't track it
-                if (distanceToHand < openNI->minDistanceBetweenHands) {	
-                    startTracking = false;
-                    continue;
-                }
-            }
-        }
-        if (openNI->currentTrackedHands.size() >= openNI->getMaxNumHands()){
-            ofLogVerbose(openNI->LOG_NAME) << "Not tracking because nID > maxNumHands" << openNI->currentTrackedHands.size() << openNI->getMaxNumHands();
-            startTracking = false;
-        }
-        if (startTracking){
-            openNI->g_Hands.StartTracking(*pEndPosition);
-            lastHandEvent = ofxOpenNIHandEvent(-1, openNI->instanceID, strGesture, HAND_FOCUS_GESTURE_RECOGNIZED, 1.0, *(ofPoint*)&pEndPosition, ofGetElapsedTimeMillis());
-            ofNotifyEvent(openNI->handEvent, lastHandEvent);
-        }
-	} else {
-		//ofLogVerbose(openNI->LOG_NAME) << "Gesture FILTERED by time:" << ofGetElapsedTimeMillis() << (lastHandEvent.handTimestampMillis + openNI->minTimeBetweenHands);
-	}
     
+    if (ofGetElapsedTimeMillis() < lastHandEvent.handTimestampMillis + openNI->minTimeBetweenHands){
+        //ofLogVerbose(openNI->LOG_NAME) << "Not tracking because time between hand events is < minTimeBetweenHands";
+        return;
+    }
+    
+    ofPoint p = ofPoint(pEndPosition->Z, pEndPosition->Y, pEndPosition->Z);
+    
+    float distanceToHand = sqrt(pow( lastHandEvent.handFocusGesturePosition.x - p.x, 2 ) +
+                                pow( lastHandEvent.handFocusGesturePosition.y - p.y, 2 ) +
+                                pow( lastHandEvent.handFocusGesturePosition.z - p.z, 2 ) );
+    
+    // if the hand is within the min distance then don't track it
+    if (distanceToHand < openNI->minDistanceBetweenHands){
+        //ofLogVerbose(openNI->LOG_NAME) << "Not tracking because distance between hands is < minDistanceBetweenHands" << distanceToHand;
+        return;
+    }
+    
+	ofLogVerbose(openNI->LOG_NAME)  << "(CB) Hands Focus Gesture Recognized: ID position (x y z) [" 
+                                    << (int)pIDPosition->X << (int)pIDPosition->Y 
+                                    << (int)pIDPosition->Z << "] end position (x y z) [" 
+                                    << (int)pEndPosition->X << (int)pEndPosition->Y << (int)pEndPosition->Z << "]";
+
+    openNI->g_Hands.StartTracking(*pEndPosition);
+    lastHandEvent = ofxOpenNIHandEvent(-1, openNI->instanceID, strGesture, HAND_FOCUS_GESTURE_RECOGNIZED, 1.0, p, ofGetElapsedTimeMillis());
+    ofNotifyEvent(openNI->handEvent, lastHandEvent);
 }
 
 //--------------------------------------------------------------
 void XN_CALLBACK_TYPE ofxOpenNI::HandsCB_handleGestureProgress(xn::GestureGenerator& gestureGenerator, const XnChar* strGesture, const XnPoint3D* pIDPosition, XnFloat fProgress, void* pCookie){
-    //ofxOpenNI* openNI = static_cast<ofxOpenNI*>(pCookie);
-	//ofLogVerbose(openNI->LOG_NAME) << "(CB) Hands Focus Gesture Progress";
-    //TODO: add useProgress and add events here? or just leave it out?
+
 }
 
 //--------------------------------------------------------------
 void XN_CALLBACK_TYPE ofxOpenNI::HandsCB_handleHandCreate(xn::HandsGenerator& handsGenerator, XnUserID nID, const XnPoint3D* pPosition, XnFloat fTime, void* pCookie){
     ofxOpenNI* openNI = static_cast<ofxOpenNI*>(pCookie);
-    ofLogVerbose(openNI->LOG_NAME) << "(CB) Hands Create" << nID << openNI->currentTrackedHands.size() + 1 << openNI->getMaxNumHands();
-    if (openNI->currentTrackedHands.size() < openNI->getMaxNumHands()) {
-        ofLogVerbose(openNI->LOG_NAME) << "Start tracking hand" << nID;
-        ofxOpenNIHand hand;
+    if (openNI->currentTrackedHands.size() + 1 <= openNI->getMaxNumHands()) {
+        ofLogVerbose(openNI->LOG_NAME) << "(CB) Hands Create: OK" << nID << openNI->currentTrackedHands.size() + 1 << openNI->getMaxNumHands();
+        ofxOpenNIHand & hand = openNI->currentTrackedHands[nID]; // force creation of hand in map
         hand.id = nID;
         hand.bIsTracking = true;
         ofPoint p = ofPoint(pPosition->X, pPosition->Y, pPosition->Z);
         hand.position = openNI->worldToProjective(p);
         hand.worldPosition = p;
-        openNI->currentTrackedHands.push_back(hand);
-        //openNI->g_HandsFocusGesture.StopGenerating();
-        ofxOpenNIHandEvent handEvent = ofxOpenNIHandEvent(nID, openNI->instanceID, "", HAND_TRACKING_STARTED, 1.0, *(ofPoint*)&pPosition, ofGetElapsedTimeMillis());
+        ofxOpenNIHandEvent handEvent = ofxOpenNIHandEvent(nID, openNI->instanceID, "", HAND_TRACKING_STARTED, 1.0, p, ofGetElapsedTimeMillis());
         ofNotifyEvent(openNI->handEvent, handEvent);
     }else{
-        //openNI->g_Hands.StopTracking(nID);
+        ofLogVerbose(openNI->LOG_NAME) << "(CB) Hands Create: FAIL" << nID << openNI->currentTrackedHands.size() + 1 << openNI->getMaxNumHands();
     }
-	
-    
 }
 
 //--------------------------------------------------------------
 void XN_CALLBACK_TYPE ofxOpenNI::HandsCB_handleHandUpdate(xn::HandsGenerator& handsGenerator, XnUserID nID, const XnPoint3D* pPosition, XnFloat fTime, void* pCookie){
     ofxOpenNI* openNI = static_cast<ofxOpenNI*>(pCookie);
-	ofLogVerbose(openNI->LOG_NAME) << "(CB) Hands Update" << nID;
-    for (int i = 0; i < openNI->getNumTrackedHands(); i++) {
-        ofxOpenNIHand & hand = openNI->currentTrackedHands[i];
-        if (nID == hand.id){
-            ofLogVerbose(openNI->LOG_NAME) << "Updating hand position" << nID;
-            hand.bIsTracking = true;
-            ofPoint p = ofPoint(pPosition->X, pPosition->Y, pPosition->Z);
-            hand.position = openNI->worldToProjective(p);
-            hand.worldPosition = p;
-            //ofxOpenNIHandEvent handEvent = ofxOpenNIHandEvent(nID, openNI->instanceID, "", HAND_TRACKING_STARTED, 1.0, *(ofPoint*)&pPosition, ofGetElapsedTimeMillis());
-            //ofNotifyEvent(openNI->handEvent, handEvent);
-            break;
-        }
+	//ofLogVerbose(openNI->LOG_NAME) << "(CB) Hands Update" << nID;
+    map<XnUserID, ofxOpenNIHand>::iterator it = openNI->currentTrackedHands.find(nID);
+    if (it != openNI->currentTrackedHands.end()) {
+        ofxOpenNIHand & hand = it->second;
+        hand.bIsTracking = true;
+        ofPoint p = ofPoint(pPosition->X, pPosition->Y, pPosition->Z);
+        hand.position = openNI->worldToProjective(p);
+        hand.worldPosition = p;
+        ofxOpenNIHandEvent handEvent = ofxOpenNIHandEvent(nID, openNI->instanceID, "", HAND_TRACKING_STARTED, 1.0, p, ofGetElapsedTimeMillis());
+        ofNotifyEvent(openNI->handEvent, handEvent);
     }
-    
 }
 
 //--------------------------------------------------------------
 void XN_CALLBACK_TYPE ofxOpenNI::HandsCB_handleHandDestroy(xn::HandsGenerator& handsGenerator, XnUserID nID, XnFloat fTime, void* pCookie){
     ofxOpenNI* openNI = static_cast<ofxOpenNI*>(pCookie);
 	ofLogVerbose(openNI->LOG_NAME) << "(CB) Hands Destroy" << nID;
-    //openNI->g_Hands.StopTracking(nID);    
-    vector<ofxOpenNIHand> trackedHandIDs;
-    for (int i = 0; i < openNI->currentTrackedHands.size(); i++){
-        ofxOpenNIHand & hand = openNI->currentTrackedHands[i];
-        if (hand.id != nID){
-            cout << "ne" << endl;
-            trackedHandIDs.push_back(hand);
-        }else{
-            cout << "ye" << endl;
-            ofxOpenNIHand & hand = openNI->currentTrackedHands[nID];
-            hand.bIsTracking = false;
-            hand.position = ofPoint(-INFINITY,-INFINITY,-INFINITY);
-            hand.worldPosition = ofPoint(-INFINITY,-INFINITY,-INFINITY);
-            //openNI->g_HandsFocusGesture.StartGenerating();
-            ofxOpenNIHandEvent handEvent = ofxOpenNIHandEvent(nID, openNI->instanceID, "", HAND_TRACKING_STOPPED, 0.0, hand.worldPosition, ofGetElapsedTimeMillis());
-            ofNotifyEvent(openNI->handEvent, handEvent);
-        }
+    map<XnUserID, ofxOpenNIHand>::iterator it = openNI->currentTrackedHands.find(nID);
+    if (it != openNI->currentTrackedHands.end()) {
+        ofxOpenNIHand & hand = it->second;
+        ofxOpenNIHandEvent handEvent = ofxOpenNIHandEvent(nID, openNI->instanceID, "", HAND_TRACKING_STOPPED, 0.0, hand.worldPosition, ofGetElapsedTimeMillis());
+        ofNotifyEvent(openNI->handEvent, handEvent);
+        openNI->currentTrackedHands.erase(it);
+    }else{
+        ofLogError(openNI->LOG_NAME) << "(CB) Hands Destroy called on non-existant hand:" << nID;
     }
-    openNI->currentTrackedHands.assign(trackedHandIDs.begin(), trackedHandIDs.end());
 }
 
 
@@ -2413,12 +2376,12 @@ void ofxOpenNI::drawDebug(float x, float y, float w, float h){
     ofTranslate(x, y);
     ofScale(w / (getWidth() * generatorCount), h / getHeight());
     
-    ofPushMatrix();
+    //ofPushMatrix();
     if (g_bIsDepthOn) drawDepth();
+    if (g_bIsHandsOn) drawHands();
     if (g_bIsUserOn) drawSkeletons();
     ofTranslate(getWidth(), 0.0f);
-    if (g_bIsImageOn) drawImage();
-    if (g_bIsInfraOn) drawImage();
+    if (g_bIsImageOn || g_bIsInfraOn) drawImage();
     if (g_bIsUserOn){
         if (g_bIsImageOn || g_bIsInfraOn) ofTranslate(-getWidth(), 0.0f);
         for (int nID = 1; nID <= maxNumUsers; nID++) {
@@ -2427,8 +2390,7 @@ void ofxOpenNI::drawDebug(float x, float y, float w, float h){
             ofDrawBitmapString(user.getDebugInfo(), 8, getHeight() - (30*maxNumUsers) + (nID-1) * 30);
         }
     }
-    if (g_bIsHandsOn) drawHands();
-    ofPopMatrix();
+    //ofPopMatrix();
     ofPopMatrix();
     ofPopStyle();
     
@@ -2544,9 +2506,9 @@ void ofxOpenNI::drawHands(float x, float y, float w, float h){
     ofPushMatrix();
     ofFill();
     ofSetColor(255, 255, 0);
-    for (int i = 0; i < currentTrackedHands.size(); i++){
-        ofxOpenNIHand & hand = currentTrackedHands[i];
-        cout << hand.position.x << "  " <<  hand.position.y << endl;
+    map<XnUserID, ofxOpenNIHand>::iterator it;
+    for (it = currentTrackedHands.begin(); it != currentTrackedHands.end(); it++){
+        ofxOpenNIHand & hand = it->second;
         ofCircle(hand.position.x, hand.position.y, 10);
     }
     ofPopMatrix();

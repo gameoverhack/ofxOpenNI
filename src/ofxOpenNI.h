@@ -355,7 +355,6 @@ private:
     xn::HandsGenerator g_Hands;
     xn::SceneAnalyzer g_Scene;
 	xn::AudioGenerator g_Audio;
-    vector<xn::GestureGenerator> gestures;
     
 	// meta data
 	xn::DepthMetaData g_DepthMD;
@@ -403,9 +402,9 @@ private:
     static void XN_CALLBACK_TYPE GestureCB_handleGestureProgress(xn::GestureGenerator& gestureGenerator, const XnChar* strGesture, const XnPoint3D* pIDPosition, XnFloat fProgres, void* pCookie);
     
     // hands storage
-    //map<XnUserID, ofxOpenNIHand> currentTrackedHands;
+    map<XnUserID, ofxOpenNIHand> currentTrackedHands;
 	//vector<XnUserID> currentTrackedHandIDs;
-    vector<ofxOpenNIHand> currentTrackedHands;
+    //vector<ofxOpenNIHand> currentTrackedHands;
     ofxOpenNIHand baseHand;
     ofxOpenNIHandEvent lastHandEvent;
     int maxNumHands;
