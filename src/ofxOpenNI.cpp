@@ -53,6 +53,7 @@ ofxOpenNI::ofxOpenNI(){
     g_bIsGestureOn = false;
     g_bIsHandsOn = false;
 	g_bIsAudioOn = false;
+    g_bIsRecordOn = false;
 	
 	depthColoring = COLORING_RAINBOW;
 	
@@ -108,24 +109,22 @@ bool ofxOpenNI::setup(bool threaded){
     
     if (!initDevice()){
         ofLogError(LOG_NAME) << "Device could not be initialized";
-        return false;
+        //return false;
 	}
     
     if (!bIsDeviceReady || numDevices < instanceID) {
-        ofLogError(LOG_NAME) << "No Devices available for this instance [" << instanceID << "] of ofxOpenNI - have you got a device connected?!?!";
-        g_Context.Release();
-        bIsContextReady = false;
-        return false;
-    } else {
-        if (bIsThreaded && !isThreadRunning()) {
-            ofLogNotice(LOG_NAME) << "Starting ofxOpenNI with threading";
-            startThread(true, false);
-        } else if (!bIsThreaded) {
-            ofLogNotice(LOG_NAME) << "Starting ofxOpenNI without threading";
-        }
-        return true;
-	}
-	
+        ofLogWarning(LOG_NAME) << "No Devices available for this instance [" << instanceID << "] of ofxOpenNI - have you got a device connected? Else call startPlayer()";
+//        g_Context.Release();
+//        bIsContextReady = false;
+//        return false;
+    }
+    if (bIsThreaded && !isThreadRunning()) {
+        ofLogNotice(LOG_NAME) << "Starting ofxOpenNI with threading";
+        startThread(true, false);
+    } else if (!bIsThreaded) {
+        ofLogNotice(LOG_NAME) << "Starting ofxOpenNI without threading";
+    }
+    return bIsContextReady;
 }
 
 //--------------------------------------------------------------
@@ -169,8 +168,10 @@ bool ofxOpenNI::initDevice(){
         
         ofLogNotice(LOG_NAME) << "Found" << numDevices << "devices connected";
         
-        nRetVal = g_Context.CreateProductionTree(nInfo, g_Device);
-        SHOW_RC(nRetVal, "Creating production tree for device " + ofToString(instanceID));
+        if (numDevices > 0){
+            nRetVal = g_Context.CreateProductionTree(nInfo, g_Device);
+            SHOW_RC(nRetVal, "Creating production tree for device " + ofToString(instanceID));
+        }
         bIsDeviceReady = (nRetVal == XN_STATUS_OK);
     } else {
         bIsDeviceReady = false;
@@ -367,8 +368,180 @@ void ofxOpenNI::logErrors(xn::EnumerationErrors & errors){
 	for(xn::EnumerationErrors::Iterator it = errors.Begin(); it != errors.End(); ++it){
 		XnChar desc[512];
 		xnProductionNodeDescriptionToString(&it.Description(), desc, 512);
-		ofLog(OF_LOG_ERROR, "%s failed: %s\n", desc, xnGetStatusString(it.Error()));
+        ofLogError(LOG_NAME) << desc << "failed:" << xnGetStatusString(it.Error());
 	}	
+}
+
+/**************************************************************
+ *
+ *      recording ONI methods
+ *
+ *************************************************************/
+
+//--------------------------------------------------------------
+bool ofxOpenNI::startRecording(string fileName, XnCodecID depthFormat, XnCodecID imageFormat, XnCodecID irFormat, XnCodecID audioFormat){
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    if (!g_bIsRecordOn) addGenerator(XN_NODE_TYPE_RECORDER, g_bIsRecordOn);
+    if (!g_bIsRecordOn){
+        ofLogError(LOG_NAME) << "Can't add the recorder!!";
+        return false;
+    }
+    
+    XnStatus nRetVal = XN_STATUS_OK;
+    nRetVal = g_Recorder.SetDestination(XN_RECORD_MEDIUM_FILE, fileName.c_str());
+	SHOW_RC(nRetVal, "Set recording output file");
+    g_bIsRecordOn = (nRetVal == XN_STATUS_OK);
+    
+    nRetVal = g_Recorder.AddNodeToRecording(g_Device);
+    SHOW_RC(nRetVal, "Adding device generator to recording");
+    g_bIsRecordOn = (nRetVal == XN_STATUS_OK);
+    
+    if (g_bIsDepthOn) {
+        nRetVal = g_Recorder.AddNodeToRecording(g_Depth, depthFormat);
+        SHOW_RC(nRetVal, "Adding depth generator to recording");
+        g_bIsRecordOn = (nRetVal == XN_STATUS_OK);
+    }
+    
+    if (g_bIsImageOn) {
+        nRetVal = g_Recorder.AddNodeToRecording(g_Image, imageFormat);
+        SHOW_RC(nRetVal, "Adding image generator to recording");
+        g_bIsRecordOn = (nRetVal == XN_STATUS_OK);
+    }
+    
+    if (g_bIsInfraOn) {
+        nRetVal = g_Recorder.AddNodeToRecording(g_Infra, irFormat);
+        SHOW_RC(nRetVal, "Adding infra generator to recording");
+        g_bIsRecordOn = (nRetVal == XN_STATUS_OK);
+    }
+    
+    if (g_bIsAudioOn) {
+        nRetVal = g_Recorder.AddNodeToRecording(g_Audio, audioFormat);
+        SHOW_RC(nRetVal, "Adding audio generator to recording");
+        g_bIsRecordOn = (nRetVal == XN_STATUS_OK);
+    }
+	return g_bIsRecordOn;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::stopRecording(){
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    if (!g_bIsRecordOn){
+        ofLogError(LOG_NAME) << "There is a problem with the recorder or you haven't called startRecording()";
+        return false;
+    }
+    
+    XnStatus nRetVal = XN_STATUS_OK;
+    nRetVal = g_Recorder.RemoveNodeFromRecording(g_Device);
+    SHOW_RC(nRetVal, "Removing device generator from recording");
+    g_bIsRecordOn = (nRetVal != XN_STATUS_OK);
+    
+    if (g_bIsDepthOn) {
+        nRetVal = g_Recorder.RemoveNodeFromRecording(g_Depth);
+        SHOW_RC(nRetVal, "Removing depth generator from recording");
+        g_bIsRecordOn = (nRetVal != XN_STATUS_OK);
+    }
+    
+    if (g_bIsImageOn) {
+        nRetVal = g_Recorder.RemoveNodeFromRecording(g_Image);
+        SHOW_RC(nRetVal, "Removing image generator from recording");
+        g_bIsRecordOn = (nRetVal != XN_STATUS_OK);
+    }
+    
+    if (g_bIsInfraOn) {
+        nRetVal = g_Recorder.RemoveNodeFromRecording(g_Infra);
+        SHOW_RC(nRetVal, "Removing infra generator from recording");
+        g_bIsRecordOn = (nRetVal != XN_STATUS_OK);
+    }
+    
+    if (g_bIsAudioOn) {
+        nRetVal = g_Recorder.RemoveNodeFromRecording(g_Audio);
+        SHOW_RC(nRetVal, "Removing audio generator from recording");
+        g_bIsRecordOn = (nRetVal != XN_STATUS_OK);
+    }
+    
+    g_Recorder.Release();
+    return !g_bIsRecordOn;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::isRecording(){
+    return g_bIsRecordOn;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::startPlayer(string fileName){
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    XnStatus nRetVal = XN_STATUS_OK;
+    nRetVal = g_Context.OpenFileRecording(fileName.c_str());
+    SHOW_RC(nRetVal, "Loading ONI: " + fileName);
+    
+    g_bIsDepthOn = false;
+	g_bIsImageOn = false;
+	g_bIsInfraOn = false;
+	g_bIsAudioOn = false;
+	//g_bIsPlayerOn = false;
+	
+	g_bIsDepthRawOnOption = false;
+    
+	NodeInfoList list;
+	nRetVal = g_Context.EnumerateExistingNodes(list);
+	if (nRetVal == XN_STATUS_OK)
+	{
+		for (NodeInfoList::Iterator it = list.Begin(); it != list.End(); ++it)
+		{
+			switch ((*it).GetDescription().Type)
+			{
+                case XN_NODE_TYPE_DEVICE:
+                    ofLogVerbose(LOG_NAME) << "Creating device";
+                    (*it).GetInstance(g_Device);
+                    bIsDeviceReady = true;
+                    if (numDevices == 0) numDevices = 1;
+                    break;
+                case XN_NODE_TYPE_DEPTH:
+                    ofLogVerbose(LOG_NAME) << "Creating depth generator";
+                    g_bIsDepthOn = true;
+                    //g_bIsDepthRawOnOption = true;
+                    (*it).GetInstance(g_Depth);
+                    allocateDepthBuffers();
+                    break;
+                case XN_NODE_TYPE_IMAGE:
+                    ofLogVerbose(LOG_NAME) << "Creating image generator";
+                    g_bIsImageOn = true;
+                    (*it).GetInstance(g_Image);
+                    allocateImageBuffers();
+                    break;
+                case XN_NODE_TYPE_IR:
+                    ofLogVerbose(LOG_NAME) << "Creating ir generator";
+                    g_bIsInfraOn = true;
+                    (*it).GetInstance(g_Infra);
+                    allocateIRBuffers();
+                    break;
+                case XN_NODE_TYPE_AUDIO:
+                    ofLogVerbose(LOG_NAME) << "Creating audio generator";
+                    g_bIsAudioOn = true;
+                    (*it).GetInstance(g_Audio);
+                    //allocateAudioBuffers();
+                    break;
+                case XN_NODE_TYPE_PLAYER:
+                    ofLogVerbose(LOG_NAME) << "Creating player";
+                    g_bIsPlayerOn = true;
+                    (*it).GetInstance(g_Player);
+                    break;
+			}
+		}
+	}
+    //g_Player.SetRepeat(true);
+    //g_Context.StartGeneratingAll();
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::stopPlayer(){
+    //g_Context.OpenFileRecording(<#const XnChar *strFileName#>, <#xn::ProductionNode &playerNode#>)
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::isPlaying(){
+    
 }
 
 /**************************************************************
@@ -503,6 +676,11 @@ void ofxOpenNI::addGenerator(XnPredefinedProductionNodeType type, bool & bIsOn){
             nRetVal = g_HandsFocusGesture.Create(g_Context);
             SHOW_RC(nRetVal, "Creating " + getNodeTypeAsString(XN_NODE_TYPE_GESTURE) + " generator for focus gestures (needed with hands)");
             if (g_HandsFocusGesture.IsValid()) nRetVal = g_HandsFocusGesture.StartGenerating();
+			break;
+        case XN_NODE_TYPE_RECORDER:
+			nRetVal = g_Recorder.Create(g_Context);
+            SHOW_RC(nRetVal, "Creating " + generatorType + " generator");
+            //if (g_Recorder.IsValid()) nRetVal = g_Recorder.StartGenerating();
 			break;
 		default:
 			ofLogError(LOG_NAME) << "Don't know how to add this type of generator/node";

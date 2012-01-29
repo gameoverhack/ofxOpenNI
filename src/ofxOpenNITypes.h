@@ -92,6 +92,10 @@ private:
     
     bool bIsTracking;
     
+//    // block copy ctor and assignment operator
+//    ofxOpenNIHand(const ofxOpenNIHand& other);
+//    ofxOpenNIHand& operator=(const ofxOpenNIHand&);
+    
 };
 
 class ofxOpenNIHandEvent {
@@ -269,6 +273,10 @@ private:
     bool bNewPointCloud;
     
     unsigned short* userPixels;
+    
+//    // block copy ctor and assignment operator
+//    ofxOpenNIUser(const ofxOpenNIUser& other);
+//    ofxOpenNIUser& operator=(const ofxOpenNIUser&);
 
 };
 

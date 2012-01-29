@@ -146,6 +146,16 @@ public:
     void setUseBackBuffer(bool b);
     bool getUseBackBuffer();
     
+    // recording/playback methods
+    bool startRecording(string fileName, XnCodecID depthFormat = XN_CODEC_16Z_EMB_TABLES, XnCodecID imageFormat = XN_CODEC_JPEG, XnCodecID irFormat = XN_CODEC_JPEG, XnCodecID audioFormat = XN_CODEC_NULL);
+    bool stopRecording();
+    bool isRecording();
+    
+    bool startPlayer(string fileName);
+    bool stopPlayer();
+    bool isPlaying();
+    
+    // user tracker methods
     ofxOpenNIUser&	getTrackedUser(int index); // only returns tracked users upto getNumTrackedUsers()
     int	getNumTrackedUsers();
     
@@ -302,11 +312,14 @@ private:
     bool g_bIsHandsOn;
 	bool g_bIsAudioOn;
 	bool g_bIsDepthRawOnOption;
+    bool g_bIsRecordOn;
+    bool g_bIsPlayerOn;
 	
     bool bIsThreaded;
     bool bIsContextReady;
     bool bIsDeviceReady;
     bool bIsShuttingDown;
+    bool bIsRecording;
     
     bool bUseBackBuffer;
 	bool bUseTexture;
@@ -361,7 +374,7 @@ private:
     xn::SceneAnalyzer g_Scene;
 	xn::AudioGenerator g_Audio;
     xn::Recorder g_Recorder;
-    
+    xn::Player g_Player;
     
 	// meta data
 	xn::DepthMetaData g_DepthMD;
