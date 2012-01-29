@@ -1131,30 +1131,31 @@ int	ofxOpenNI::getNumTrackedUsers(){
 }
 
 //--------------------------------------------------------------
-ofxOpenNIUser&	ofxOpenNI::getTrackedUser(int index){
+ofxOpenNIUser& ofxOpenNI::getTrackedUser(int index){
     if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     return currentTrackedUsers[currentTrackedUserIDs[index]];
 }
 
 //--------------------------------------------------------------
-ofxOpenNIUser&	ofxOpenNI::getUser(XnUserID nID){
-    if (nID == 0) {
-        ofLogError(LOG_NAME) << "You have requested a user ID of 0 - perhaps you wanted to use getTrackedUser()" << endl 
-            << "OR you need to iterate using something like: for (int i = 1; i <= openNIDevices[0].getMaxNumUsers(); i++)" << endl
-            << "Returning a reference to the baseUserClass user (it doesn't do anything!!!)!";
-        baseUser.id = 0;
-        return baseUser;
-    }
+ofxOpenNIUser& ofxOpenNI::getUser(XnUserID nID){
     if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    ofxOpenNIUser & user = baseUser;
     map<XnUserID,ofxOpenNIUser>::iterator it = currentTrackedUsers.find(nID);
     if (it != currentTrackedUsers.end()){
-        return (*it).second;
-    } else {
-        ofLogError() << "User ID not found. Probably you need to setMaxNumUsers to a higher value!" << endl
+        user = it->second;
+    }else{
+        if (nID == 0) {
+            ofLogError(LOG_NAME) << "You have requested a user ID of 0 - perhaps you wanted to use getTrackedUser()"
+            << "OR you need to iterate using something like: for (int i = 1; i <= openNIDevices[0].getMaxNumUsers(); i++)"
             << "Returning a reference to the baseUserClass user (it doesn't do anything!!!)!";
-        baseUser.id = 0;
-        return baseUser;
+        }else{
+            ofLogError() << "User ID not found. Probably you need to setMaxNumUsers to a higher value!"
+            << "Returning a reference to the baseUserClass user (it doesn't do anything!!!)!";
+        }
+        
+        user.id = 0;
     }
+    return user;
 }
 
 //--------------------------------------------------------------
@@ -1483,6 +1484,26 @@ ofxOpenNIHand& ofxOpenNI::getTrackedHand(int index){
 }
 
 //--------------------------------------------------------------
+ofxOpenNIHand& ofxOpenNI::getHand(XnUserID nID){
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    ofxOpenNIHand & hand = baseHand;
+    map<XnUserID, ofxOpenNIHand>::iterator it = currentTrackedHands.find(nID);
+    if (it != currentTrackedHands.end()){
+        hand = it->second;
+    }else{
+        if (nID == 0) {
+            ofLogError(LOG_NAME) << "You have requested a hand ID of 0 - perhaps you wanted to use getTrackedHand()" 
+            << "Returning a reference to the baseUserClass user (it doesn't do anything!!!)!";
+        }else{
+            ofLogError() << "User ID not found. Probably you need to setMaxNumUsers to a higher value!" 
+            << "Returning a reference to the baseUserClass user (it doesn't do anything!!!)!";
+        }
+        hand.id = 0;
+    }
+    return hand;
+}
+
+//--------------------------------------------------------------
 void ofxOpenNI::setMaxNumHands(int numHands){
     maxNumHands = numHands;
 }
@@ -1510,6 +1531,11 @@ void ofxOpenNI::setMinDistanceBetweenHands(int worldDistance){
 //--------------------------------------------------------------
 int ofxOpenNI::getMinDistanceBetweenHands(){
     return minDistanceBetweenHands;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setBaseHandClass(ofxOpenNIHand & hand){
+    baseHand = hand;
 }
 
 /**************************************************************
@@ -2278,7 +2304,8 @@ void XN_CALLBACK_TYPE ofxOpenNI::HandsCB_handleHandCreate(xn::HandsGenerator& ha
     ofxOpenNI* openNI = static_cast<ofxOpenNI*>(pCookie);
     if (openNI->currentTrackedHands.size() + 1 <= openNI->getMaxNumHands()) {
         ofLogVerbose(openNI->LOG_NAME) << "(CB) Hands Create: OK" << nID << openNI->currentTrackedHands.size() + 1 << openNI->getMaxNumHands();
-        ofxOpenNIHand & hand = openNI->currentTrackedHands[nID]; // force creation of hand in map
+        openNI->currentTrackedHands[nID] = openNI->baseHand;// force creation of hand in map
+        ofxOpenNIHand & hand = openNI->currentTrackedHands[nID];
         hand.id = nID;
         hand.bIsTracking = true;
         ofPoint p = ofPoint(pPosition->X, pPosition->Y, pPosition->Z);

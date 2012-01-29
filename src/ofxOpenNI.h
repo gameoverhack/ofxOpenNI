@@ -150,6 +150,7 @@ public:
     int	getNumTrackedUsers();
     
     ofxOpenNIUser& getUser(XnUserID nID); // finds a user if it exists (whether tracked or not)
+    
     void setMaxNumUsers(int numUsers);
     int	getMaxNumUsers();
     
@@ -193,6 +194,7 @@ public:
     int	getNumTrackedHands();
     
     ofxOpenNIHand& getHand(XnUserID nID); // finds a hand if it exists (whether tracked or not)
+    
     void setMaxNumHands(int numHands);
     int	getMaxNumHands();
     
@@ -201,6 +203,8 @@ public:
     
     void setMinDistanceBetweenHands(int worldDistance);
     int getMinDistanceBetweenHands();
+    
+    void setBaseHandClass(ofxOpenNIHand & hand);
     
     // generator 'capabilities'
     void toggleRegister();
@@ -356,6 +360,8 @@ private:
     xn::HandsGenerator g_Hands;
     xn::SceneAnalyzer g_Scene;
 	xn::AudioGenerator g_Audio;
+    xn::Recorder g_Recorder;
+    
     
 	// meta data
 	xn::DepthMetaData g_DepthMD;
@@ -365,7 +371,7 @@ private:
 	xn::AudioMetaData g_AudioMD;
 	
 	// generators/nodes
-	xn::MockDepthGenerator mockDepth;
+	//xn::MockDepthGenerator mockDepth;
 	
     // user callback handlers
     static void XN_CALLBACK_TYPE UserCB_handleNewUser(xn::UserGenerator& userGenerator, XnUserID nID, void* pCookie);
@@ -404,8 +410,10 @@ private:
     // hands storage
     map<XnUserID, ofxOpenNIHand> currentTrackedHands;
 	vector<XnUserID> currentTrackedHandIDs;
+    
     ofxOpenNIHand baseHand;
     ofxOpenNIHandEvent lastHandEvent;
+    
     int maxNumHands;
     int minTimeBetweenHands;
     int minDistanceBetweenHands;
