@@ -103,6 +103,7 @@ enum GestureStatusType {
 enum HandStatusType {
     HAND_TRACKING_STOPPED = 0,
     HAND_TRACKING_STARTED,
+    HAND_TRACKING_UPDATED,
     HAND_FOCUS_GESTURE_PROGRESS,
     HAND_FOCUS_GESTURE_RECOGNIZED,
 };
@@ -302,6 +303,9 @@ inline string getHandStatusAsString(HandStatusType type) {
 			break;
 		case HAND_TRACKING_STARTED:
 			return "HAND_TRACKING_STARTED";
+			break;
+        case HAND_TRACKING_UPDATED:
+			return "HAND_TRACKING_UPDATED";
 			break;
         case HAND_FOCUS_GESTURE_PROGRESS:
 			return "HAND_FOCUS_GESTURE_PROGRESS";

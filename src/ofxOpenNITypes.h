@@ -39,20 +39,6 @@
 #include "ofTexture.h"
 #include "ofGraphics.h"
 
-class ofxOpenNIUserEvent {
-    
-public:
-    
-    ofxOpenNIUserEvent(){};
-    ofxOpenNIUserEvent(XnUserID _userID, int _deviceID, UserStatusType _userStatus) 
-    : userID(_userID), deviceID(_deviceID), userStatus(_userStatus){};
-    
-    XnUserID userID;
-    UserStatusType userStatus;
-    int deviceID;
-    
-};
-
 class ofxOpenNIGestureEvent {
     
 public:
@@ -61,54 +47,26 @@ public:
     ofxOpenNIGestureEvent(int _deviceID,
                           string _gestureName,
                           GestureStatusType _gestureStatus,
-                          float _gestureProgress,
-                          ofPoint _gesturePosition,
-                          int _gestureTimestampMillis) 
+                          float _progress,
+                          ofPoint _position,
+                          ofPoint _worldPosition,
+                          int _timestampMillis)
     :
     deviceID(_deviceID),
     gestureName(_gestureName),
     gestureStatus(_gestureStatus),
-    gestureProgress(_gestureProgress),
-    gesturePosition(_gesturePosition),
-    gestureTimestampMillis(_gestureTimestampMillis){};
+    progress(_progress),
+    position(_position),
+    worldPosition(_worldPosition),
+    timestampMillis(_timestampMillis){};
     
+    int deviceID;
     string gestureName;
-    int deviceID;
     GestureStatusType gestureStatus;
-    float gestureProgress;
-    ofPoint gesturePosition;
-    int gestureTimestampMillis;
-    
-};
-
-class ofxOpenNIHandEvent {
-    
-public:
-    
-    ofxOpenNIHandEvent(){};
-    ofxOpenNIHandEvent(XnUserID _handID,
-                       int _deviceID,
-                       string _handFocusGestureName,
-                       HandStatusType _handStatus,
-                       float _handFocusGestureProgress,
-                       ofPoint _handFocusGesturePosition,
-                       int _handTimestampMillis) 
-    :
-    handID(_handID),
-    handFocusGestureName(_handFocusGestureName),
-    deviceID(_deviceID),
-    handStatus(_handStatus),
-    handFocusGestureProgress(_handFocusGestureProgress),
-    handFocusGesturePosition(_handFocusGesturePosition),
-    handTimestampMillis(_handTimestampMillis){};
-    
-    XnUserID handID;
-    int deviceID;
-    string handFocusGestureName;
-    HandStatusType handStatus;
-    float handFocusGestureProgress;
-    ofPoint handFocusGesturePosition;
-    int handTimestampMillis;
+    float progress;
+    ofPoint position;
+    ofPoint worldPosition;
+    int timestampMillis;
     
 };
 
@@ -119,18 +77,39 @@ public:
     ofxOpenNIHand(){};
     
     XnUserID getID(){return id;};
-    //bool isTracking(){return bIsTracking;};
     ofPoint & getPosition(){return position;};
     ofPoint & getWorldPosition(){return worldPosition;};
+    
+    bool isTracking(){return bIsTracking;};
     
 private:
     
     friend class ofxOpenNI;
     
-    //bool bIsTracking;
 	XnUserID id;
     ofPoint	position;
 	ofPoint worldPosition;
+    
+    bool bIsTracking;
+    
+};
+
+class ofxOpenNIHandEvent {
+    
+public:
+    
+    ofxOpenNIHandEvent(){};
+    ofxOpenNIHandEvent(int _deviceID, HandStatusType _handStatus, XnUserID _id, ofPoint _position, ofPoint _worldPosition, int _timestampMillis)
+    : deviceID(_deviceID), handStatus(_handStatus), id(_id), position(_position), worldPosition(_worldPosition), timestampMillis(_timestampMillis){};
+    
+    int deviceID;
+    HandStatusType handStatus;
+    XnUserID id;
+    ofPoint position;
+    ofPoint worldPosition;
+    int timestampMillis;
+    
+    //ofxOpenNIHand * hand;
     
 };
 
@@ -291,6 +270,22 @@ private:
     
     unsigned short* userPixels;
 
+};
+
+class ofxOpenNIUserEvent {
+    
+public:
+    
+    ofxOpenNIUserEvent(int _deviceID, UserStatusType _userStatus, XnUserID _id, int _timestampMillis) 
+    : deviceID(_deviceID), userStatus(_userStatus), id(_id), timestampMillis(_timestampMillis){};
+    
+    int deviceID;
+    UserStatusType userStatus;
+    XnUserID id;
+    int timestampMillis;
+    
+    //ofxOpenNIUser * user;
+    
 };
 
 #endif
