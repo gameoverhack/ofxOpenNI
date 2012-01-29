@@ -282,12 +282,13 @@ private:
     bool allocateGestures();
     bool allocateHands();
     
-    void generateDepthPixels();
-	void generateImagePixels();
-	void generateIRPixels();
-    void generateUserTracking();
-    void generateUserPixels(ofxOpenNIUser & user);
-	void generatePointClouds(ofxOpenNIUser & user);
+    void updateDepthPixels();
+	void updateImagePixels();
+	void updateIRPixels();
+    void updateHandTracker();
+    void updateUserTracker();
+    void updateUserPixels(ofxOpenNIUser & user);
+	void updatePointClouds(ofxOpenNIUser & user);
 	
 	bool g_bIsDepthOn;
 	bool g_bIsImageOn;
@@ -393,7 +394,6 @@ private:
 
     // gesture storage
     vector<string> availableGestures;
-    //multimap<string, XnBoundingBox3D> currentGestureAreas;
     ofxOpenNIGestureEvent lastGestureEvent;
     int minTimeBetweenGestures;
     
@@ -403,8 +403,7 @@ private:
     
     // hands storage
     map<XnUserID, ofxOpenNIHand> currentTrackedHands;
-	//vector<XnUserID> currentTrackedHandIDs;
-    //vector<ofxOpenNIHand> currentTrackedHands;
+	vector<XnUserID> currentTrackedHandIDs;
     ofxOpenNIHand baseHand;
     ofxOpenNIHandEvent lastHandEvent;
     int maxNumHands;

@@ -312,6 +312,8 @@ void ofxOpenNI::stop(){
         g_Hands.Release();
         g_HandsFocusGesture.StopGenerating();
         g_HandsFocusGesture.Release();
+        currentTrackedHands.clear();
+        currentTrackedHandIDs.clear();
         g_bIsHandsOn = false;
     }
     
@@ -739,6 +741,8 @@ bool ofxOpenNI::allocateGestures(){
 //--------------------------------------------------------------
 bool ofxOpenNI::allocateHands(){
     ofLogVerbose(LOG_NAME) << "Allocating hands";
+    currentTrackedHands.clear();
+    currentTrackedHandIDs.clear();
     XnStatus nRetVal = XN_STATUS_OK;
     XnCallbackHandle Hands_CallbackHandler;
     nRetVal = g_HandsFocusGesture.RegisterGestureCallbacks(HandsCB_handleGestureRecognized, HandsCB_handleGestureProgress, this, Hands_CallbackHandler);
@@ -836,10 +840,11 @@ void ofxOpenNI::updateGenerators(){
     
     if (bIsThreaded && !bUseSafeThreading) lock(); // with this her I get ~400-500+ fps with 2 Kinects!
     
-    if (g_bIsDepthOn) generateDepthPixels();
-	if (g_bIsImageOn) generateImagePixels();
-	if (g_bIsInfraOn) generateIRPixels();
-    if (g_bIsUserOn) generateUserTracking();
+    if (g_bIsDepthOn) updateDepthPixels();
+	if (g_bIsImageOn) updateImagePixels();
+	if (g_bIsInfraOn) updateIRPixels();
+    if (g_bIsUserOn) updateUserTracker();
+    if (g_bIsHandsOn) updateHandTracker();
     
     // NB: Below info is from my old single context setup - need to retest with this new multicontext setup!  
     // NEW SETUP for 12 frames tested avg -69.33ms latency with 2 x kinects (high ~80ms, low ~50ms)
@@ -877,12 +882,12 @@ void ofxOpenNI::updateGenerators(){
 
 /**************************************************************
  *
- *      generate pixels and textures (depth, image, infra)
+ *      update pixels and textures (depth, image, infra)
  *
  *************************************************************/
 
 //--------------------------------------------------------------
-void ofxOpenNI::generateDepthPixels(){
+void ofxOpenNI::updateDepthPixels(){
 	// get the pixels
 	const XnDepthPixel* depth = g_DepthMD.Data();
 	
@@ -914,13 +919,13 @@ void ofxOpenNI::generateDepthPixels(){
 }
 
 //--------------------------------------------------------------
-void ofxOpenNI::generateImagePixels(){
+void ofxOpenNI::updateImagePixels(){
 	const XnUInt8* pImage = g_ImageMD.Data();
 	backImagePixels->setFromPixels(pImage, g_ImageMD.XRes(), g_ImageMD.YRes(), OF_IMAGE_COLOR);
 }
 
 //--------------------------------------------------------------
-void ofxOpenNI::generateIRPixels(){
+void ofxOpenNI::updateIRPixels(){
 	const XnIRPixel* pImage = g_InfraMD.Data();
     unsigned char * ir_pixels = new unsigned char[g_InfraMD.XRes() * g_InfraMD.YRes()];
 	for (int i = 0; i < g_InfraMD.XRes() * g_InfraMD.YRes(); i++){
@@ -932,12 +937,29 @@ void ofxOpenNI::generateIRPixels(){
 
 /**************************************************************
  *
- *      generate skeletons, user masks and point clouds
+ *      update hand/s tracker
  *
  *************************************************************/
 
 //--------------------------------------------------------------
-void ofxOpenNI::generateUserTracking(){
+void ofxOpenNI::updateHandTracker(){
+    map<XnUserID, ofxOpenNIHand>::iterator it;
+    int index = 0;
+    currentTrackedHandIDs.clear();
+    for (it = currentTrackedHands.begin(); it != currentTrackedHands.end(); it++, index++){
+        ofxOpenNIHand & hand = it->second;
+        currentTrackedHandIDs.push_back(hand.getID());
+    }
+}
+
+/**************************************************************
+ *
+ *      update skeletons, user masks and point clouds
+ *
+ *************************************************************/
+
+//--------------------------------------------------------------
+void ofxOpenNI::updateUserTracker(){
     
     // get user generator reference
     xn::UserGenerator & userGenerator = g_User;
@@ -984,8 +1006,8 @@ void ofxOpenNI::generateUserTracking(){
                 }
             }
 
-			if (user.bUsePointCloud) generatePointClouds(user);
-			if (user.bUseMaskPixels || user.bUseMaskTexture) generateUserPixels(user);
+			if (user.bUsePointCloud) updatePointClouds(user);
+			if (user.bUseMaskPixels || user.bUseMaskTexture) updateUserPixels(user);
             
 			trackedUserIDs.insert(user.id);
             
@@ -1002,7 +1024,7 @@ void ofxOpenNI::generateUserTracking(){
 }
 
 //--------------------------------------------------------------
-void ofxOpenNI::generatePointClouds(ofxOpenNIUser & user){
+void ofxOpenNI::updatePointClouds(ofxOpenNIUser & user){
     
 	const XnRGB24Pixel*	pColor;
 	const XnDepthPixel*	pDepth = g_DepthMD.Data();
@@ -1035,7 +1057,7 @@ void ofxOpenNI::generatePointClouds(ofxOpenNIUser & user){
 }
 
 //--------------------------------------------------------------
-void ofxOpenNI::generateUserPixels(ofxOpenNIUser & user){
+void ofxOpenNI::updateUserPixels(ofxOpenNIUser & user){
 
     if (user.maskPixels.getWidth() != getWidth() || user.maskPixels.getHeight() != getHeight()){
         user.maskPixels.allocate(getWidth(), getHeight(), OF_IMAGE_COLOR_ALPHA);
@@ -1455,55 +1477,17 @@ bool ofxOpenNI::removeHandFocusGesture(string niteGestureName){
 
 //--------------------------------------------------------------
 int	ofxOpenNI::getNumTrackedHands(){
-    return currentTrackedHands.size();
+    return currentTrackedHandIDs.size();
 }
 
 //--------------------------------------------------------------
 ofxOpenNIHand& ofxOpenNI::getTrackedHand(int index){
     if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
-    return currentTrackedHands[index];//currentTrackedHands[currentTrackedHandIDs[index]];
+    return currentTrackedHands[currentTrackedHandIDs[index]];
 }
-
-////--------------------------------------------------------------
-//ofxOpenNIHand& ofxOpenNI::getHand(XnUserID nID){
-//    if (nID == 0) {
-//        ofLogError(LOG_NAME) << "You have requested a hand ID of 0 - perhaps you wanted to use getTrackedHand()" << endl 
-//        << "OR you need to iterate using something like: for (int i = 1; i <= openNIDevices[0].getMaxNumHands(); i++)" << endl
-//        << "Returning a reference to the baseHandClass hand (it doesn't do anything!!!)!";
-//        baseHand.id = 0;
-//        return baseHand;
-//    }
-//    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
-//    map<XnUserID,ofxOpenNIHand>::iterator it = currentTrackedHands.find(nID);
-//    if (it != currentTrackedHands.end()){
-//        return (*it).second;
-//    } else {
-//        ofLogError() << "Hand ID not found. Probably you need to setMaxNumHands to a higher value!" << endl
-//        << "Returning a reference to the baseHandClass hand (it doesn't do anything!!!)!";
-//        baseHand.id = 0;
-//        return baseHand;
-//    }
-//}
 
 //--------------------------------------------------------------
 void ofxOpenNI::setMaxNumHands(int numHands){
-//    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
-//    maxNumHands = numHands;
-//    int oldMaxHands = currentTrackedHands.size();
-//    if (maxNumHands < oldMaxHands) {
-//        for (XnUserID nID = maxNumHands + 1; nID <= oldMaxHands; ++nID){
-//            map<XnUserID, ofxOpenNIHand>::iterator it = currentTrackedHands.find(nID);
-//            currentTrackedHands.erase(it);
-//        }
-//    } else {
-//        for (XnUserID nID = oldMaxHands + 1; nID <= maxNumHands; ++nID){
-//            //ofxOpenNIHand hand;
-//            //TODO: setBaseHandClass???
-//            baseHand.id = nID;
-//            currentTrackedHands.insert(pair<XnUserID, ofxOpenNIHand>(nID, baseHand));
-//        }
-//    }
-//    ofLogVerbose(LOG_NAME) << "Resized tracked hands map from" << oldMaxHands << "to" << currentTrackedHands.size();
     maxNumHands = numHands;
 }
 
@@ -2457,7 +2441,7 @@ void ofxOpenNI::drawSkeletons(float x, float y){
 //--------------------------------------------------------------
 void ofxOpenNI::drawSkeletons(float x, float y, float w, float h){
 	if (!bIsContextReady) return;
-    for(int i = 0;  i < (int)currentTrackedUserIDs.size(); ++i){
+    for(int i = 0;  i < getNumTrackedUsers(); ++i){
         drawSkeleton(x, y, w, h, i);
     }
 }
@@ -2474,7 +2458,7 @@ void ofxOpenNI::drawSkeleton(float x, float y, int nID){
 
 //--------------------------------------------------------------
 void ofxOpenNI::drawSkeleton(float x, float y, float w, float h, int nID){
-	if(nID - 1 > (int)currentTrackedUserIDs.size()) return;
+	if(nID - 1 > getNumTrackedUsers()) return;
     ofPushStyle();
     ofPushMatrix();
     ofTranslate(x, y);
@@ -2502,32 +2486,32 @@ void ofxOpenNI::drawHands(float x, float y){
 
 //--------------------------------------------------------------
 void ofxOpenNI::drawHands(float x, float y, float w, float h){
+    for (int i = 0; i < getNumTrackedHands(); i++) {
+        drawHand(i);
+    }
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawHand(int index){
+    drawHand(0, 0, getWidth(), getHeight(), index);
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawHand(float x, float y, int index){
+    drawHand(x, y, getWidth(), getHeight(), index);
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::drawHand(float x, float y, float w, float, int index){
+    if (index > getNumTrackedHands()) return;
     ofPushStyle();
     ofPushMatrix();
     ofFill();
     ofSetColor(255, 255, 0);
-    map<XnUserID, ofxOpenNIHand>::iterator it;
-    for (it = currentTrackedHands.begin(); it != currentTrackedHands.end(); it++){
-        ofxOpenNIHand & hand = it->second;
-        ofCircle(hand.position.x, hand.position.y, 10);
-    }
+    ofxOpenNIHand & hand = getTrackedHand(index);
+    ofCircle(hand.position.x, hand.position.y, 10);
     ofPopMatrix();
     ofPopStyle();
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::drawHand(int nID){
-    drawHand(0, 0, getWidth(), getHeight(), nID);
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::drawHand(float x, float y, int nID){
-    drawHand(x, y, getWidth(), getHeight(), nID);
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::drawHand(float x, float y, float w, float, int nID){
-    if(nID - 1 > (int)currentTrackedHands.size()) return;
 }
 
 /**************************************************************
