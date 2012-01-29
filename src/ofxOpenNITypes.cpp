@@ -1,5 +1,5 @@
 /*
- * ofxOpenNIUser.cpp
+ * ofxOpenNITypes.cpp
  *
  * Copyright 2011 (c) Matthew Gingold [gameover] http://gingold.com.au
  *
@@ -26,7 +26,7 @@
  *
  */
 
-#include "ofxOpenNIUser.h"
+#include "ofxOpenNITypes.h"
 
 //--------------------------------------------------------------
 ofxOpenNIUser::ofxOpenNIUser(){

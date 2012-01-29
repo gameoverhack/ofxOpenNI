@@ -53,7 +53,7 @@
 #include "ofThread.h"
 #include "ofEvents.h"
 
-#include "ofxOpenNIUser.h"
+#include "ofxOpenNITypes.h"
 #include "ofxOpenNIUtils.h"
 
 using namespace xn;

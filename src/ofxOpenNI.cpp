@@ -961,32 +961,25 @@ void ofxOpenNI::updateHandTracker(){
 //--------------------------------------------------------------
 void ofxOpenNI::updateUserTracker(){
     
-    // get user generator reference
-    xn::UserGenerator & userGenerator = g_User;
-    
 	vector<XnUserID> userIDs(maxNumUsers);
     XnUInt16 xnMaxNumUsers = maxNumUsers;
-    //if (xnMaxNumUsers < userGenerator.GetNumberOfUsers()){
-        //ofLogWarning() << "maxNumUsers is set lower than the current number of users...increase them with setMaxNumUsers()";
-    //}
-	userGenerator.GetUsers(&userIDs[0], xnMaxNumUsers);
-    
+	g_User.GetUsers(&userIDs[0], xnMaxNumUsers);
 	set<XnUserID> trackedUserIDs;
     
 	for (int i = 0; i < maxNumUsers; ++i) {
-		if (userGenerator.GetSkeletonCap().IsTracking(userIDs[i])) {
+		if (g_User.GetSkeletonCap().IsTracking(userIDs[i])) {
 			ofxOpenNIUser & user = currentTrackedUsers[userIDs[i]];
 			user.id = userIDs[i];
 			XnPoint3D center;
-			userGenerator.GetCoM(userIDs[i], center);
+			g_User.GetCoM(userIDs[i], center);
 			user.center = toOf(center);
             bool lastbIsSkeleton = user.bIsSkeleton;
             user.bIsSkeleton = false;
 			for (int j=0; j<ofxOpenNIUser::NumLimbs; j++){
 				XnSkeletonJointPosition a,b;
-				userGenerator.GetSkeletonCap().GetSkeletonJointPosition(user.id, user.limbs[j].start_joint, a);
-				userGenerator.GetSkeletonCap().GetSkeletonJointPosition(user.id, user.limbs[j].end_joint, b);
-				userGenerator.GetSkeletonCap().GetSkeletonJointOrientation(user.id,user.limbs[j].start_joint, user.limbs[j].orientation);
+				g_User.GetSkeletonCap().GetSkeletonJointPosition(user.id, user.limbs[j].start_joint, a);
+				g_User.GetSkeletonCap().GetSkeletonJointPosition(user.id, user.limbs[j].end_joint, b);
+				g_User.GetSkeletonCap().GetSkeletonJointOrientation(user.id,user.limbs[j].start_joint, user.limbs[j].orientation);
 				if (a.fConfidence < user.limbDetectionConfidence || b.fConfidence < user.limbDetectionConfidence){
 					user.limbs[j].found = false;
 					continue;
@@ -1018,9 +1011,7 @@ void ofxOpenNI::updateUserTracker(){
             }
 		}
 	}
-    
     currentTrackedUserIDs.assign(trackedUserIDs.begin(), trackedUserIDs.end());
-    
 }
 
 //--------------------------------------------------------------
@@ -1119,7 +1110,6 @@ XnSkeletonProfile ofxOpenNI::getSkeletonProfile(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::resetUserTracking(XnUserID nID, bool forceImmediateRestart){
-    //g_User.GetSkeletonCap().AbortCalibration(nID);
     stopTrackingUser(nID);
     if (forceImmediateRestart) startTrackingUser(nID);
 }
@@ -2272,7 +2262,7 @@ void XN_CALLBACK_TYPE ofxOpenNI::HandsCB_handleGestureRecognized(xn::GestureGene
 
 //--------------------------------------------------------------
 void XN_CALLBACK_TYPE ofxOpenNI::HandsCB_handleGestureProgress(xn::GestureGenerator& gestureGenerator, const XnChar* strGesture, const XnPoint3D* pIDPosition, XnFloat fProgress, void* pCookie){
-
+    // nothing
 }
 
 //--------------------------------------------------------------
@@ -2282,7 +2272,7 @@ void XN_CALLBACK_TYPE ofxOpenNI::HandsCB_handleHandCreate(xn::HandsGenerator& ha
         ofLogVerbose(openNI->LOG_NAME) << "(CB) Hands Create: OK" << nID << openNI->currentTrackedHands.size() + 1 << openNI->getMaxNumHands();
         ofxOpenNIHand & hand = openNI->currentTrackedHands[nID]; // force creation of hand in map
         hand.id = nID;
-        hand.bIsTracking = true;
+        //hand.bIsTracking = true;
         ofPoint p = ofPoint(pPosition->X, pPosition->Y, pPosition->Z);
         hand.position = openNI->worldToProjective(p);
         hand.worldPosition = p;
@@ -2300,7 +2290,7 @@ void XN_CALLBACK_TYPE ofxOpenNI::HandsCB_handleHandUpdate(xn::HandsGenerator& ha
     map<XnUserID, ofxOpenNIHand>::iterator it = openNI->currentTrackedHands.find(nID);
     if (it != openNI->currentTrackedHands.end()) {
         ofxOpenNIHand & hand = it->second;
-        hand.bIsTracking = true;
+        //hand.bIsTracking = true;
         ofPoint p = ofPoint(pPosition->X, pPosition->Y, pPosition->Z);
         hand.position = openNI->worldToProjective(p);
         hand.worldPosition = p;
@@ -2323,7 +2313,6 @@ void XN_CALLBACK_TYPE ofxOpenNI::HandsCB_handleHandDestroy(xn::HandsGenerator& h
         ofLogError(openNI->LOG_NAME) << "(CB) Hands Destroy called on non-existant hand:" << nID;
     }
 }
-
 
 /**************************************************************
  *
