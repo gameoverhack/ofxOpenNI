@@ -66,7 +66,8 @@ public:
 	~ofxOpenNI();
 	
 	bool setup(bool threaded = true);
-	bool setup(string xmlFilePath, bool threaded = true);
+    bool setupFromONI(string oniFilePath, bool threaded);
+    bool setupFromXML(string xmlFilePath, bool threaded);
 	
     void stop();
     
@@ -147,12 +148,12 @@ public:
     bool getUseBackBuffer();
     
     // recording/playback methods
-    bool startRecording(string fileName, XnCodecID depthFormat = XN_CODEC_16Z_EMB_TABLES, XnCodecID imageFormat = XN_CODEC_JPEG, XnCodecID irFormat = XN_CODEC_JPEG, XnCodecID audioFormat = XN_CODEC_NULL);
+    bool startRecording(string ofOniFileName, XnCodecID depthFormat = XN_CODEC_16Z_EMB_TABLES, XnCodecID imageFormat = XN_CODEC_JPEG, XnCodecID irFormat = XN_CODEC_JPEG, XnCodecID audioFormat = XN_CODEC_NULL);
     bool stopRecording();
     bool isRecording();
     
-    bool startPlayer(string fileName);
-    bool stopPlayer();
+    bool startPlayer(string ofOniFileName);
+    bool stopPlayer(bool bRestartDevice = true);
     bool isPlaying();
     
     // user tracker methods
@@ -275,8 +276,13 @@ protected:
     
 private:
     
-    bool initContext();
+    bool init(string oniFilePath, string xmlFilePath, bool threaded);
+    bool initContext(string xmlFilePath = "");
     bool initDevice();
+    bool initCommon();
+    
+    void stopCommon();
+    void restartCommon();
     
     bool setGeneratorResolution(xn::MapGenerator & generator, int w, int h, int f);
     
@@ -304,15 +310,15 @@ private:
     void updateUserPixels(ofxOpenNIUser & user);
 	void updatePointClouds(ofxOpenNIUser & user);
 	
-	bool g_bIsDepthOn;
-	bool g_bIsImageOn;
-	bool g_bIsInfraOn;
-    bool g_bIsUserOn;
-    bool g_bIsGestureOn;
-    bool g_bIsHandsOn;
-	bool g_bIsAudioOn;
-	bool g_bIsDepthRawOnOption;
-    bool g_bIsRecordOn;
+	bool g_bIsDepthOn, l_bIsDepthOn;
+	bool g_bIsImageOn, l_bIsImageOn;
+	bool g_bIsInfraOn, l_bIsInfraOn;
+    bool g_bIsUserOn, l_bIsUserOn;
+    bool g_bIsGestureOn, l_bIsGestureOn;
+    bool g_bIsHandsOn, l_bIsHandsOn;
+	bool g_bIsAudioOn, l_bIsAudioOn;
+	bool g_bIsDepthRawOnOption, l_bIsDepthRawOnOption;
+    bool g_bIsRecordOn, l_bIsRecordOn;
     bool g_bIsPlayerOn;
 	
     bool bIsThreaded;

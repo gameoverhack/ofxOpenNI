@@ -86,6 +86,7 @@ enum DepthColoring {
     COLORING_STATUS,
     COLORING_COUNT
 };
+
 enum UserStatusType {
     USER_TRACKING_STOPPED = 0,
     USER_TRACKING_STARTED,
