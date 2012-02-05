@@ -686,6 +686,9 @@ bool ofxOpenNI::allocateUsers(){
     XnStatus nRetVal = XN_STATUS_OK;
     bool ok = false;
     
+    currentTrackedUserIDs.clear();
+    currentTrackedUsers.clear();
+    
     setMaxNumUsers(maxNumUsers); // default to 1
     
     // register user callbacks
@@ -1127,6 +1130,7 @@ bool ofxOpenNI::getAutoUserCalibrationPossible(){
 
 //--------------------------------------------------------------
 int	ofxOpenNI::getNumTrackedUsers(){
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     return currentTrackedUserIDs.size();
 }
 
