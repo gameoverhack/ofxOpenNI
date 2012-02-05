@@ -12,8 +12,9 @@ void testApp::setup() {
         openNIDevices[deviceID].setup();
         openNIDevices[deviceID].addDepthGenerator();
         openNIDevices[deviceID].addImageGenerator();
-        openNIDevices[deviceID].setRegister(true);
         openNIDevices[deviceID].addUserGenerator();
+        openNIDevices[deviceID].setRegister(true);
+        openNIDevices[deviceID].setMirror(true);
     }
     
     // NB: Only one device can have a user generator at a time - this is a known bug in NITE due to a singleton issue
@@ -74,7 +75,7 @@ void testApp::draw(){
     ofPushMatrix();
     ofEnableBlendMode(OF_BLENDMODE_ALPHA);
     int numUsers = openNIDevices[0].getNumTrackedUsers();
-    for (int nID = 0; nID <= numUsers; nID++){
+    for (int nID = 0; nID < numUsers; nID++){
         ofxOpenNIUser & user = openNIDevices[0].getTrackedUser(nID);
         user.drawMask();
         ofPushMatrix();
@@ -92,7 +93,7 @@ void testApp::draw(){
 
 //--------------------------------------------------------------
 void testApp::userEvent(ofxOpenNIUserEvent & event){
-    ofLogNotice() << getUserStatusAsString(event.userStatus) << "for user" << event.userID << "from device" << event.deviceID;
+    ofLogNotice() << getUserStatusAsString(event.userStatus) << "for user" << event.id << "from device" << event.deviceID;
 }
 
 //--------------------------------------------------------------

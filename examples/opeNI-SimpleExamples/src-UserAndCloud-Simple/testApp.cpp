@@ -9,8 +9,10 @@ void testApp::setup() {
     //openNIDevice.setLogLevel(OF_LOG_VERBOSE);
     openNIDevice.addDepthGenerator();
     openNIDevice.addImageGenerator();
-    openNIDevice.setRegister(true);
     openNIDevice.addUserGenerator();
+    
+    openNIDevice.setRegister(true); // register depth to image
+    openNIDevice.setMirror(true);
     
     openNIDevice.setMaxNumUsers(2); // defualt is 4
     openNIDevice.setUseMaskTextureAllUsers(true);
@@ -39,7 +41,7 @@ void testApp::draw(){
     ofPushMatrix();
     ofEnableBlendMode(OF_BLENDMODE_ALPHA);
     int numUsers = openNIDevice.getNumTrackedUsers();
-    for (int nID = 0; nID <= numUsers; nID++){
+    for (int nID = 0; nID < numUsers; nID++){
         ofxOpenNIUser & user = openNIDevice.getTrackedUser(nID);
         user.drawMask();
         ofPushMatrix();

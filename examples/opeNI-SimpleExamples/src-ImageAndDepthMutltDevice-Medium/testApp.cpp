@@ -13,6 +13,7 @@ void testApp::setup() {
         openNIDevices[deviceID].addDepthGenerator();
         openNIDevices[deviceID].addImageGenerator();
         openNIDevices[deviceID].setRegister(true); // this registers all the image pixels to the depth pixels
+        openNIDevices[deviceID].setMirror(true); // flips the image and depth sensors
     }
     
     verdana.loadFont(ofToDataPath("verdana.ttf"), 24);
