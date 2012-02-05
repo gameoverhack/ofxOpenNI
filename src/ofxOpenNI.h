@@ -66,8 +66,8 @@ public:
 	~ofxOpenNI();
 	
 	bool setup(bool threaded = true);
-    bool setupFromONI(string oniFilePath, bool threaded);
-    bool setupFromXML(string xmlFilePath, bool threaded);
+    bool setupFromONI(string oniFilePath, bool threaded = true);
+    bool setupFromXML(string xmlFilePath, bool threaded = true);
 	
     void stop();
     
@@ -334,6 +334,7 @@ private:
     bool bUseRegistration;
     bool bUseMirror;
     bool bUseSync;
+    bool bDoStop;
     
     bool bAutoCalibrationPossible;
     

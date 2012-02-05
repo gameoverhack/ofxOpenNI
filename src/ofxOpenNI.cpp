@@ -208,8 +208,8 @@ bool ofxOpenNI::initDevice(){
 
 //--------------------------------------------------------------
 bool ofxOpenNI::initCommon(){
-    if (isThreadRunning()) waitForThread(true);
-    if (bIsContextReady) stopCommon();
+//    if (isThreadRunning()) waitForThread(true);
+//    if (bIsContextReady) stopCommon();
     bool ok = true;
     XnStatus nRetVal = XN_STATUS_OK;
     NodeInfoList list;
@@ -260,7 +260,7 @@ bool ofxOpenNI::initCommon(){
 	} else {
         ok = false;
     }
-    if (bIsThreaded) startThread(true, false);
+//    if (bIsThreaded) startThread(true, false);
     return ok;
 }
 
@@ -368,7 +368,7 @@ void ofxOpenNI::stop(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::stopCommon(){
-    if (isThreadRunning()) waitForThread(true);
+//    if (isThreadRunning()) waitForThread(true);
     if (g_bIsDepthOn){
         cout << LOG_NAME << ": releasing depth generator" << endl;
         g_Depth.StopGenerating();
@@ -439,7 +439,7 @@ void ofxOpenNI::stopCommon(){
         g_Device.Release();
         bIsDeviceReady = false;
     }
-    if (bIsThreaded) startThread(true, false);
+//    if (bIsThreaded) startThread(true, false);
 }
 
 /**************************************************************
@@ -527,44 +527,9 @@ bool ofxOpenNI::startRecording(string oniFileName, XnCodecID depthFormat, XnCode
 
 //--------------------------------------------------------------
 bool ofxOpenNI::stopRecording(){
-    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
-    g_Context.WaitAnyUpdateAll();
-    if (!g_bIsRecordOn){
-        ofLogError(LOG_NAME) << "There is a problem with the recorder or you haven't called startRecording()";
-        return false;
-    }
+    bDoStop = true;
     
-    XnStatus nRetVal = XN_STATUS_OK;
-    nRetVal = g_Recorder.RemoveNodeFromRecording(g_Device);
-    SHOW_RC(nRetVal, "Removing device generator from recording");
-    g_bIsRecordOn = (nRetVal != XN_STATUS_OK);
-    
-    if (g_bIsDepthOn) {
-        nRetVal = g_Recorder.RemoveNodeFromRecording(g_Depth);
-        SHOW_RC(nRetVal, "Removing depth generator from recording");
-        g_bIsRecordOn = (nRetVal != XN_STATUS_OK);
-    }
-    
-    if (g_bIsImageOn) {
-        nRetVal = g_Recorder.RemoveNodeFromRecording(g_Image);
-        SHOW_RC(nRetVal, "Removing image generator from recording");
-        g_bIsRecordOn = (nRetVal != XN_STATUS_OK);
-    }
-    
-    if (g_bIsInfraOn) {
-        nRetVal = g_Recorder.RemoveNodeFromRecording(g_Infra);
-        SHOW_RC(nRetVal, "Removing infra generator from recording");
-        g_bIsRecordOn = (nRetVal != XN_STATUS_OK);
-    }
-    
-    if (g_bIsAudioOn) {
-        nRetVal = g_Recorder.RemoveNodeFromRecording(g_Audio);
-        SHOW_RC(nRetVal, "Removing audio generator from recording");
-        g_bIsRecordOn = (nRetVal != XN_STATUS_OK);
-    }
-    g_Recorder.Release();
-    //g_bIsRecordOn = false;
-    return !g_bIsRecordOn;
+    return true;
 }
 
 //--------------------------------------------------------------
@@ -581,22 +546,18 @@ bool ofxOpenNI::startPlayer(string oniFileName){
     nRetVal = g_Context.OpenFileRecording(ofOniFileName.c_str());
     SHOW_RC(nRetVal, "Loading ONI: " + ofOniFileName);
     initCommon();
-    restartCommon();
+//    restartCommon();
     return g_bIsPlayerOn;
 }
 
 //--------------------------------------------------------------
-bool ofxOpenNI::stopPlayer(bool restartGenerators){
-    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
-    if  (g_bIsPlayerOn){
-        stopCommon();
-        if (restartGenerators){
-            g_Context.Release();
-            g_Context.Init();
-            restartCommon();
-        }
-    }
-}
+//bool ofxOpenNI::stopPlayer(bool restartGenerators){
+//    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+//    if  (g_bIsPlayerOn){
+//        stopCommon();
+//        if (restartGenerators) restartCommon();
+//    }
+//}
 
 //--------------------------------------------------------------
 bool ofxOpenNI::isPlaying(){
@@ -695,7 +656,7 @@ void ofxOpenNI::addGenerator(XnPredefinedProductionNodeType type, bool & bIsOn){
 	}
     if (bIsOn){
         ofLogWarning() << "Can't add" <<  generatorType << " - there is already a generator of this type and you can only have one";
-        bIsOn = false;
+        //bIsOn = false;
         return;
     }
     bIsOn = false;
@@ -1133,7 +1094,49 @@ void ofxOpenNI::updateGenerators(){
     }
 	
 	bNewPixels = true;
-	
+    
+    if (bDoStop) {
+        //if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+        //g_Context.WaitAnyUpdateAll();
+        if (!g_bIsRecordOn){
+            ofLogError(LOG_NAME) << "There is a problem with the recorder or you haven't called startRecording()";
+            //return false;
+        }else{
+            XnStatus nRetVal = XN_STATUS_OK;
+            nRetVal = g_Recorder.RemoveNodeFromRecording(g_Device);
+            SHOW_RC(nRetVal, "Removing device generator from recording");
+            g_bIsRecordOn = (nRetVal != XN_STATUS_OK);
+            
+            if (g_bIsDepthOn) {
+                nRetVal = g_Recorder.RemoveNodeFromRecording(g_Depth);
+                SHOW_RC(nRetVal, "Removing depth generator from recording");
+                g_bIsRecordOn = (nRetVal != XN_STATUS_OK);
+            }
+            
+            if (g_bIsImageOn) {
+                nRetVal = g_Recorder.RemoveNodeFromRecording(g_Image);
+                SHOW_RC(nRetVal, "Removing image generator from recording");
+                g_bIsRecordOn = (nRetVal != XN_STATUS_OK);
+            }
+            
+            if (g_bIsInfraOn) {
+                nRetVal = g_Recorder.RemoveNodeFromRecording(g_Infra);
+                SHOW_RC(nRetVal, "Removing infra generator from recording");
+                g_bIsRecordOn = (nRetVal != XN_STATUS_OK);
+            }
+            
+            if (g_bIsAudioOn) {
+                nRetVal = g_Recorder.RemoveNodeFromRecording(g_Audio);
+                SHOW_RC(nRetVal, "Removing audio generator from recording");
+                g_bIsRecordOn = (nRetVal != XN_STATUS_OK);
+            }
+            g_Recorder.Release();
+            g_bIsRecordOn = false;
+        }
+        
+        bDoStop = false;
+    }
+    
 	if (bIsThreaded) unlock();
 }
 
@@ -1145,6 +1148,7 @@ void ofxOpenNI::updateGenerators(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::updateDepthPixels(){
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
 	// get the pixels
 	const XnDepthPixel* depth = g_DepthMD.Data();
 	
@@ -1177,12 +1181,14 @@ void ofxOpenNI::updateDepthPixels(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::updateImagePixels(){
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
 	const XnUInt8* pImage = g_ImageMD.Data();
 	backImagePixels->setFromPixels(pImage, g_ImageMD.XRes(), g_ImageMD.YRes(), OF_IMAGE_COLOR);
 }
 
 //--------------------------------------------------------------
 void ofxOpenNI::updateIRPixels(){
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
 	const XnIRPixel* pImage = g_InfraMD.Data();
     unsigned char * ir_pixels = new unsigned char[g_InfraMD.XRes() * g_InfraMD.YRes()];
 	for (int i = 0; i < g_InfraMD.XRes() * g_InfraMD.YRes(); i++){
@@ -1200,6 +1206,7 @@ void ofxOpenNI::updateIRPixels(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::updateHandTracker(){
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     map<XnUserID, ofxOpenNIHand>::iterator it;
     int index = 0;
     currentTrackedHandIDs.clear();
@@ -1221,7 +1228,7 @@ void ofxOpenNI::updateHandTracker(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::updateUserTracker(){
-    
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
 	vector<XnUserID> userIDs(maxNumUsers);
     XnUInt16 xnMaxNumUsers = maxNumUsers;
 	g_User.GetUsers(&userIDs[0], xnMaxNumUsers);
@@ -1277,7 +1284,7 @@ void ofxOpenNI::updateUserTracker(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::updatePointClouds(ofxOpenNIUser & user){
-    
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
 	const XnRGB24Pixel*	pColor;
 	const XnDepthPixel*	pDepth = g_DepthMD.Data();
     
@@ -1310,7 +1317,7 @@ void ofxOpenNI::updatePointClouds(ofxOpenNIUser & user){
 
 //--------------------------------------------------------------
 void ofxOpenNI::updateUserPixels(ofxOpenNIUser & user){
-
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     if (user.maskPixels.getWidth() != getWidth() || user.maskPixels.getHeight() != getHeight()){
         user.maskPixels.allocate(getWidth(), getHeight(), OF_IMAGE_COLOR_ALPHA);
     }
