@@ -165,42 +165,6 @@ class ofxOpenNIUser {
 public:
     
 	ofxOpenNIUser();
-	enum Limb {
-        Head = 0,
-		Neck,
-
-        // hands
-        LeftHand,
-        RightHand,
-        
-		// left arm + shoulder
-		LeftShoulder,
-		LeftUpperArm,
-		LeftLowerArm,
-
-		// right arm + shoulder
-		RightShoulder,
-		RightUpperArm,
-		RightLowerArm,
-
-		// torso
-		LeftUpperTorso,
-		RightUpperTorso,
-
-		// left lower torso + leg
-		LeftLowerTorso,
-		LeftUpperLeg,
-		LeftLowerLeg,
-
-		// right lower torso + leg
-		RightLowerTorso,
-		RightUpperLeg,
-		RightLowerLeg,
-
-		Hip,
-
-		NumLimbs
-	};
 
     void drawSkeleton();
     void drawPointCloud();

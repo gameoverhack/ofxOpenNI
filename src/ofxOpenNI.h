@@ -148,12 +148,12 @@ public:
     bool getUseBackBuffer();
     
     // recording/playback methods
-    bool startRecording(string ofOniFileName, XnCodecID depthFormat = XN_CODEC_16Z_EMB_TABLES, XnCodecID imageFormat = XN_CODEC_JPEG, XnCodecID irFormat = XN_CODEC_JPEG, XnCodecID audioFormat = XN_CODEC_NULL);
+    bool startRecording(string ofOniFileName, XnCodecID depthFormat = XN_CODEC_16Z_EMB_TABLES, XnCodecID imageFormat = XN_CODEC_JPEG, XnCodecID infraFormat = XN_CODEC_JPEG, XnCodecID audioFormat = XN_CODEC_NULL);
     bool stopRecording();
     bool isRecording();
     
-    bool startPlayer(string ofOniFileName);
-    bool stopPlayer(bool bRestartDevice = true);
+    bool startPlayer(string ofOniFileName, bool bRestartGenerators = true);
+    bool stopPlayer(bool bRestartGenerators = true);
     bool isPlaying();
     
     // user tracker methods
@@ -294,10 +294,10 @@ private:
     
 	void updateGenerators();
     
-	bool allocateDepthBuffers();
-	bool allocateDepthRawBuffers();
-	bool allocateImageBuffers();
-	bool allocateIRBuffers();
+	void allocateDepthBuffers();
+	void allocateDepthRawBuffers();
+	void allocateImageBuffers();
+	void allocateIRBuffers();
     bool allocateUsers();
     bool allocateGestures();
     bool allocateHands();
@@ -309,7 +309,9 @@ private:
     void updateUserTracker();
     void updateUserPixels(ofxOpenNIUser & user);
 	void updatePointClouds(ofxOpenNIUser & user);
-	
+	void updateRecorder();
+    void updatePlayer();
+    
 	bool g_bIsDepthOn, l_bIsDepthOn;
 	bool g_bIsImageOn, l_bIsImageOn;
 	bool g_bIsInfraOn, l_bIsInfraOn;
@@ -334,7 +336,6 @@ private:
     bool bUseRegistration;
     bool bUseMirror;
     bool bUseSync;
-    bool bDoStop;
     
     bool bAutoCalibrationPossible;
     
@@ -393,6 +394,18 @@ private:
 	// generators/nodes
 	//xn::MockDepthGenerator mockDepth;
 	
+    // xml storage
+    string ofXmlFilePath;
+    
+    // oni storage
+    string oniFilePath;
+    XnCodecID oniDepthFormat;
+    XnCodecID oniImageFormat;
+    XnCodecID oniInfraFormat;
+    XnCodecID oniAudioFormat;
+    
+    ONITask g_ONITask;
+    
     // user callback handlers
     static void XN_CALLBACK_TYPE UserCB_handleNewUser(xn::UserGenerator& userGenerator, XnUserID nID, void* pCookie);
     static void XN_CALLBACK_TYPE UserCB_handleLostUser(xn::UserGenerator& userGenerator, XnUserID nID, void* pCookie);
