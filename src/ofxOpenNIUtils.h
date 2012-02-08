@@ -76,6 +76,16 @@ static XnUInt8 PalletIntsR [256] = {0};
 static XnUInt8 PalletIntsG [256] = {0};
 static XnUInt8 PalletIntsB [256] = {0};
 
+enum ONITask {
+    ONI_START_RECORD = 0,
+    ONI_STOP_RECORD,
+    ONI_START_PLAY,
+    ONI_STOP_PLAY,
+    ONI_START_PLAY_AND_RESTART,
+    ONI_STOP_PLAY_AND_RESTART,
+    ONI_NONE
+};
+
 enum DepthColoring {
     COLORING_PSYCHEDELIC_SHADES = 0,
     COLORING_PSYCHEDELIC,
@@ -86,6 +96,7 @@ enum DepthColoring {
     COLORING_STATUS,
     COLORING_COUNT
 };
+
 enum UserStatusType {
     USER_TRACKING_STOPPED = 0,
     USER_TRACKING_STARTED,
@@ -106,6 +117,43 @@ enum HandStatusType {
     HAND_TRACKING_UPDATED,
     HAND_FOCUS_GESTURE_PROGRESS,
     HAND_FOCUS_GESTURE_RECOGNIZED,
+};
+
+enum Limb {
+    Head = 0,
+    Neck,
+    
+    // hands
+    LeftHand,
+    RightHand,
+    
+    // left arm + shoulder
+    LeftShoulder,
+    LeftUpperArm,
+    LeftLowerArm,
+    
+    // right arm + shoulder
+    RightShoulder,
+    RightUpperArm,
+    RightLowerArm,
+    
+    // torso
+    LeftUpperTorso,
+    RightUpperTorso,
+    
+    // left lower torso + leg
+    LeftLowerTorso,
+    LeftUpperLeg,
+    LeftLowerLeg,
+    
+    // right lower torso + leg
+    RightLowerTorso,
+    RightUpperLeg,
+    RightLowerLeg,
+    
+    Hip,
+    
+    NumLimbs
 };
 
 //--------------------------------------------------------------

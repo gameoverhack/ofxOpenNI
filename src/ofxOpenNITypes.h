@@ -92,6 +92,10 @@ private:
     
     bool bIsTracking;
     
+//    // block copy ctor and assignment operator
+//    ofxOpenNIHand(const ofxOpenNIHand& other);
+//    ofxOpenNIHand& operator=(const ofxOpenNIHand&);
+    
 };
 
 class ofxOpenNIHandEvent {
@@ -161,42 +165,6 @@ class ofxOpenNIUser {
 public:
     
 	ofxOpenNIUser();
-	enum Limb {
-        Head = 0,
-		Neck,
-
-        // hands
-        LeftHand,
-        RightHand,
-        
-		// left arm + shoulder
-		LeftShoulder,
-		LeftUpperArm,
-		LeftLowerArm,
-
-		// right arm + shoulder
-		RightShoulder,
-		RightUpperArm,
-		RightLowerArm,
-
-		// torso
-		LeftUpperTorso,
-		RightUpperTorso,
-
-		// left lower torso + leg
-		LeftLowerTorso,
-		LeftUpperLeg,
-		LeftLowerLeg,
-
-		// right lower torso + leg
-		RightLowerTorso,
-		RightUpperLeg,
-		RightLowerLeg,
-
-		Hip,
-
-		NumLimbs
-	};
 
     void drawSkeleton();
     void drawPointCloud();
@@ -269,6 +237,10 @@ private:
     bool bNewPointCloud;
     
     unsigned short* userPixels;
+    
+//    // block copy ctor and assignment operator
+//    ofxOpenNIUser(const ofxOpenNIUser& other);
+//    ofxOpenNIUser& operator=(const ofxOpenNIUser&);
 
 };
 

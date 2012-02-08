@@ -66,7 +66,8 @@ public:
 	~ofxOpenNI();
 	
 	bool setup(bool threaded = true);
-	bool setup(string xmlFilePath, bool threaded = true);
+    bool setupFromONI(string oniFilePath, bool threaded = true);
+    bool setupFromXML(string xmlFilePath, bool threaded = true);
 	
     void stop();
     
@@ -146,6 +147,16 @@ public:
     void setUseBackBuffer(bool b);
     bool getUseBackBuffer();
     
+    // recording/playback methods
+    bool startRecording(string ofOniFileName, XnCodecID depthFormat = XN_CODEC_16Z_EMB_TABLES, XnCodecID imageFormat = XN_CODEC_JPEG, XnCodecID infraFormat = XN_CODEC_JPEG, XnCodecID audioFormat = XN_CODEC_NULL);
+    bool stopRecording();
+    bool isRecording();
+    
+    bool startPlayer(string ofOniFileName, bool bRestartGenerators = true);
+    bool stopPlayer(bool bRestartGenerators = true);
+    bool isPlaying();
+    
+    // user tracker methods
     ofxOpenNIUser&	getTrackedUser(int index); // only returns tracked users upto getNumTrackedUsers()
     int	getNumTrackedUsers();
     
@@ -265,8 +276,13 @@ protected:
     
 private:
     
-    bool initContext();
+    bool init(string oniFilePath, string xmlFilePath, bool threaded);
+    bool initContext(string xmlFilePath = "");
     bool initDevice();
+    bool initCommon();
+    
+    void stopCommon();
+    void restartCommon();
     
     bool setGeneratorResolution(xn::MapGenerator & generator, int w, int h, int f);
     
@@ -278,10 +294,10 @@ private:
     
 	void updateGenerators();
     
-	bool allocateDepthBuffers();
-	bool allocateDepthRawBuffers();
-	bool allocateImageBuffers();
-	bool allocateIRBuffers();
+	void allocateDepthBuffers();
+	void allocateDepthRawBuffers();
+	void allocateImageBuffers();
+	void allocateIRBuffers();
     bool allocateUsers();
     bool allocateGestures();
     bool allocateHands();
@@ -293,20 +309,25 @@ private:
     void updateUserTracker();
     void updateUserPixels(ofxOpenNIUser & user);
 	void updatePointClouds(ofxOpenNIUser & user);
-	
-	bool g_bIsDepthOn;
-	bool g_bIsImageOn;
-	bool g_bIsInfraOn;
-    bool g_bIsUserOn;
-    bool g_bIsGestureOn;
-    bool g_bIsHandsOn;
-	bool g_bIsAudioOn;
-	bool g_bIsDepthRawOnOption;
+	void updateRecorder();
+    void updatePlayer();
+    
+	bool g_bIsDepthOn, l_bIsDepthOn;
+	bool g_bIsImageOn, l_bIsImageOn;
+	bool g_bIsInfraOn, l_bIsInfraOn;
+    bool g_bIsUserOn, l_bIsUserOn;
+    bool g_bIsGestureOn, l_bIsGestureOn;
+    bool g_bIsHandsOn, l_bIsHandsOn;
+	bool g_bIsAudioOn, l_bIsAudioOn;
+	bool g_bIsDepthRawOnOption, l_bIsDepthRawOnOption;
+    bool g_bIsRecordOn, l_bIsRecordOn;
+    bool g_bIsPlayerOn;
 	
     bool bIsThreaded;
     bool bIsContextReady;
     bool bIsDeviceReady;
     bool bIsShuttingDown;
+    bool bIsRecording;
     
     bool bUseBackBuffer;
 	bool bUseTexture;
@@ -361,7 +382,7 @@ private:
     xn::SceneAnalyzer g_Scene;
 	xn::AudioGenerator g_Audio;
     xn::Recorder g_Recorder;
-    
+    xn::Player g_Player;
     
 	// meta data
 	xn::DepthMetaData g_DepthMD;
@@ -373,6 +394,18 @@ private:
 	// generators/nodes
 	//xn::MockDepthGenerator mockDepth;
 	
+    // xml storage
+    string ofXmlFilePath;
+    
+    // oni storage
+    string oniFilePath;
+    XnCodecID oniDepthFormat;
+    XnCodecID oniImageFormat;
+    XnCodecID oniInfraFormat;
+    XnCodecID oniAudioFormat;
+    
+    ONITask g_ONITask;
+    
     // user callback handlers
     static void XN_CALLBACK_TYPE UserCB_handleNewUser(xn::UserGenerator& userGenerator, XnUserID nID, void* pCookie);
     static void XN_CALLBACK_TYPE UserCB_handleLostUser(xn::UserGenerator& userGenerator, XnUserID nID, void* pCookie);
