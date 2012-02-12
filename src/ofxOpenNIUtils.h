@@ -503,7 +503,9 @@ inline string getNodeTypeAsString(XnProductionNodeType type) {
 			break;
 		case XN_NODE_TYPE_FIRST_EXTENSION:
 			return "XN_NODE_TYPE_FIRST_EXTENSION";
-			break;	
+			break;
+        case XN_NODE_TYPE_PLAYER:
+            return "XN_NODE_TYPE_PLAYER";
 		default:
 			return "UNKNOWN_NODE_TYPE";
 			break;

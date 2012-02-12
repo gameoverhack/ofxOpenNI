@@ -263,11 +263,11 @@ bool ofxOpenNI::initCommon(){
                     (*it).GetInstance(g_Audio);
                     //allocateAudioBuffers();
                     break;
-                case XN_NODE_TYPE_PLAYER:
-                    ofLogVerbose(LOG_NAME) << "Creating player from ONI/XML";
-                    g_bIsPlayerOn = true;
-                    (*it).GetInstance(g_Player);
-                    break;
+//                case XN_NODE_TYPE_PLAYER:
+//                    ofLogVerbose(LOG_NAME) << "Creating player from ONI/XML";
+//                    g_bIsPlayerOn = true;
+//                    (*it).GetInstance(g_Player);
+//                    break;
 			}
 		}
 	} else {
@@ -515,21 +515,24 @@ bool ofxOpenNI::stopRecording(){
 
 //--------------------------------------------------------------
 bool ofxOpenNI::isRecording(){
-    return (g_bIsRecordOn || ONI_START_RECORD) && !ONI_STOP_RECORD; // does this work?
+    return (g_bIsRecordOn && g_ONITask != ONI_START_RECORD && g_ONITask != ONI_STOP_RECORD);
 }
 
 //--------------------------------------------------------------
 bool ofxOpenNI::startPlayer(string oniFileName){
     if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    XnStatus nRetVal = XN_STATUS_OK;
     stopCommon();
     oniFilePath = ofToDataPath(oniFileName);
-    ofLogNotice(LOG_NAME) << "Starting ONI player...";
-    XnStatus nRetVal = XN_STATUS_OK;
-    nRetVal = g_Context.OpenFileRecording(oniFilePath.c_str());
-    SHOW_RC(nRetVal, "Loading ONI: " + oniFilePath);
-    g_bIsPlayerOn = (nRetVal == XN_STATUS_OK);
-    g_bIsPlayerOn = initCommon();
-    bIsLooped = true; // ONI player defaults to looped state internally
+    ofLogNotice(LOG_NAME) << "Starting ONI player:" << oniFileName;
+    addGenerator(XN_NODE_TYPE_PLAYER, g_bIsPlayerOn);
+    if(g_bIsPlayerOn){
+        nRetVal = g_Player.SetSource(XN_RECORD_MEDIUM_FILE, oniFilePath.c_str());
+        SHOW_RC(nRetVal, "Set player source: " + oniFilePath);
+        if(nRetVal == XN_STATUS_OK) g_bIsPlayerOn = initCommon();
+        bIsLooped = true; // ONI player defaults to looped state internally
+        bPaused = false; // default to playing
+    }
     return g_bIsPlayerOn;
 }
 
@@ -569,6 +572,11 @@ void ofxOpenNI::setFrame(int frame){
         if(g_bIsDepthOn) g_Player.SeekToFrame(g_Depth.GetName(), XnUInt32(frame), XN_PLAYER_SEEK_SET);
         if(g_bIsImageOn) g_Player.SeekToFrame(g_Image.GetName(), XnUInt32(frame), XN_PLAYER_SEEK_SET);
         if(g_bIsInfraOn) g_Player.SeekToFrame(g_Infra.GetName(), XnUInt32(frame), XN_PLAYER_SEEK_SET);
+        if(bPaused){
+            bPaused = false;
+            updateGenerators();
+            bPaused = true;
+        }
     }
 }
 
@@ -799,7 +807,10 @@ void ofxOpenNI::addGenerator(XnPredefinedProductionNodeType type, bool & bIsOn){
         case XN_NODE_TYPE_RECORDER:
 			nRetVal = g_Recorder.Create(g_Context);
             SHOW_RC(nRetVal, "Creating " + generatorType + " generator");
-            //if(g_Recorder.IsValid()) nRetVal = g_Recorder.StartGenerating();
+			break;
+        case XN_NODE_TYPE_PLAYER:
+			nRetVal = g_Player.Create(g_Context, "ONI");
+            SHOW_RC(nRetVal, "Creating " + generatorType + " generator");
 			break;
 		default:
 			ofLogError(LOG_NAME) << "Don't know how to add this type of generator/node";
