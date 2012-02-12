@@ -263,11 +263,11 @@ bool ofxOpenNI::initCommon(){
                     (*it).GetInstance(g_Audio);
                     //allocateAudioBuffers();
                     break;
-//                case XN_NODE_TYPE_PLAYER:
-//                    ofLogVerbose(LOG_NAME) << "Creating player from ONI/XML";
-//                    g_bIsPlayerOn = true;
-//                    (*it).GetInstance(g_Player);
-//                    break;
+                case XN_NODE_TYPE_PLAYER:
+                    ofLogVerbose(LOG_NAME) << "Creating player from ONI/XML";
+                    g_bIsPlayerOn = true;
+                    (*it).GetInstance(g_Player);
+                    break;
 			}
 		}
 	} else {
@@ -522,14 +522,23 @@ bool ofxOpenNI::isRecording(){
 bool ofxOpenNI::startPlayer(string oniFileName){
     if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     XnStatus nRetVal = XN_STATUS_OK;
+    bool bWasPlaying = g_bIsPlayerOn;
     stopCommon();
+    if(bWasPlaying){
+        // stop the whole context
+        if(bIsThreaded) waitForThread(true);
+        bIsContextReady = false;
+        g_Context.StopGeneratingAll();
+        g_Context.Release();
+        initContext();
+        if(bIsThreaded) startThread(true, false);
+    }
     oniFilePath = ofToDataPath(oniFileName);
     ofLogNotice(LOG_NAME) << "Starting ONI player:" << oniFileName;
-    addGenerator(XN_NODE_TYPE_PLAYER, g_bIsPlayerOn);
-    if(g_bIsPlayerOn){
-        nRetVal = g_Player.SetSource(XN_RECORD_MEDIUM_FILE, oniFilePath.c_str());
-        SHOW_RC(nRetVal, "Set player source: " + oniFilePath);
-        if(nRetVal == XN_STATUS_OK) g_bIsPlayerOn = initCommon();
+    nRetVal = g_Context.OpenFileRecording(oniFilePath.c_str());
+    SHOW_RC(nRetVal, "Loading ONI: " + oniFilePath);
+    if(nRetVal == XN_STATUS_OK){
+        g_bIsPlayerOn = initCommon();
         bIsLooped = true; // ONI player defaults to looped state internally
         bPaused = false; // default to playing
     }
@@ -573,9 +582,11 @@ void ofxOpenNI::setFrame(int frame){
         if(g_bIsImageOn) g_Player.SeekToFrame(g_Image.GetName(), XnUInt32(frame), XN_PLAYER_SEEK_SET);
         if(g_bIsInfraOn) g_Player.SeekToFrame(g_Infra.GetName(), XnUInt32(frame), XN_PLAYER_SEEK_SET);
         if(bPaused){
+            waitForThread(true);
             bPaused = false;
             updateGenerators();
             bPaused = true;
+            startThread(true, false);
         }
     }
 }
@@ -592,6 +603,7 @@ int ofxOpenNI::getCurrentFrame(){
             g_Player.TellFrame(g_Infra.GetName(), currentFrame);
         }
     }
+    ofLogVerbose(LOG_NAME) << currentFrame;
     return (int)currentFrame;
 }
 
@@ -638,12 +650,34 @@ void ofxOpenNI::firstFrame(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::nextFrame(){
-    if(g_bIsPlayerOn) setFrame(getCurrentFrame() + 1);
+    if(g_bIsPlayerOn){
+        if(g_bIsDepthOn) g_Player.SeekToFrame(g_Depth.GetName(), XnUInt32(1), XN_PLAYER_SEEK_CUR);
+        if(g_bIsImageOn) g_Player.SeekToFrame(g_Image.GetName(), XnUInt32(1), XN_PLAYER_SEEK_CUR);
+        if(g_bIsInfraOn) g_Player.SeekToFrame(g_Infra.GetName(), XnUInt32(1), XN_PLAYER_SEEK_CUR);
+        if(bPaused){
+            waitForThread(true);
+            bPaused = false;
+            updateGenerators();
+            bPaused = true;
+            startThread(true, false);
+        }
+    }
 }
 
 //--------------------------------------------------------------
 void ofxOpenNI::previousFrame(){
-    if(g_bIsPlayerOn) setFrame(getCurrentFrame() - 1);
+    if(g_bIsPlayerOn){
+        if(g_bIsDepthOn) g_Player.SeekToFrame(g_Depth.GetName(), XnUInt32(-1), XN_PLAYER_SEEK_CUR);
+        if(g_bIsImageOn) g_Player.SeekToFrame(g_Image.GetName(), XnUInt32(-1), XN_PLAYER_SEEK_CUR);
+        if(g_bIsInfraOn) g_Player.SeekToFrame(g_Infra.GetName(), XnUInt32(-1), XN_PLAYER_SEEK_CUR);
+        if(bPaused){
+            waitForThread(true);
+            bPaused = false;
+            updateGenerators();
+            bPaused = true;
+            startThread(true, false);
+        }
+    }
 }
 
 //--------------------------------------------------------------
