@@ -140,6 +140,11 @@ public:
     bool isGestureOn();
     bool isHandsOn();
     bool isAudioOn();
+    bool isPlaying();
+    bool isPaused();
+    bool isRecording();
+    
+    void setPaused(bool b); // not true pause, just stops updating context for live, recording and playback streams
     
 	void setUseTexture(bool useTexture);
 	void setDepthColoring(DepthColoring coloring);
@@ -147,14 +152,31 @@ public:
     void setUseBackBuffer(bool b);
     bool getUseBackBuffer();
     
-    // recording/playback methods
+    // recording methods
     bool startRecording(string ofOniFileName, XnCodecID depthFormat = XN_CODEC_16Z_EMB_TABLES, XnCodecID imageFormat = XN_CODEC_JPEG, XnCodecID infraFormat = XN_CODEC_JPEG, XnCodecID audioFormat = XN_CODEC_NULL);
     bool stopRecording();
-    bool isRecording();
     
-    bool startPlayer(string ofOniFileName, bool bRestartGenerators = true);
-    bool stopPlayer(bool bRestartGenerators = true);
-    bool isPlaying();
+    // playback methods
+    bool startPlayer(string ofOniFileName); // same as setupFromONIbut but allows switching from a device to playback
+    
+    void setLooped(bool b);
+    bool getLooped();
+    
+    void setSpeed(float speed);
+    float getSpeed();
+    
+    void setFrame(int frame);
+    int getCurrentFrame();
+    int getTotalNumFrames();
+    
+    void setPosition(float pct);
+    float getPosition();
+    
+    void firstFrame();
+    void nextFrame();
+    void previousFrame();
+    
+    bool getIsONIDone();
     
     // user tracker methods
     ofxOpenNIUser&	getTrackedUser(int index); // only returns tracked users upto getNumTrackedUsers()
@@ -282,7 +304,6 @@ private:
     bool initCommon();
     
     void stopCommon();
-    void restartCommon();
     
     bool setGeneratorResolution(xn::MapGenerator & generator, int w, int h, int f);
     
@@ -310,19 +331,19 @@ private:
     void updateUserPixels(ofxOpenNIUser & user);
 	void updatePointClouds(ofxOpenNIUser & user);
 	void updateRecorder();
-    void updatePlayer();
     
-	bool g_bIsDepthOn, l_bIsDepthOn;
-	bool g_bIsImageOn, l_bIsImageOn;
-	bool g_bIsInfraOn, l_bIsInfraOn;
-    bool g_bIsUserOn, l_bIsUserOn;
-    bool g_bIsGestureOn, l_bIsGestureOn;
-    bool g_bIsHandsOn, l_bIsHandsOn;
-	bool g_bIsAudioOn, l_bIsAudioOn;
-	bool g_bIsDepthRawOnOption, l_bIsDepthRawOnOption;
-    bool g_bIsRecordOn, l_bIsRecordOn;
+	bool g_bIsDepthOn;
+	bool g_bIsImageOn;
+	bool g_bIsInfraOn;
+    bool g_bIsUserOn;
+    bool g_bIsGestureOn;
+    bool g_bIsHandsOn;
+	bool g_bIsAudioOn;
+	bool g_bIsDepthRawOnOption;
+    bool g_bIsRecordOn;
     bool g_bIsPlayerOn;
-	
+
+    bool bIsLooped;
     bool bIsThreaded;
     bool bIsContextReady;
     bool bIsDeviceReady;
@@ -339,6 +360,7 @@ private:
     
     bool bAutoCalibrationPossible;
     
+    bool bPaused;
 	bool bNewPixels;
 	bool bNewFrame;
     bool bUsePointClouds;

@@ -55,7 +55,9 @@ ofxOpenNI::ofxOpenNI(){
 	g_bIsAudioOn = false;
     g_bIsPlayerOn = false;
     g_bIsRecordOn = false;
-	
+    bPaused = false;
+    bIsLooped = true;
+    
 	depthColoring = COLORING_RAINBOW;
 	
     bIsContextReady = false;
@@ -126,17 +128,19 @@ bool ofxOpenNI::init(string oniFilePath, string xmlFilePath, bool threaded){
 	}
     
     if(oniFilePath != ""){
-        if(!startPlayer(oniFilePath), false){
+        if(!startPlayer(oniFilePath)){
             ofLogError(LOG_NAME) << "ONI Device could not be initialized";
             return false;
         }
     }
-    if(oniFilePath != ""){
+    
+    if(xmlFilePath != ""){
         if(!initCommon()){
             ofLogError(LOG_NAME) << "XML Device could not be initialized";
             return false;
         }
     }
+    
     if(!initDevice()){
         ofLogWarning(LOG_NAME) << "REAL Device could not be initialized - you can still use an ONI";
     }
@@ -147,6 +151,7 @@ bool ofxOpenNI::init(string oniFilePath, string xmlFilePath, bool threaded){
     } else if(!bIsThreaded) {
         ofLogNotice(LOG_NAME) << "Starting ofxOpenNI without threading";
     }
+    
     return bIsContextReady;
 }
 
@@ -165,6 +170,7 @@ bool ofxOpenNI::initContext(string xmlFilePath){
 	g_bIsAudioOn = false;
     g_bIsPlayerOn = false;
     g_bIsRecordOn = false;
+    bPaused = false;
     
     XnStatus nRetVal = XN_STATUS_OK;
     ofXmlFilePath = ofToDataPath(xmlFilePath); // of007 hack to make sure ofSetRootPath is done!
@@ -237,25 +243,25 @@ bool ofxOpenNI::initCommon(){
                     g_bIsDepthOn = true;
                     //g_bIsDepthRawOnOption = true;
                     (*it).GetInstance(g_Depth);
-                    if(!l_bIsDepthOn) allocateDepthBuffers();
+                    allocateDepthBuffers();
                     break;
                 case XN_NODE_TYPE_IMAGE:
                     ofLogVerbose(LOG_NAME) << "Creating image generator from ONI/XML";
                     g_bIsImageOn = true;
                     (*it).GetInstance(g_Image);
-                    if(!l_bIsImageOn)allocateImageBuffers();
+                    allocateImageBuffers();
                     break;
                 case XN_NODE_TYPE_IR:
                     ofLogVerbose(LOG_NAME) << "Creating ir generator from ONI/XML";
                     g_bIsInfraOn = true;
                     (*it).GetInstance(g_Infra);
-                    if(!l_bIsInfraOn) allocateIRBuffers();
+                    allocateIRBuffers();
                     break;
                 case XN_NODE_TYPE_AUDIO:
                     ofLogVerbose(LOG_NAME) << "Creating audio generator from ONI/XML";
                     g_bIsAudioOn = true;
                     (*it).GetInstance(g_Audio);
-                    //if(!l_bIsAudioOn) allocateAudioBuffers();
+                    //allocateAudioBuffers();
                     break;
                 case XN_NODE_TYPE_PLAYER:
                     ofLogVerbose(LOG_NAME) << "Creating player from ONI/XML";
@@ -313,14 +319,14 @@ void ofxOpenNI::stop(){
         cout << LOG_NAME << ": ...already shut down" << endl;
         return;
     }
-    
+       
     bIsShuttingDown = true;
-    
+
     if(!bIsContextReady) return;
     
     if(bIsThreaded){
         cout << LOG_NAME << ": trying to lock" << endl;
-        unlock();
+        lock();
         cout << LOG_NAME << ": trying to stop thread" << endl;
         stopThread();
         waitForThread(true);
@@ -339,7 +345,17 @@ void ofxOpenNI::stop(){
     g_Context.StopGeneratingAll();
     g_Context.Release();
     bIsContextReady = false;
-
+    
+    cout << LOG_NAME << ": releasing depth texture & pixels" << endl;
+    depthTexture.clear();
+	depthPixels[0].clear();
+    depthPixels[1].clear();
+    
+    cout << LOG_NAME << ": releasing image texture & pixels" << endl;
+    imageTexture.clear();
+    imagePixels[0].clear();
+    imagePixels[1].clear();
+    
     instanceCount--; // ok this will probably cause problems when dynamically creating and destroying -> you'd need to do it in order!
     bIsShuttingDown = false;
     cout << LOG_NAME << ": full stopped" << endl;
@@ -354,7 +370,7 @@ void ofxOpenNI::stopCommon(){
         g_bIsRecordOn = false;
     }
     
-    if(g_bIsPlayerOn && (!ONI_START_PLAY || !ONI_START_PLAY_AND_RESTART)){
+    if(g_bIsPlayerOn){ 
         cout << LOG_NAME << ": releasing player" << endl;
         g_Player.Release();
         g_bIsPlayerOn = false;
@@ -364,8 +380,6 @@ void ofxOpenNI::stopCommon(){
         cout << LOG_NAME << ": releasing depth generator" << endl;
         g_Depth.StopGenerating();
         g_Depth.Release();
-        l_bIsDepthRawOnOption = g_bIsDepthRawOnOption;
-        l_bIsDepthOn = g_bIsDepthOn;
         g_bIsDepthRawOnOption = false;
         g_bIsDepthOn = false;
     }
@@ -374,7 +388,6 @@ void ofxOpenNI::stopCommon(){
         cout << LOG_NAME << ": releasing image generator" << endl;
         g_Image.StopGenerating();
         g_Image.Release();
-        l_bIsImageOn = g_bIsImageOn;
         g_bIsImageOn = false;
     }
     
@@ -382,7 +395,6 @@ void ofxOpenNI::stopCommon(){
         cout << LOG_NAME << ": releasing infra generator" << endl;
         g_Infra.StopGenerating();
         g_Infra.Release();
-        l_bIsInfraOn = g_bIsInfraOn;
         g_bIsInfraOn = false;
     }
         
@@ -390,14 +402,12 @@ void ofxOpenNI::stopCommon(){
         cout << LOG_NAME << ": releasing audio generator" << endl;
         g_Audio.StopGenerating();
         g_Audio.Release();
-        g_bIsAudioOn = l_bIsAudioOn;
     }
     
     if(g_bIsUserOn){
         cout << LOG_NAME << ": releasing user generator" << endl;
         g_User.StopGenerating();
         g_User.Release();
-        l_bIsUserOn = g_bIsUserOn;
         g_bIsUserOn = false;
     }
     
@@ -405,7 +415,6 @@ void ofxOpenNI::stopCommon(){
         cout << LOG_NAME << ": releasing gesture generator" << endl;
         g_Gesture.StopGenerating();
         g_Gesture.Release();
-        l_bIsGestureOn = g_bIsGestureOn;
         g_bIsGestureOn = false;
     }
     
@@ -415,7 +424,6 @@ void ofxOpenNI::stopCommon(){
         g_Hands.Release();
         g_HandsFocusGesture.StopGenerating();
         g_HandsFocusGesture.Release();
-        l_bIsHandsOn = g_bIsHandsOn;
         g_bIsHandsOn = false;
     }
     
@@ -424,7 +432,6 @@ void ofxOpenNI::stopCommon(){
         g_Device.Release();
         bIsDeviceReady = false;
     }
-
 }
 
 /**************************************************************
@@ -512,58 +519,147 @@ bool ofxOpenNI::isRecording(){
 }
 
 //--------------------------------------------------------------
-bool ofxOpenNI::startPlayer(string oniFileName, bool bRestartGenerators){
+bool ofxOpenNI::startPlayer(string oniFileName){
     if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
-    if(!g_bIsPlayerOn){
-        oniFilePath = ofToDataPath(oniFileName);
-        ofLogNotice(LOG_NAME) << "Starting ONI player...";
-        g_bIsPlayerOn = true; // bit dodgy doing this but only way to do it safely in a thread
-        g_ONITask = bRestartGenerators ? ONI_START_PLAY_AND_RESTART : ONI_START_PLAY;
-        if(!bIsThreaded) updatePlayer();
-        return g_bIsPlayerOn;
-    }else{
-        ofLogNotice(LOG_NAME) << "Already ONI playing...";
-        return false;
+    stopCommon();
+    oniFilePath = ofToDataPath(oniFileName);
+    ofLogNotice(LOG_NAME) << "Starting ONI player...";
+    XnStatus nRetVal = XN_STATUS_OK;
+    nRetVal = g_Context.OpenFileRecording(oniFilePath.c_str());
+    SHOW_RC(nRetVal, "Loading ONI: " + oniFilePath);
+    g_bIsPlayerOn = (nRetVal == XN_STATUS_OK);
+    g_bIsPlayerOn = initCommon();
+    bIsLooped = true; // ONI player defaults to looped state internally
+    return g_bIsPlayerOn;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setLooped(bool b){
+    bIsLooped = b;
+    if(g_bIsPlayerOn){
+        g_Player.SetRepeat(bIsLooped);
     }
 }
 
 //--------------------------------------------------------------
-bool ofxOpenNI::stopPlayer(bool bRestartGenerators){
-    
+bool ofxOpenNI::getLooped(){
+    return bIsLooped;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setSpeed(float speed){
     if(g_bIsPlayerOn){
-        ofLogNotice(LOG_NAME) << "Stopping ONI player...";
-        stop();
-        oniFilePath = "";
-        if(bRestartGenerators){
-            if(ofXmlFilePath == "" || ofXmlFilePath == ofToDataPath("")){
-                setup();
-            }else{
-                setupFromXML(ofXmlFilePath);
-            }
-            restartCommon();
-        }
-        return true;
-    }else{
-        ofLogNotice(LOG_NAME) << "Not ONI playing...";
-        return false;
+        g_Player.SetPlaybackSpeed(speed);
     }
+}
+
+//--------------------------------------------------------------
+float ofxOpenNI::getSpeed(){
+    float speed = 0.0f;
+    if(g_bIsPlayerOn){
+        speed = g_Player.GetPlaybackSpeed();
+    }
+    return speed;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setFrame(int frame){
+    if(g_bIsPlayerOn){
+        CLAMP(frame, 0, getTotalNumFrames());
+        if(g_bIsDepthOn) g_Player.SeekToFrame(g_Depth.GetName(), XnUInt32(frame), XN_PLAYER_SEEK_SET);
+        if(g_bIsImageOn) g_Player.SeekToFrame(g_Image.GetName(), XnUInt32(frame), XN_PLAYER_SEEK_SET);
+        if(g_bIsInfraOn) g_Player.SeekToFrame(g_Infra.GetName(), XnUInt32(frame), XN_PLAYER_SEEK_SET);
+    }
+}
+
+//--------------------------------------------------------------
+int ofxOpenNI::getCurrentFrame(){
+    XnUInt32 currentFrame = 0;
+    if(g_bIsPlayerOn){
+        if(g_bIsDepthOn){
+            g_Player.TellFrame(g_Depth.GetName(), currentFrame);
+        }else if(g_bIsImageOn){
+            g_Player.TellFrame(g_Image.GetName(), currentFrame);
+        }else if(g_bIsInfraOn){
+            g_Player.TellFrame(g_Infra.GetName(), currentFrame);
+        }
+    }
+    return (int)currentFrame;
+}
+
+//--------------------------------------------------------------
+int ofxOpenNI::getTotalNumFrames(){
+    XnUInt32 totalFrames = 0;
+    if(g_bIsPlayerOn){
+        if(g_bIsDepthOn){
+            g_Player.GetNumFrames(g_Depth.GetName(), totalFrames);
+        }else if(g_bIsImageOn){
+            g_Player.GetNumFrames(g_Image.GetName(), totalFrames);
+        }else if(g_bIsInfraOn){
+            g_Player.GetNumFrames(g_Infra.GetName(), totalFrames);
+        }
+    }
+    return (int)totalFrames;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setPosition(float pct){
+    if(g_bIsPlayerOn){
+        CLAMP(pct, 0.0f, 1.0f);
+        int totalFrames = getTotalNumFrames();
+        int frameAtPosition = floor(totalFrames * pct);
+        setFrame(frameAtPosition);
+    }
+}
+
+//--------------------------------------------------------------
+float ofxOpenNI::getPosition(){
+    float pct = 0.0f;
+    if(g_bIsPlayerOn){
+        float totalFrames = getTotalNumFrames();
+        float currentFrame = getCurrentFrame();
+        pct = currentFrame/totalFrames;
+    }
+    return pct;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::firstFrame(){
+    if(g_bIsPlayerOn) setFrame(0);
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::nextFrame(){
+    if(g_bIsPlayerOn) setFrame(getCurrentFrame() + 1);
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::previousFrame(){
+    if(g_bIsPlayerOn) setFrame(getCurrentFrame() - 1);
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::getIsONIDone(){
+    bool isDone = true;
+    if(g_bIsPlayerOn){
+        isDone = g_Player.IsEOF();
+    }
+    return isDone;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setPaused(bool b){
+    bPaused = b;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::isPaused(){
+    return bPaused;
 }
 
 //--------------------------------------------------------------
 bool ofxOpenNI::isPlaying(){
     return g_bIsPlayerOn;
-}
-
-//--------------------------------------------------------------
-void ofxOpenNI::restartCommon(){
-    if(l_bIsDepthOn && !g_bIsDepthOn) addDepthGenerator();
-    if(l_bIsImageOn && !g_bIsImageOn) addImageGenerator();
-    if(l_bIsInfraOn && !g_bIsInfraOn) addInfraGenerator();
-    if(l_bIsUserOn && !g_bIsUserOn) addUserGenerator();
-    if(l_bIsHandsOn && !g_bIsHandsOn) addHandsGenerator(); // TODO: store focus gestures...and reinit
-    if(l_bIsGestureOn && !g_bIsGestureOn) addGestureGenerator(); // TODO: store gestures...and reinit
-    //setMirror(bUseMirror);
-    if(!g_bIsPlayerOn) setRegister(bUseRegistration);
 }
 
 /**************************************************************
@@ -1040,12 +1136,15 @@ void ofxOpenNI::update(){
 //--------------------------------------------------------------
 void ofxOpenNI::updateGenerators(){
     
-    if(bIsShuttingDown) return;
 	if(bIsThreaded && bUseSafeThreading) lock(); // with this here I get ~30 fps with 2 Kinects/60 fps with 1 kinect -> BUT no crash on exit!
-	
+	if(bIsShuttingDown || bPaused){
+        if(bIsThreaded) unlock();
+        return;
+    }
+    
     if(!bIsContextReady) return;
     
-    g_Context.WaitAnyUpdateAll();
+    if(g_bIsDepthOn || g_bIsImageOn || g_bIsInfraOn) g_Context.WaitAnyUpdateAll();
     
     //    this doesn't seem as fast/smooth, but is more 'correct':
     //    if(g_bIsUserOn) {
@@ -1097,8 +1196,9 @@ void ofxOpenNI::updateGenerators(){
     }
 	
 	bNewPixels = true;
+    
     if(g_bIsRecordOn) updateRecorder();
-    if(g_bIsPlayerOn) updatePlayer();
+    
 	if(bIsThreaded) unlock();
 
 }
@@ -1377,54 +1477,6 @@ void ofxOpenNI::updateRecorder(){
     }
     g_ONITask = ONI_NONE;
 }
-
-//--------------------------------------------------------------
-void ofxOpenNI::updatePlayer(){
-    if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
-    XnStatus nRetVal = XN_STATUS_OK;
-    switch(g_ONITask){
-        case ONI_START_PLAY_AND_RESTART:
-        case ONI_START_PLAY:
-        {
-            stopCommon();
-            XnStatus nRetVal = XN_STATUS_OK;
-            nRetVal = g_Context.OpenFileRecording(oniFilePath.c_str());
-            SHOW_RC(nRetVal, "Loading ONI: " + oniFilePath);
-            g_bIsPlayerOn = (nRetVal == XN_STATUS_OK);
-            initCommon();
-            if(g_ONITask == ONI_START_PLAY_AND_RESTART){
-                restartCommon();
-            }
-            g_bIsPlayerOn = true;
-        }
-            break;
-//        case ONI_STOP_PLAY_AND_RESTART:
-//        case ONI_STOP_PLAY:
-//        {
-//            bIsContextReady = false;
-//            g_bIsPlayerOn = false;
-//            if (bIsThreaded) {
-//                stopThread();
-//                bIsThreaded = false;
-//            }
-//            stopCommon();
-//            g_Context.StopGeneratingAll();
-//            g_Context.Release();
-//            oniFilePath = "";
-//            if(g_ONITask == ONI_STOP_PLAY_AND_RESTART){
-//                if(ofXmlFilePath == "" || ofXmlFilePath == ofToDataPath("")){
-//                    setup();
-//                }else{
-//                    setupFromXML(ofXmlFilePath);
-//                }
-//                restartCommon();
-//            }
-//        }
-//            break;
-    }
-    g_ONITask = ONI_NONE;
-}
-
 
 /**************************************************************
  *
@@ -2237,7 +2289,7 @@ float ofxOpenNI::getWidth(){
 	}else if(g_bIsInfraOn){
 		return g_InfraMD.XRes();
 	} else {
-		ofLogWarning(LOG_NAME) << "getWidth() : We haven't yet initialised any generators, so this value returned is returned as 0";
+		//ofLogWarning(LOG_NAME) << "getWidth() : We haven't yet initialised any generators, so this value returned is returned as 0";
 		return 0;
 	}
 }
@@ -2251,7 +2303,7 @@ float ofxOpenNI::getHeight(){
 	}else if(g_bIsInfraOn){
 		return g_InfraMD.YRes();
 	} else {
-		ofLogWarning(LOG_NAME) << "getHeight() : We haven't yet initialised any generators, so this value returned is returned as 0";
+		//ofLogWarning(LOG_NAME) << "getHeight() : We haven't yet initialised any generators, so this value returned is returned as 0";
 		return 0;
 	}
 }

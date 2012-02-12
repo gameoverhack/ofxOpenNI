@@ -79,10 +79,6 @@ static XnUInt8 PalletIntsB [256] = {0};
 enum ONITask {
     ONI_START_RECORD = 0,
     ONI_STOP_RECORD,
-    ONI_START_PLAY,
-    ONI_STOP_PLAY,
-    ONI_START_PLAY_AND_RESTART,
-    ONI_STOP_PLAY_AND_RESTART,
     ONI_NONE
 };
 
