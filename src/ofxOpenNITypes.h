@@ -39,84 +39,6 @@
 #include "ofTexture.h"
 #include "ofGraphics.h"
 
-class ofxOpenNIGestureEvent {
-    
-public:
-    
-    ofxOpenNIGestureEvent(){};
-    ofxOpenNIGestureEvent(int _deviceID,
-                          string _gestureName,
-                          GestureStatusType _gestureStatus,
-                          float _progress,
-                          ofPoint _position,
-                          ofPoint _worldPosition,
-                          int _timestampMillis)
-    :
-    deviceID(_deviceID),
-    gestureName(_gestureName),
-    gestureStatus(_gestureStatus),
-    progress(_progress),
-    position(_position),
-    worldPosition(_worldPosition),
-    timestampMillis(_timestampMillis){};
-    
-    int deviceID;
-    string gestureName;
-    GestureStatusType gestureStatus;
-    float progress;
-    ofPoint position;
-    ofPoint worldPosition;
-    int timestampMillis;
-    
-};
-
-class ofxOpenNIHand {
-    
-public:
-    
-    ofxOpenNIHand(){};
-    
-    XnUserID getID(){return id;};
-    ofPoint & getPosition(){return position;};
-    ofPoint & getWorldPosition(){return worldPosition;};
-    
-    bool isTracking(){return bIsTracking;};
-    
-private:
-    
-    friend class ofxOpenNI;
-    
-	XnUserID id;
-    ofPoint	position;
-	ofPoint worldPosition;
-    
-    bool bIsTracking;
-    
-//    // block copy ctor and assignment operator
-//    ofxOpenNIHand(const ofxOpenNIHand& other);
-//    ofxOpenNIHand& operator=(const ofxOpenNIHand&);
-    
-};
-
-class ofxOpenNIHandEvent {
-    
-public:
-    
-    ofxOpenNIHandEvent(){};
-    ofxOpenNIHandEvent(int _deviceID, HandStatusType _handStatus, XnUserID _id, ofPoint _position, ofPoint _worldPosition, int _timestampMillis)
-    : deviceID(_deviceID), handStatus(_handStatus), id(_id), position(_position), worldPosition(_worldPosition), timestampMillis(_timestampMillis){};
-    
-    int deviceID;
-    HandStatusType handStatus;
-    XnUserID id;
-    ofPoint position;
-    ofPoint worldPosition;
-    int timestampMillis;
-    
-    //ofxOpenNIHand * hand;
-    
-};
-
 class ofxOpenNILimb {
 
 public:
@@ -261,6 +183,174 @@ public:
     int timestampMillis;
     
     //ofxOpenNIUser * user;
+    
+};
+
+class ofxOpenNIDepthThreshold {
+    
+public:
+    
+    ofxOpenNIDepthThreshold();
+    ofxOpenNIDepthThreshold(int _nearThreshold,
+                            int _farThreshold,
+                            bool _bUsePointCloud = false,
+                            bool _bUseMaskPixels = true,
+                            bool _bUseMaskTexture = true,
+                            bool _bUseDepthPixels = false,
+                            bool _bUseDepthTexture = false)
+    :
+    nearThreshold(_nearThreshold),
+    farThreshold(_farThreshold),
+    bUsePointCloud(_bUsePointCloud),
+    bUseMaskPixels(_bUseMaskPixels || _bUseMaskTexture),
+    bUseMaskTexture(_bUseMaskTexture),
+    bUseDepthPixels(_bUseDepthPixels || _bUseDepthTexture),
+    bUseDepthTexture(_bUseDepthTexture){
+        pointCloudDrawSize = 2;
+        pointCloudResolution = 2;
+        bNewPixels = false;
+        bNewPointCloud = false;};
+    
+    void drawPointCloud();
+    void drawMask();
+    void drawDepth();
+    
+    void setNearThreshold(int _nearThreshold);
+    int getNearThreshold();
+    
+    void setFarThreshold(int _farThreshold);
+    int getFarThreshold();
+    
+    void setPointCloudDrawSize(int size); // this is the size of the points when drawing
+    int getPointCloudDrawSize();
+    
+    void setPointCloudResolution(int resolution); // this is the step size when calculating (lower is higher res!)
+    int getPointCloudResolution();
+    
+    void setUseMaskTexture(bool b);
+    bool getUseMaskTexture();
+    
+    void setUseMaskPixels(bool b);
+    bool getUseMaskPixels();
+    
+    void setUseDepthTexture(bool b);
+    bool getUseDepthTexture();
+    
+    void setUseDepthPixels(bool b);
+    bool getUseDepthPixels();
+    
+    void setUsePointCloud(bool b);
+    bool getUsePointCloud();
+    
+    ofMesh & getPointCloud();
+    ofPixels & getMaskPixels();
+    ofTexture & getMaskTextureReference();
+    ofPixels & getDepthPixels();
+    ofTexture & getDepthTextureReference();
+    
+private:
+    
+    friend class ofxOpenNI;
+    
+    int nearThreshold;
+    int farThreshold;
+    
+	ofMesh pointCloud[2];
+    ofPixels depthPixels;
+    ofTexture depthTexture;
+	ofPixels maskPixels;
+    ofTexture maskTexture;
+    
+    int id;
+    
+    int pointCloudDrawSize;
+    int pointCloudResolution;
+    
+    bool bUseDepthPixels;
+    bool bUseDepthTexture;
+    bool bUseMaskPixels;
+    bool bUseMaskTexture;
+    bool bUsePointCloud;
+    bool bNewPixels;
+    bool bNewPointCloud;
+    
+};
+
+class ofxOpenNIGestureEvent {
+    
+public:
+    
+    ofxOpenNIGestureEvent(){};
+    ofxOpenNIGestureEvent(int _deviceID,
+                          string _gestureName,
+                          GestureStatusType _gestureStatus,
+                          float _progress,
+                          ofPoint _position,
+                          ofPoint _worldPosition,
+                          int _timestampMillis)
+    :
+    deviceID(_deviceID),
+    gestureName(_gestureName),
+    gestureStatus(_gestureStatus),
+    progress(_progress),
+    position(_position),
+    worldPosition(_worldPosition),
+    timestampMillis(_timestampMillis){};
+    
+    int deviceID;
+    string gestureName;
+    GestureStatusType gestureStatus;
+    float progress;
+    ofPoint position;
+    ofPoint worldPosition;
+    int timestampMillis;
+    
+};
+
+class ofxOpenNIHand {
+    
+public:
+    
+    ofxOpenNIHand(){};
+    
+    XnUserID getID(){return id;};
+    ofPoint & getPosition(){return position;};
+    ofPoint & getWorldPosition(){return worldPosition;};
+    
+    bool isTracking(){return bIsTracking;};
+    
+private:
+    
+    friend class ofxOpenNI;
+    
+	XnUserID id;
+    ofPoint	position;
+	ofPoint worldPosition;
+    
+    bool bIsTracking;
+    
+    //    // block copy ctor and assignment operator
+    //    ofxOpenNIHand(const ofxOpenNIHand& other);
+    //    ofxOpenNIHand& operator=(const ofxOpenNIHand&);
+    
+};
+
+class ofxOpenNIHandEvent {
+    
+public:
+    
+    ofxOpenNIHandEvent(){};
+    ofxOpenNIHandEvent(int _deviceID, HandStatusType _handStatus, XnUserID _id, ofPoint _position, ofPoint _worldPosition, int _timestampMillis)
+    : deviceID(_deviceID), handStatus(_handStatus), id(_id), position(_position), worldPosition(_worldPosition), timestampMillis(_timestampMillis){};
+    
+    int deviceID;
+    HandStatusType handStatus;
+    XnUserID id;
+    ofPoint position;
+    ofPoint worldPosition;
+    int timestampMillis;
+    
+    //ofxOpenNIHand * hand;
     
 };
 

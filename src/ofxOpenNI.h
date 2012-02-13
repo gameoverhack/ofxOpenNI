@@ -239,6 +239,19 @@ public:
     
     void setBaseHandClass(ofxOpenNIHand & hand);
     
+    // depth masks, pixels and point clouds (non-user)
+    void addDepthThreshold(ofxOpenNIDepthThreshold & depthThreshold);
+    void addDepthThreshold(int _nearThreshold,
+                           int _farThreshold,
+                           bool _bUseCloudPoint = false,
+                           bool _bUseMaskPixels = true,
+                           bool _bUseMaskTexture = true,
+                           bool _bUseDepthPixels = false,
+                           bool _bUseDepthTexture = false);
+    
+    int getNumDepthThresholds();
+    ofxOpenNIDepthThreshold & getDepthThreshold(int index);
+
     // generator 'capabilities'
     void toggleRegister();
 	void setRegister(bool b);
@@ -331,6 +344,7 @@ private:
     void updateUserPixels(ofxOpenNIUser & user);
 	void updatePointClouds(ofxOpenNIUser & user);
 	void updateRecorder();
+    void updateDepthThresholds(const unsigned short & depth, ofColor & depthColor, int nX, int nY);
     
 	bool g_bIsDepthOn;
 	bool g_bIsImageOn;
@@ -480,6 +494,12 @@ private:
 	static void XN_CALLBACK_TYPE HandsCB_handleHandUpdate(xn::HandsGenerator& handsGenerator, XnUserID nID, const XnPoint3D* pPosition, XnFloat fTime, void* pCookie);
 	static void XN_CALLBACK_TYPE HandsCB_handleHandDestroy(xn::HandsGenerator& handsGenerator, XnUserID nID, XnFloat fTime, void* pCookie);
 	
+    // depth thresholds and point clouds (non-user)
+    ofxOpenNIDepthThreshold baseDepthThreshold;
+    vector<ofxOpenNIDepthThreshold> currentDepthThresholds;
+    //vector<ofxOpenNIDepthThresholdKey> currentDepthThresholdKeys;
+    //map<ofxOpenNIDepthThresholdKey, ofxOpenNIDepthThreshold> currentDepthThresholds;
+    
     int instanceID;
     ofLogLevel logLevel;
     

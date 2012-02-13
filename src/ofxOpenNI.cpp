@@ -1154,18 +1154,43 @@ void ofxOpenNI::update(){
 		for (int nID = 1; nID <= maxNumUsers; nID++) {
             ofxOpenNIUser & user = currentTrackedUsers[nID];
             if(user.bIsTracking){
-                if(user.bUsePointCloud && user.bNewPointCloud){
+                if(user.getUsePointCloud() && user.bNewPointCloud){
                     swap(user.pointCloud[0], user.pointCloud[1]);
                 }
-                if(user.bUseMaskTexture && user.bNewPixels){
+                if(user.getUseMaskTexture() && user.bNewPixels){
                     if(user.maskTexture.getWidth() != getWidth() || user.maskTexture.getHeight() != getHeight()){
                         ofLogVerbose(LOG_NAME) << "Allocating mask texture " << user.id;
                         user.maskTexture.allocate(getWidth(), getHeight(), GL_RGBA);
                     }
                     user.maskTexture.loadData(user.maskPixels.getPixels(), getWidth(), getHeight(), GL_RGBA);
                 }
-                user.bNewPointCloud = false;
                 user.bNewPixels = false;
+                user.bNewPointCloud = false;
+            }
+        }
+        
+        for(int i = 0; i < currentDepthThresholds.size(); i++){
+            ofxOpenNIDepthThreshold & depthThreshold = currentDepthThresholds[i];
+            if(depthThreshold.bNewPixels){
+                if(depthThreshold.getUseMaskPixels()){
+                    if(depthThreshold.maskTexture.getWidth() != getWidth() || depthThreshold.maskTexture.getHeight() != getHeight()){
+                        ofLogVerbose(LOG_NAME) << "Allocating mask texture for depthThreshold";
+                        depthThreshold.maskTexture.allocate(getWidth(), getHeight(), GL_RGBA);
+                    }
+                    depthThreshold.maskTexture.loadData(depthThreshold.maskPixels.getPixels(), getWidth(), getHeight(), GL_RGBA);
+                }
+                if(depthThreshold.getUseDepthPixels()){
+                    if(depthThreshold.depthTexture.getWidth() != getWidth() || depthThreshold.depthTexture.getHeight() != getHeight()){
+                        ofLogVerbose(LOG_NAME) << "Allocating depth texture for depthThreshold";
+                        depthThreshold.depthTexture.allocate(getWidth(), getHeight(), GL_RGBA);
+                    }
+                    depthThreshold.depthTexture.loadData(depthThreshold.depthPixels.getPixels(), getWidth(), getHeight(), GL_RGBA);
+                }
+                if(depthThreshold.getUsePointCloud() && depthThreshold.bNewPointCloud){
+                    swap(depthThreshold.pointCloud[0], depthThreshold.pointCloud[1]);
+                }
+                depthThreshold.bNewPixels = false;
+                depthThreshold.bNewPointCloud = false;
             }
             
         }
@@ -1271,7 +1296,7 @@ void ofxOpenNI::updateDepthPixels(){
 	for (XnUInt16 y = g_DepthMD.YOffset(); y < g_DepthMD.YRes() + g_DepthMD.YOffset(); y++){
 		unsigned char * texture = backDepthPixels->getPixels() + y * g_DepthMD.XRes() * 4 + g_DepthMD.XOffset() * 4;
 		for (XnUInt16 x = 0; x < g_DepthMD.XRes(); x++, depth++, texture += 4){
-			
+
 			ofColor depthColor;
 			getDepthColor(depthColoring, *depth, depthColor, maxDepth);
 			
@@ -1279,10 +1304,13 @@ void ofxOpenNI::updateDepthPixels(){
 			texture[1] = depthColor.g;
 			texture[2] = depthColor.b;
 			
-			if(*depth == 0)
+			if(*depth == 0){
 				texture[3] = 0;
-			else
+			}else{
 				texture[3] = depthColor.a;
+            }
+            
+            if(currentDepthThresholds.size() > 0) updateDepthThresholds(*depth, depthColor, x, y);
 		}
 	}
 }
@@ -1523,6 +1551,73 @@ void ofxOpenNI::updateRecorder(){
             break;
     }
     g_ONITask = ONI_NONE;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::updateDepthThresholds(const unsigned short & depth, ofColor & depthColor, int nX, int nY){
+    if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    int nIndex = nY * getWidth() + nX;
+    for(int i = 0; i < currentDepthThresholds.size(); i++){
+        ofxOpenNIDepthThreshold & depthThreshold = currentDepthThresholds[i];
+        if(depthThreshold.getUseMaskPixels()){
+            if(depthThreshold.maskPixels.getWidth() != getWidth() || depthThreshold.maskPixels.getHeight() != getHeight()){
+                ofLogVerbose(LOG_NAME) << "Allocating mask pixels for depthThreshold";
+                depthThreshold.maskPixels.allocate(getWidth(), getHeight(), OF_PIXELS_RGBA);
+            }
+            if(depth > depthThreshold.getNearThreshold() && depth < depthThreshold.getFarThreshold()){
+                depthThreshold.maskPixels[nIndex * 4 + 0] = 255;
+                depthThreshold.maskPixels[nIndex * 4 + 1] = 255;
+                depthThreshold.maskPixels[nIndex * 4 + 2] = 255;
+                depthThreshold.maskPixels[nIndex * 4 + 3] = 0;
+            }else{
+                depthThreshold.maskPixels[nIndex * 4 + 0] = 0;
+                depthThreshold.maskPixels[nIndex * 4 + 1] = 0;
+                depthThreshold.maskPixels[nIndex * 4 + 2] = 0;
+                depthThreshold.maskPixels[nIndex * 4 + 3] = 255;
+            }
+            depthThreshold.bNewPixels = true;
+        }
+        if(depthThreshold.getUseDepthPixels()){
+            if(depthThreshold.depthPixels.getWidth() != getWidth() || depthThreshold.depthPixels.getHeight() != getHeight()){
+                ofLogVerbose(LOG_NAME) << "Allocating depth pixels for depthThreshold";
+                depthThreshold.depthPixels.allocate(getWidth(), getHeight(), OF_PIXELS_RGBA);
+            }
+            if(depth > depthThreshold.getNearThreshold() && depth < depthThreshold.getFarThreshold()){
+                depthThreshold.depthPixels[nIndex * 4 + 0] = depthColor.r;
+                depthThreshold.depthPixels[nIndex * 4 + 1] = depthColor.g;
+                depthThreshold.depthPixels[nIndex * 4 + 2] = depthColor.b;
+                depthThreshold.depthPixels[nIndex * 4 + 3] = depthColor.a;
+            }else{
+                depthThreshold.depthPixels[nIndex * 4 + 0] = 0;
+                depthThreshold.depthPixels[nIndex * 4 + 1] = 0;
+                depthThreshold.depthPixels[nIndex * 4 + 2] = 0;
+                depthThreshold.depthPixels[nIndex * 4 + 3] = 0;
+            }
+            depthThreshold.bNewPixels = true;
+        }
+        if(depthThreshold.getUsePointCloud()){
+            if(nIndex == 0){
+                depthThreshold.pointCloud[0].getVertices().clear();
+                depthThreshold.pointCloud[0].getColors().clear();
+                depthThreshold.pointCloud[0].setMode(OF_PRIMITIVE_POINTS);
+            }
+            if(nX % depthThreshold.getPointCloudResolution() == 0 && 
+               nY % depthThreshold.getPointCloudResolution() == 0 &&
+               depth > depthThreshold.getNearThreshold() && 
+               depth < depthThreshold.getFarThreshold()){
+                const XnRGB24Pixel*	pColor;
+                depthThreshold.pointCloud[0].addVertex(ofPoint(nX, nY, depth));
+				if(g_bIsImageOn){
+                    pColor = g_ImageMD.RGB24Data();
+					depthThreshold.pointCloud[0].addColor(ofColor(pColor[nIndex].nRed, pColor[nIndex].nGreen, pColor[nIndex].nBlue));
+				}else{
+					depthThreshold.pointCloud[0].addColor(ofFloatColor(1,1,1));
+				}
+                depthThreshold.bNewPointCloud = true;
+            }
+            
+        }
+    }
 }
 
 /**************************************************************
@@ -1987,6 +2082,40 @@ int ofxOpenNI::getMinDistanceBetweenHands(){
 //--------------------------------------------------------------
 void ofxOpenNI::setBaseHandClass(ofxOpenNIHand & hand){
     baseHand = hand;
+}
+
+/**************************************************************
+ *
+ *      getters/setters: depth thresholds (non-user based)
+ *
+ *************************************************************/
+
+//--------------------------------------------------------------
+void ofxOpenNI::addDepthThreshold(ofxOpenNIDepthThreshold & depthThreshold){
+    if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    if(depthThreshold.nearThreshold >= depthThreshold.farThreshold || depthThreshold.nearThreshold > maxDepth || depthThreshold.farThreshold > maxDepth){
+        ofLogError(LOG_NAME) << "Near or Far Threshold are out of range!";
+        return;
+    }
+    ofLogVerbose(LOG_NAME) << "Adding depthThreshold:" << depthThreshold.nearThreshold << " - " << depthThreshold.farThreshold;
+    currentDepthThresholds.push_back(depthThreshold);
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::addDepthThreshold(int _nearThreshold, int _farThreshold, bool _bUseCloudPoint, bool _bUseMaskPixels, bool _bUseMaskTexture, bool _bUseDepthPixels, bool _bUseDepthTexture){
+    ofxOpenNIDepthThreshold depthThreshold = ofxOpenNIDepthThreshold(_nearThreshold, _farThreshold, _bUseCloudPoint, _bUseMaskPixels, _bUseMaskTexture, _bUseDepthPixels, _bUseDepthTexture);
+    addDepthThreshold(depthThreshold);
+}
+
+//--------------------------------------------------------------
+int ofxOpenNI::getNumDepthThresholds(){
+    return currentDepthThresholds.size();
+}
+
+//--------------------------------------------------------------
+ofxOpenNIDepthThreshold & ofxOpenNI::getDepthThreshold(int index){
+    if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    return currentDepthThresholds[index];
 }
 
 /**************************************************************
