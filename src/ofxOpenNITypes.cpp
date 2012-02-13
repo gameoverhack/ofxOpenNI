@@ -45,6 +45,7 @@ ofxOpenNIUser::ofxOpenNIUser(){
     bIsCalibrating = false;
     bUseAutoCalibration = true;
     bNewPixels = false;
+    bUseSkeleton = true;
     
 	limbs.resize(NumLimbs);
     
@@ -147,6 +148,16 @@ void ofxOpenNIUser::setUseMaskPixels(bool b){
 //--------------------------------------------------------------
 bool ofxOpenNIUser::getUseMaskPixels(){
     return (bUseMaskPixels || bUseMaskTexture);
+}
+
+//--------------------------------------------------------------
+void ofxOpenNIUser::setUseSkeleton(bool b){
+    bUseSkeleton = b;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNIUser::getUseSkeleton(){
+    return bUseSkeleton;
 }
 
 //--------------------------------------------------------------

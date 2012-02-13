@@ -1349,40 +1349,42 @@ void ofxOpenNI::updateUserTracker(){
 			XnPoint3D center;
 			g_User.GetCoM(userIDs[i], center);
 			user.center = toOf(center);
-            bool lastbIsSkeleton = user.bIsSkeleton;
-            user.bIsSkeleton = false;
-			for (int j=0; j<NumLimbs; j++){
-				XnSkeletonJointPosition a,b;
-				g_User.GetSkeletonCap().GetSkeletonJointPosition(user.id, user.limbs[j].start_joint, a);
-				g_User.GetSkeletonCap().GetSkeletonJointPosition(user.id, user.limbs[j].end_joint, b);
-				g_User.GetSkeletonCap().GetSkeletonJointOrientation(user.id,user.limbs[j].start_joint, user.limbs[j].orientation);
-				if(a.fConfidence < user.limbDetectionConfidence || b.fConfidence < user.limbDetectionConfidence){
-					user.limbs[j].found = false;
-					continue;
-				}
-				user.limbs[j].found = true;
-				user.limbs[j].begin = worldToProjective(a.position);
-				user.limbs[j].end = worldToProjective(b.position);
-				user.limbs[j].worldBegin = toOf(a.position);
-				user.limbs[j].worldEnd = toOf(b.position);
-                user.bIsSkeleton = true;
-			}
+            bool lastbIsSkeleton = user.isSkeleton();
+            if(user.getUseSkeleton()){
+                user.bIsSkeleton = false;
+                for (int j=0; j<NumLimbs; j++){
+                    XnSkeletonJointPosition a,b;
+                    g_User.GetSkeletonCap().GetSkeletonJointPosition(user.id, user.limbs[j].start_joint, a);
+                    g_User.GetSkeletonCap().GetSkeletonJointPosition(user.id, user.limbs[j].end_joint, b);
+                    g_User.GetSkeletonCap().GetSkeletonJointOrientation(user.id,user.limbs[j].start_joint, user.limbs[j].orientation);
+                    if(a.fConfidence < user.limbDetectionConfidence || b.fConfidence < user.limbDetectionConfidence){
+                        user.limbs[j].found = false;
+                        continue;
+                    }
+                    user.limbs[j].found = true;
+                    user.limbs[j].begin = worldToProjective(a.position);
+                    user.limbs[j].end = worldToProjective(b.position);
+                    user.limbs[j].worldBegin = toOf(a.position);
+                    user.limbs[j].worldEnd = toOf(b.position);
+                    user.bIsSkeleton = true;
+                }
+            }
             
-            if(user.bUsePointCloud || user.bUseMaskPixels){
+            if(user.getUsePointCloud() || user.getUseMaskPixels()){
                 xn::SceneMetaData smd;
                 if(g_User.GetUserPixels(user.id, smd) == XN_STATUS_OK) {
                     user.userPixels = (unsigned short*)smd.Data();
                 }
             }
 
-			if(user.bUsePointCloud) updatePointClouds(user);
-			if(user.bUseMaskPixels || user.bUseMaskTexture) updateUserPixels(user);
+			if(user.getUsePointCloud()) updatePointClouds(user);
+			if(user.getUseMaskPixels() || user.getUseMaskTexture()) updateUserPixels(user);
             
 			trackedUserIDs.insert(user.id);
             
-            if(user.bIsSkeleton != lastbIsSkeleton){
-                ofLogNotice(LOG_NAME) << "Skeleton" << (string)(user.bIsSkeleton ? "found" : "lost") << "for user" << user.id;
-                ofxOpenNIUserEvent event = ofxOpenNIUserEvent(getDeviceID(), (user.bIsSkeleton ? USER_SKELETON_FOUND : USER_SKELETON_LOST), user.id, ofGetElapsedTimeMillis());
+            if(user.isSkeleton() != lastbIsSkeleton){
+                ofLogNotice(LOG_NAME) << "Skeleton" << (string)(user.isSkeleton() ? "found" : "lost") << "for user" << user.getID();
+                ofxOpenNIUserEvent event = ofxOpenNIUserEvent(getDeviceID(), (user.isSkeleton() ? USER_SKELETON_FOUND : USER_SKELETON_LOST), user.id, ofGetElapsedTimeMillis());
                 ofNotifyEvent(userEvent, event, this);
             }
 		}
@@ -1412,7 +1414,7 @@ void ofxOpenNI::updatePointClouds(ofxOpenNIUser & user){
             nIndex = nY * getWidth() + nX;
 			if(user.userPixels[nIndex] == user.id) {
 				user.pointCloud[0].addVertex(ofPoint(nX, nY, pDepth[nIndex]));
-				if(false){
+				if(g_bIsImageOn){
 					user.pointCloud[0].addColor(ofColor(pColor[nIndex].nRed, pColor[nIndex].nGreen, pColor[nIndex].nBlue));
 				}else{
 					user.pointCloud[0].addColor(ofFloatColor(1,1,1));

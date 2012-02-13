@@ -188,6 +188,9 @@ public:
     void setUsePointCloud(bool b);
     bool getUsePointCloud();
     
+    void setUseSkeleton(bool b);
+    bool getUseSkeleton();
+    
     void setLimbDetectionConfidence(float level);
     float getLimbDetectionConfidence();
     
@@ -227,6 +230,7 @@ private:
     
     bool bUseMaskPixels;
     bool bUseMaskTexture;
+    bool bUseSkeleton;
     bool bUsePointCloud;
     bool bUseAutoCalibration;
     bool bIsFound;
