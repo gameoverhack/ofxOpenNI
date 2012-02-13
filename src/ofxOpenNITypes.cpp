@@ -131,6 +131,7 @@ bool ofxOpenNIUser::getUseAutoCalibration(){
 //--------------------------------------------------------------
 void ofxOpenNIUser::setUseMaskTexture(bool b){
     bUseMaskTexture = b;
+    if(bUseMaskTexture) bUseMaskPixels = true;
 }
 
 //--------------------------------------------------------------
