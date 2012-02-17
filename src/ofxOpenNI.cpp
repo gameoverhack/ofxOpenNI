@@ -523,15 +523,17 @@ bool ofxOpenNI::startPlayer(string oniFileName){
     if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     XnStatus nRetVal = XN_STATUS_OK;
     bool bWasPlaying = g_bIsPlayerOn;
-    stopCommon();
     if(bWasPlaying){
         // stop the whole context
         if(bIsThreaded) waitForThread(true);
+        stopCommon();
         bIsContextReady = false;
         g_Context.StopGeneratingAll();
         g_Context.Release();
         initContext();
         if(bIsThreaded) startThread(true, false);
+    }else{
+        stopCommon();
     }
     oniFilePath = ofToDataPath(oniFileName);
     ofLogNotice(LOG_NAME) << "Starting ONI player:" << oniFileName;
