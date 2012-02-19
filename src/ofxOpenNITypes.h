@@ -41,35 +41,25 @@ public:
 	void set(XnSkeletonJoint _joint, float _confidenceThreshold = 0.5f){
 		xnJoint = _joint;
         bUseOrientation = false;
-//        bUseLocalOrientation = false;
+        bUseLocalOrientation = false;
         projectivePosition.set(0,0,0);
         worldPosition.set(0,0,0);
         originalOrientation.zeroRotation();
-        //originalOrientation.makeRotate(-90,0,0,1);
-//        originalOrientation.makeRotate (-180, ofVec3f(0,0,1),
-//                                        0,   ofVec3f(1,0,0),
-//                                        180, ofVec3f(0,1,0));
         mOrientation.zeroRotation();
         mDerivedOrientation.zeroRotation();
         positionConfidence = orientationConfidence = 0.0f;
         confidenceThreshold = _confidenceThreshold;
         parent = NULL;
-        method = false;
-        ofRegisterKeyEvents(this);
+        bUseOgreMethod = true;
 	}
-    void keyPressed(ofKeyEventArgs & e){
-        method = !method;
-        cout << method << endl;
-    }
-    void keyReleased(ofKeyEventArgs & e){
-    }
+
     void setParent(ofxOpenNIJoint & joint){
         this->parent = &joint;
     }
     
     void setInitialOrientation(ofQuaternion q){
         normalizeQuaternion(q);
-        //originalOrientation = q;
+        originalOrientation = q;
         mOrientation = q;
         mDerivedOrientation = q;
     }
@@ -84,14 +74,23 @@ public:
     
     void calculateOrientation(){
         if(bUseOrientation){
-            // method from SinBad example & ogre
-            // unclear why it's not working ;-)
+            // THIS DOES NOT WORK YET!!!
             ofQuaternion newOrientation;
             newOrientation.zeroRotation();
-//            ofVec3f axisX = ofVec3f(xnJointOrientation.orientation.elements[0], xnJointOrientation.orientation.elements[3], xnJointOrientation.orientation.elements[6]);
-//			ofVec3f axisY = ofVec3f(xnJointOrientation.orientation.elements[1], xnJointOrientation.orientation.elements[4], xnJointOrientation.orientation.elements[7]);
-//			ofVec3f axisZ = ofVec3f(xnJointOrientation.orientation.elements[2], xnJointOrientation.orientation.elements[5], xnJointOrientation.orientation.elements[8]);
-            if(method){
+            
+            if(bUseOgreMethod){
+                rotationMatrix.set(xnJointOrientation.orientation.elements[0],
+                                   -xnJointOrientation.orientation.elements[1],
+                                   xnJointOrientation.orientation.elements[2],
+                                   -xnJointOrientation.orientation.elements[3],
+                                   xnJointOrientation.orientation.elements[4],
+                                   -xnJointOrientation.orientation.elements[5],
+                                   xnJointOrientation.orientation.elements[6],
+                                   -xnJointOrientation.orientation.elements[7],
+                                   xnJointOrientation.orientation.elements[8]);
+                
+                rotationMatrixToQuaternian(rotationMatrix, newOrientation);
+            }else{
                 ofMatrix4x4 temp;
                 temp(0,0) = xnJointOrientation.orientation.elements[0]; 
                 temp(0,1) = -xnJointOrientation.orientation.elements[1]; 
@@ -110,23 +109,12 @@ public:
                 temp(3,2) = 0; 
                 temp(3,3) = 1; 
                 newOrientation.set(temp);
-            }else{
-                rotationMatrix.set(xnJointOrientation.orientation.elements[0],
-                                   -xnJointOrientation.orientation.elements[1],
-                                   xnJointOrientation.orientation.elements[2],
-                                   -xnJointOrientation.orientation.elements[3],
-                                   xnJointOrientation.orientation.elements[4],
-                                   -xnJointOrientation.orientation.elements[5],
-                                   xnJointOrientation.orientation.elements[6],
-                                   -xnJointOrientation.orientation.elements[7],
-                                   xnJointOrientation.orientation.elements[8]);
-                
-                rotationMatrixToQuaternian(rotationMatrix, newOrientation);
             }
             
-
             //cout << "Transform " << getXNJointAsString(xnJoint);
-            //newOrientation = convertWorldToLocalOrientation(newOrientation);
+            if(bUseLocalOrientation){
+                newOrientation = convertWorldToLocalOrientation(newOrientation);
+            }
             mOrientation.zeroRotation();
             mOrientation = newOrientation * originalOrientation;
             normalizeQuaternion(mOrientation);
@@ -189,15 +177,6 @@ public:
         }
     }
     
-//    void setUseLocalOrientation(bool b){
-//        bUseLocalOrientation = b;
-//        if(b) bUseOrientation = b;
-//    }
-//    
-//    bool getUseLocalOrientation(){
-//        return bUseLocalOrientation;
-//    }
-    
 	bool isFound(){
         return getPositionConfidence() > getConfidenceThreshold();// || getOrientationConfidence() > getConfidenceThreshold();
     }
@@ -256,6 +235,10 @@ public:
 		ofPopStyle();
 	}
     
+    // experimental public switches
+    bool bUseOgreMethod;
+    bool bUseLocalOrientation;
+    
 protected:
     
     friend class ofxOpenNI;
@@ -285,9 +268,9 @@ protected:
     
     ofVec3f worldEulerRotation;
     ofVec3f localEulerRotation;
-    bool method;
+
     bool bUseOrientation;
-//    bool bUseLocalOrientation;
+
 };
 
 class ofxOpenNILimb {

@@ -787,7 +787,7 @@ void ofxOpenNI::addGenerator(XnPredefinedProductionNodeType type, bool & bIsOn){
         return;
 	}
     if(bIsOn){
-        ofLogWarning() << "Can't add" <<  generatorType << " - there is already a generator of this type and you can only have one";
+        ofLogWarning(LOG_NAME) << "Can't add" <<  generatorType << " - there is already a generator of this type and you can only have one";
         //bIsOn = false;
         return;
     }
@@ -924,7 +924,7 @@ void ofxOpenNI::removeGenerator(XnPredefinedProductionNodeType type, bool & bIsO
         return;
 	}
     if(!bIsOn){
-        ofLogWarning() << "Can't remove" <<  generatorType << " as it's not on!";
+        ofLogWarning(LOG_NAME) << "Can't remove" <<  generatorType << " as it's not on!";
         bIsOn = false;
         return;
     }
@@ -1805,6 +1805,7 @@ int ofxOpenNI::getPointCloudResolutionAllUsers(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::setUseOrientationAllUsers(bool b){
+    if(b) ofLogWarning(LOG_NAME) << "THIS IS EXPERIMENTAL AND NOT WORKING CORRECTLY YET: YOU HAVE BEEN WARNED ;-)";
     baseUser.setUseOrientation(b);
     for (int i = 0; i < getNumTrackedUsers(); i++){
         ofxOpenNIUser & user = currentTrackedUsers[currentTrackedUserIDs[i]];

@@ -107,71 +107,52 @@ void ofxOpenNIUser::setup(){
     joints[JOINT_RIGHT_KNEE].setParent(joints[JOINT_RIGHT_HIP]);
     joints[JOINT_RIGHT_FOOT].setParent(joints[JOINT_RIGHT_KNEE]);
     
-//    transformBone("Stomach",XN_SKEL_TORSO, true);
-//    transformBone("Waist", XN_SKEL_WAIST);
-//    transformBone("Root", XN_SKEL_WAIST);
-//    transformBone("Chest",XN_SKEL_TORSO, true);
-//    transformBone("Humerus.L",XN_SKEL_LEFT_SHOULDER);
-//    transformBone("Humerus.R",XN_SKEL_RIGHT_SHOULDER);
-//    transformBone("Ulna.L",XN_SKEL_LEFT_ELBOW);
-//    transformBone("Ulna.R",XN_SKEL_RIGHT_ELBOW);
-//    transformBone("Thigh.L",XN_SKEL_LEFT_HIP);
-//    transformBone("Thigh.R",XN_SKEL_RIGHT_HIP);
-//    transformBone("Calf.L",XN_SKEL_LEFT_KNEE);
-//    transformBone("Calf.R",XN_SKEL_RIGHT_KNEE);
+//    // SET INITIAL ORIENTATIONS OF JOINTS - NOT WORKING YET!!! 
+//    ofQuaternion q;
+//    q.set(0.0f, 0.0f, 0.0f, 1.0f); // IDENTITY
+//    ofQuaternion q2;
+//    ofVec3f xAxis,yAxis,zAxis;
+//    
+//    quaternianFromAngleAxis(q, ofDegToRad(90), ofVec3f(0,0,-1));
+//    quaternionToAxes(q, xAxis, yAxis, zAxis);
+//    quaternianFromAngleAxis(q2, ofDegToRad(90), xAxis);
+//    joints[JOINT_LEFT_SHOULDER].setInitialOrientation(q*q2);
+//    //setupBone("Humerus.L",q*q2);
+//    
+//    quaternianFromAngleAxis(q, ofDegToRad(90), ofVec3f(0,0,1));
+//    quaternionToAxes(q, xAxis, yAxis, zAxis);
+//    quaternianFromAngleAxis(q2, ofDegToRad(90), xAxis);
+//    joints[JOINT_RIGHT_SHOULDER].setInitialOrientation(q*q2);
+//    //setupBone("Humerus.R",q*q2);
+//    
+//    quaternianFromAngleAxis(q, ofDegToRad(90), ofVec3f(0,0,-1));	 
+//    quaternianFromAngleAxis(q2, ofDegToRad(45), ofVec3f(0,-1,0));
+//    joints[JOINT_LEFT_ELBOW].setInitialOrientation(q*q2);
+//    //setupBone("Ulna.L",q*q2);
+//    
+//    quaternianFromAngleAxis(q, ofDegToRad(90), ofVec3f(0,0,1));
+//    joints[JOINT_RIGHT_ELBOW].setInitialOrientation(q*q2);
+//    //setupBone("Ulna.R",q*q2.Inverse());
+//    
+//    quaternianFromAngleAxis(q, ofDegToRad(180), ofVec3f(0,1,0));
+//    joints[JOINT_TORSO].setInitialOrientation(q*q2);
+//    //setupBone("Chest",q);
+//    //setupBone("Stomach",q);
+//    
+//    quaternianFromAngleAxis(q, ofDegToRad(180), ofVec3f(1,0,0));	 	
+//    quaternianFromAngleAxis(q2, ofDegToRad(180), ofVec3f(0,1,0));
+//    joints[JOINT_LEFT_HIP].setInitialOrientation(q*q2);
+//    joints[JOINT_LEFT_KNEE].setInitialOrientation(q*q2);
+//    joints[JOINT_RIGHT_HIP].setInitialOrientation(q*q2);
+//    joints[JOINT_RIGHT_KNEE].setInitialOrientation(q*q2);
+//    //setupBone("Thigh.L",q*q2);
+//    //setupBone("Thigh.R",q*q2);
+//    //setupBone("Calf.L",q*q2);
+//    //setupBone("Calf.R",q*q2);  
+//    //setupBone("Root",Degree(0),Degree(0),Degree(0));
     
-    ofQuaternion q;
-    q.set(0.0f, 0.0f, 0.0f, 1.0f); // IDENTITY
-    ofQuaternion q2;
-    ofVec3f xAxis,yAxis,zAxis;
-    
-    quaternianFromAngleAxis(q, ofDegToRad(90), ofVec3f(0,0,-1));
-    quaternionToAxes(q, xAxis, yAxis, zAxis);
-    quaternianFromAngleAxis(q2, ofDegToRad(90), xAxis);
-    joints[JOINT_LEFT_SHOULDER].setInitialOrientation(q*q2);
-    //setupBone("Humerus.L",q*q2);
-    
-    quaternianFromAngleAxis(q, ofDegToRad(90), ofVec3f(0,0,1));
-    quaternionToAxes(q, xAxis, yAxis, zAxis);
-    quaternianFromAngleAxis(q2, ofDegToRad(90), xAxis);
-    joints[JOINT_RIGHT_SHOULDER].setInitialOrientation(q*q2);
-    //setupBone("Humerus.R",q*q2);
-    
-    quaternianFromAngleAxis(q, ofDegToRad(90), ofVec3f(0,0,-1));	 
-    quaternianFromAngleAxis(q2, ofDegToRad(45), ofVec3f(0,-1,0));
-    joints[JOINT_LEFT_ELBOW].setInitialOrientation(q*q2);
-    //setupBone("Ulna.L",q*q2);
-    
-    quaternianFromAngleAxis(q, ofDegToRad(90), ofVec3f(0,0,1));
-    joints[JOINT_RIGHT_ELBOW].setInitialOrientation(q*q2);
-    //setupBone("Ulna.R",q*q2.Inverse());
-    
-    quaternianFromAngleAxis(q, ofDegToRad(180), ofVec3f(0,1,0));
-    joints[JOINT_TORSO].setInitialOrientation(q*q2);
-    //setupBone("Chest",q);
-    //setupBone("Stomach",q);
-    
-    quaternianFromAngleAxis(q, ofDegToRad(180), ofVec3f(1,0,0));	 	
-    quaternianFromAngleAxis(q2, ofDegToRad(180), ofVec3f(0,1,0));
-    joints[JOINT_LEFT_HIP].setInitialOrientation(q*q2);
-    joints[JOINT_LEFT_KNEE].setInitialOrientation(q*q2);
-    joints[JOINT_RIGHT_HIP].setInitialOrientation(q*q2);
-    joints[JOINT_RIGHT_KNEE].setInitialOrientation(q*q2);
-    //setupBone("Thigh.L",q*q2);
-    //setupBone("Thigh.R",q*q2);
-    //setupBone("Calf.L",q*q2);
-    //setupBone("Calf.R",q*q2);
-    //joints[JOINT_TORSO].setInitialOrientation(q*q2);
-//    joints[JOINT_TORSO].tilt(0);
-//    joints[JOINT_TORSO].pan(0);
-//    joints[JOINT_TORSO].roll(0);
-    //    void setRoot(){
-    //        tilt(0);
-    //		pan(0);
-    //		roll(0);
-    //    }   
-    //setupBone("Root",Degree(0),Degree(0),Degree(0));
-    
+    // DONT REALLY NEED LIMBS ANYMORE BUT LEAVING THEM HERE
+    // USE joint and joint.getParent() for start/end instead!
 	limbs.resize(LIMB_COUNT);
     
     // head
@@ -220,6 +201,7 @@ void ofxOpenNIUser::clear(){
 void ofxOpenNIUser::drawSkeleton() {
     ofPushStyle();
     ofPushMatrix();
+    // DON'T NEED TO DRAW LIMBS ANYMORE!
 //	for(int i = 0; i < limbs.size(); i++){
 //		limbs[i].draw();
 //	}
