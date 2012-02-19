@@ -37,22 +37,6 @@
 // (but much lower FPS in main thread...;-() see line ~1712 of ofxOpenNI.cpp
 #define USE_SIGNALS_HACK 1
 
-#include <set>
-#include <map>
-
-#include <XnOpenNI.h>
-#include <XnCodecIDs.h>
-#include <XnCppWrapper.h>
-#include <XnLog.h>
-#include <XnTypes.h>
-
-#include "ofLog.h"
-#include "ofConstants.h"
-#include "ofPixels.h"
-#include "ofTexture.h"
-#include "ofThread.h"
-#include "ofEvents.h"
-
 #include "ofxOpenNITypes.h"
 #include "ofxOpenNIUtils.h"
 
@@ -182,16 +166,21 @@ public:
     ofxOpenNIUser&	getTrackedUser(int index); // only returns tracked users upto getNumTrackedUsers()
     int	getNumTrackedUsers();
     
-    ofxOpenNIUser& getUser(XnUserID nID); // finds a user if it exists (whether tracked or not)
-    
     void setMaxNumUsers(int numUsers);
     int	getMaxNumUsers();
     
     void setUseMaskTextureAllUsers(bool b);
+    bool getUseMaskTextureAllUsers();
     void setUseMaskPixelsAllUsers(bool b);
+    bool getUseMaskPixelsAllUsers();
     void setUsePointCloudsAllUsers(bool b);
+    bool getUsePointCloudsAllUsers();
     void setPointCloudDrawSizeAllUsers(int size);
+    int getPointCloudDrawSizeAllUsers();
     void setPointCloudResolutionAllUsers(int resolution);
+    int getPointCloudResolutionAllUsers();
+    void setUseOrientationAllUsers(bool b);
+    bool getUseOrientationAllUsers();
     
     void setBaseUserClass(ofxOpenNIUser & user);
     
@@ -461,6 +450,7 @@ private:
     // user storage
 	map<XnUserID, ofxOpenNIUser> currentTrackedUsers;
 	vector<XnUserID> currentTrackedUserIDs;
+    set<XnUserID> previousTrackedUserIDs;
     ofxOpenNIUser baseUser;
     
     int maxNumUsers;

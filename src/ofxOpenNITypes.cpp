@@ -34,7 +34,7 @@ ofxOpenNIUser::ofxOpenNIUser(){
     pointCloudDrawSize = 2;
     pointCloudResolution = 2;
     
-    limbDetectionConfidence =  0.3f;
+    confidenceThreshold =  0.5f;
     
     bUseMaskPixels = false;
     bUseMaskTexture = false;
@@ -46,51 +46,185 @@ ofxOpenNIUser::ofxOpenNIUser(){
     bUseAutoCalibration = true;
     bNewPixels = false;
     bUseSkeleton = true;
+    bForceReset = false;
+    bForceRestart = false;
+    bUseOrientation = false;
     
-	limbs.resize(NumLimbs);
+    userPixels = NULL;
+    
+    forcedResetTimeout = 250;
+    resetCount = 0;
+}
+
+//--------------------------------------------------------------
+ofxOpenNIUser::~ofxOpenNIUser(){
+    clear();
+}
+
+void ofxOpenNIUser::setup(){
+    
+    joints.resize(JOINT_COUNT);
+
+    // head
+    joints[JOINT_HEAD].set(XN_SKEL_HEAD, confidenceThreshold);
+    joints[JOINT_NECK].set(XN_SKEL_NECK, confidenceThreshold);
+    
+    // left arm
+    joints[JOINT_LEFT_SHOULDER].set(XN_SKEL_LEFT_SHOULDER, confidenceThreshold);
+    joints[JOINT_LEFT_ELBOW].set(XN_SKEL_LEFT_ELBOW, confidenceThreshold);
+    joints[JOINT_LEFT_HAND].set(XN_SKEL_LEFT_HAND, confidenceThreshold);
+    
+    // right arm
+    joints[JOINT_RIGHT_SHOULDER].set(XN_SKEL_RIGHT_SHOULDER, confidenceThreshold);
+    joints[JOINT_RIGHT_ELBOW].set(XN_SKEL_RIGHT_ELBOW, confidenceThreshold);
+    joints[JOINT_RIGHT_HAND].set(XN_SKEL_RIGHT_HAND, confidenceThreshold);
+    
+    // torso
+    joints[JOINT_TORSO].set(XN_SKEL_TORSO, confidenceThreshold);
+    
+    // left leg
+    joints[JOINT_LEFT_HIP].set(XN_SKEL_LEFT_HIP, confidenceThreshold);
+    joints[JOINT_LEFT_KNEE].set(XN_SKEL_LEFT_KNEE, confidenceThreshold);
+    joints[JOINT_LEFT_FOOT].set(XN_SKEL_LEFT_FOOT, confidenceThreshold);
+    
+    // right leg
+    joints[JOINT_RIGHT_HIP].set(XN_SKEL_RIGHT_HIP, confidenceThreshold);
+    joints[JOINT_RIGHT_KNEE].set(XN_SKEL_RIGHT_KNEE, confidenceThreshold);
+    joints[JOINT_RIGHT_FOOT].set(XN_SKEL_RIGHT_FOOT, confidenceThreshold);
+    
+    joints[JOINT_HEAD].setParent(joints[JOINT_NECK]);
+    joints[JOINT_NECK].setParent(joints[JOINT_TORSO]);
+    joints[JOINT_RIGHT_SHOULDER].setParent(joints[JOINT_NECK]);
+    joints[JOINT_RIGHT_ELBOW].setParent(joints[JOINT_RIGHT_SHOULDER]);
+    joints[JOINT_RIGHT_HAND].setParent(joints[JOINT_RIGHT_ELBOW]);
+    joints[JOINT_LEFT_SHOULDER].setParent(joints[JOINT_NECK]);
+    joints[JOINT_LEFT_ELBOW].setParent(joints[JOINT_LEFT_SHOULDER]);
+    joints[JOINT_LEFT_HAND].setParent(joints[JOINT_LEFT_ELBOW]);
+    joints[JOINT_LEFT_HIP].setParent(joints[JOINT_TORSO]);
+    joints[JOINT_LEFT_KNEE].setParent(joints[JOINT_LEFT_HIP]);
+    joints[JOINT_LEFT_FOOT].setParent(joints[JOINT_LEFT_KNEE]);
+    joints[JOINT_RIGHT_HIP].setParent(joints[JOINT_TORSO]);
+    joints[JOINT_RIGHT_KNEE].setParent(joints[JOINT_RIGHT_HIP]);
+    joints[JOINT_RIGHT_FOOT].setParent(joints[JOINT_RIGHT_KNEE]);
+    
+//    transformBone("Stomach",XN_SKEL_TORSO, true);
+//    transformBone("Waist", XN_SKEL_WAIST);
+//    transformBone("Root", XN_SKEL_WAIST);
+//    transformBone("Chest",XN_SKEL_TORSO, true);
+//    transformBone("Humerus.L",XN_SKEL_LEFT_SHOULDER);
+//    transformBone("Humerus.R",XN_SKEL_RIGHT_SHOULDER);
+//    transformBone("Ulna.L",XN_SKEL_LEFT_ELBOW);
+//    transformBone("Ulna.R",XN_SKEL_RIGHT_ELBOW);
+//    transformBone("Thigh.L",XN_SKEL_LEFT_HIP);
+//    transformBone("Thigh.R",XN_SKEL_RIGHT_HIP);
+//    transformBone("Calf.L",XN_SKEL_LEFT_KNEE);
+//    transformBone("Calf.R",XN_SKEL_RIGHT_KNEE);
+    
+    ofQuaternion q;
+    q.set(0.0f, 0.0f, 0.0f, 1.0f); // IDENTITY
+    ofQuaternion q2;
+    ofVec3f xAxis,yAxis,zAxis;
+    
+    quaternianFromAngleAxis(q, ofDegToRad(90), ofVec3f(0,0,-1));
+    quaternionToAxes(q, xAxis, yAxis, zAxis);
+    quaternianFromAngleAxis(q2, ofDegToRad(90), xAxis);
+    joints[JOINT_LEFT_SHOULDER].setInitialOrientation(q*q2);
+    //setupBone("Humerus.L",q*q2);
+    
+    quaternianFromAngleAxis(q, ofDegToRad(90), ofVec3f(0,0,1));
+    quaternionToAxes(q, xAxis, yAxis, zAxis);
+    quaternianFromAngleAxis(q2, ofDegToRad(90), xAxis);
+    joints[JOINT_RIGHT_SHOULDER].setInitialOrientation(q*q2);
+    //setupBone("Humerus.R",q*q2);
+    
+    quaternianFromAngleAxis(q, ofDegToRad(90), ofVec3f(0,0,-1));	 
+    quaternianFromAngleAxis(q2, ofDegToRad(45), ofVec3f(0,-1,0));
+    joints[JOINT_LEFT_ELBOW].setInitialOrientation(q*q2);
+    //setupBone("Ulna.L",q*q2);
+    
+    quaternianFromAngleAxis(q, ofDegToRad(90), ofVec3f(0,0,1));
+    joints[JOINT_RIGHT_ELBOW].setInitialOrientation(q*q2);
+    //setupBone("Ulna.R",q*q2.Inverse());
+    
+    quaternianFromAngleAxis(q, ofDegToRad(180), ofVec3f(0,1,0));
+    joints[JOINT_TORSO].setInitialOrientation(q*q2);
+    //setupBone("Chest",q);
+    //setupBone("Stomach",q);
+    
+    quaternianFromAngleAxis(q, ofDegToRad(180), ofVec3f(1,0,0));	 	
+    quaternianFromAngleAxis(q2, ofDegToRad(180), ofVec3f(0,1,0));
+    joints[JOINT_LEFT_HIP].setInitialOrientation(q*q2);
+    joints[JOINT_LEFT_KNEE].setInitialOrientation(q*q2);
+    joints[JOINT_RIGHT_HIP].setInitialOrientation(q*q2);
+    joints[JOINT_RIGHT_KNEE].setInitialOrientation(q*q2);
+    //setupBone("Thigh.L",q*q2);
+    //setupBone("Thigh.R",q*q2);
+    //setupBone("Calf.L",q*q2);
+    //setupBone("Calf.R",q*q2);
+    //joints[JOINT_TORSO].setInitialOrientation(q*q2);
+//    joints[JOINT_TORSO].tilt(0);
+//    joints[JOINT_TORSO].pan(0);
+//    joints[JOINT_TORSO].roll(0);
+    //    void setRoot(){
+    //        tilt(0);
+    //		pan(0);
+    //		roll(0);
+    //    }   
+    //setupBone("Root",Degree(0),Degree(0),Degree(0));
+    
+	limbs.resize(LIMB_COUNT);
     
     // head
-    limbs[Head].set(XN_SKEL_HEAD, XN_SKEL_HEAD);
-	limbs[Neck].set(XN_SKEL_HEAD, XN_SKEL_NECK);
-    
-    // hands
-    limbs[LeftHand].set(XN_SKEL_LEFT_HAND, XN_SKEL_LEFT_HAND);
-    limbs[RightHand].set(XN_SKEL_RIGHT_HAND, XN_SKEL_RIGHT_HAND);
+	limbs[LIMB_NECK].set(joints[JOINT_HEAD], joints[JOINT_NECK]);
     
 	// left arm + shoulder
-	limbs[LeftShoulder].set(XN_SKEL_NECK, XN_SKEL_LEFT_SHOULDER);
-	limbs[LeftUpperArm].set(XN_SKEL_LEFT_SHOULDER, XN_SKEL_LEFT_ELBOW);
-	limbs[LeftLowerArm].set(XN_SKEL_LEFT_ELBOW, XN_SKEL_LEFT_HAND);
-
+	limbs[LIMB_LEFT_SHOULDER].set(joints[JOINT_NECK], joints[JOINT_LEFT_SHOULDER]);
+	limbs[LIMB_LEFT_UPPER_ARM].set(joints[JOINT_LEFT_SHOULDER], joints[JOINT_LEFT_ELBOW]);
+	limbs[LIMB_LEFT_LOWER_ARM].set(joints[JOINT_LEFT_ELBOW], joints[JOINT_LEFT_HAND]);
+    
 	// right arm + shoulder
-	limbs[RightShoulder].set(XN_SKEL_NECK, XN_SKEL_RIGHT_SHOULDER);
-	limbs[RightUpperArm].set(XN_SKEL_RIGHT_SHOULDER, XN_SKEL_RIGHT_ELBOW);
-	limbs[RightLowerArm].set(XN_SKEL_RIGHT_ELBOW, XN_SKEL_RIGHT_HAND);
-
+	limbs[LIMB_RIGHT_SHOULDER].set(joints[JOINT_NECK], joints[JOINT_RIGHT_SHOULDER]);
+	limbs[LIMB_RIGHT_UPPER_ARM].set(joints[JOINT_RIGHT_SHOULDER], joints[JOINT_RIGHT_ELBOW]);
+	limbs[LIMB_RIGHT_LOWER_ARM].set(joints[JOINT_RIGHT_ELBOW], joints[JOINT_RIGHT_HAND]);
+    
 	// upper torso
-	limbs[LeftUpperTorso].set(XN_SKEL_LEFT_SHOULDER, XN_SKEL_TORSO);
-	limbs[RightUpperTorso].set(XN_SKEL_RIGHT_SHOULDER, XN_SKEL_TORSO);
-
+	limbs[LIMB_LEFT_UPPER_TORSO].set(joints[JOINT_LEFT_SHOULDER], joints[JOINT_TORSO]);
+	limbs[LIMB_RIGHT_UPPER_TORSO].set(joints[JOINT_RIGHT_SHOULDER], joints[JOINT_TORSO]);
+    
 	// left lower torso + leg
-	limbs[LeftLowerTorso].set(XN_SKEL_TORSO, XN_SKEL_LEFT_HIP);
-	limbs[LeftUpperLeg].set(XN_SKEL_LEFT_HIP, XN_SKEL_LEFT_KNEE);
-	limbs[LeftLowerLeg].set(XN_SKEL_LEFT_KNEE, XN_SKEL_LEFT_FOOT);
-
+	limbs[LIMB_LEFT_LOWER_TORSO].set(joints[JOINT_TORSO], joints[JOINT_LEFT_HIP]);
+	limbs[LIMB_LEFT_UPPER_LEG].set(joints[JOINT_LEFT_HIP], joints[JOINT_LEFT_KNEE]);
+	limbs[LIMB_LEFT_LOWER_LEG].set(joints[JOINT_LEFT_KNEE], joints[JOINT_LEFT_FOOT]);
+    
 	// right lower torso + leg
-	limbs[RightLowerTorso].set(XN_SKEL_TORSO, XN_SKEL_RIGHT_HIP);
-	limbs[RightUpperLeg].set(XN_SKEL_RIGHT_HIP, XN_SKEL_RIGHT_KNEE);
-	limbs[RightLowerLeg].set(XN_SKEL_RIGHT_KNEE, XN_SKEL_RIGHT_FOOT);
+	limbs[LIMB_RIGHT_LOWER_TORSO].set(joints[JOINT_TORSO], joints[JOINT_RIGHT_HIP]);
+	limbs[LIMB_RIGHT_UPPER_LEG].set(joints[JOINT_RIGHT_HIP], joints[JOINT_RIGHT_KNEE]);
+	limbs[LIMB_RIGHT_LOWER_LEG].set(joints[JOINT_RIGHT_KNEE], joints[JOINT_RIGHT_FOOT]);
+    
+	limbs[LIMB_PELVIS].set(joints[JOINT_LEFT_HIP], joints[JOINT_RIGHT_HIP]);
+    
+    setUseOrientation(bUseOrientation);
+}
 
-	limbs[Hip].set(XN_SKEL_LEFT_HIP, XN_SKEL_RIGHT_HIP);
+void ofxOpenNIUser::clear(){
+    //delete [] userPixels;
+    joints.clear();
+    limbs.clear();
+    pointCloud[0].clear();
+    pointCloud[1].clear();
+    maskPixels.clear();
+    maskTexture.clear();
 }
 
 //--------------------------------------------------------------
 void ofxOpenNIUser::drawSkeleton() {
     ofPushStyle();
     ofPushMatrix();
-	for(int i = 0; i < NumLimbs; i++){
-        ofSetColor(255, 0, 0);
-		limbs[i].draw();
+//	for(int i = 0; i < limbs.size(); i++){
+//		limbs[i].draw();
+//	}
+    for(int i = 0; i < joints.size(); i++){
+		joints[i].draw();
 	}
     ofPopMatrix();
     ofPopStyle();
@@ -193,13 +327,38 @@ int ofxOpenNIUser::getPointCloudResolution(){
 }
 
 //--------------------------------------------------------------
+void ofxOpenNIUser::setUseOrientation(bool b){
+    bUseOrientation = b;
+    for(int j = 0; j < getNumJoints(); j++){
+        ofxOpenNIJoint & joint = getJoint((Joint)j);
+        joint.setUseOrientation(b);
+    }
+    
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNIUser::getUseOrientation(){
+    return bUseOrientation;
+}
+
+//--------------------------------------------------------------
 ofxOpenNILimb & ofxOpenNIUser::getLimb(Limb limb){
 	return limbs[limb];
 }
 
 //--------------------------------------------------------------
 int ofxOpenNIUser::getNumLimbs(){
-	return NumLimbs;
+	return limbs.size();
+}
+
+//--------------------------------------------------------------
+ofxOpenNIJoint & ofxOpenNIUser::getJoint(Joint joint){
+	return joints[joint];
+}
+
+//--------------------------------------------------------------
+int ofxOpenNIUser::getNumJoints(){
+	return joints.size();
 }
 
 //--------------------------------------------------------------
@@ -223,13 +382,45 @@ ofTexture & ofxOpenNIUser::getMaskTextureReference(){
 }
 
 //--------------------------------------------------------------
-void ofxOpenNIUser::setLimbDetectionConfidence(float level){
-    limbDetectionConfidence = level;
+void ofxOpenNIUser::setConfidenceThreshold(float level){
+    confidenceThreshold = level;
+    for(int i = 0; i < joints.size(); i++){
+        joints[i].setConfidenceThreshold(confidenceThreshold);
+    }
 }
 
 //--------------------------------------------------------------
-float ofxOpenNIUser::getLimbDetectionConfidence(){
-    return limbDetectionConfidence;
+float ofxOpenNIUser::getConfidenceThreshold(){
+    return confidenceThreshold;
+}
+
+////--------------------------------------------------------------
+void ofxOpenNIUser::setForceResetTimeout(int millis){
+    forcedResetTimeout = millis;
+}
+
+//--------------------------------------------------------------
+int ofxOpenNIUser::getForceResetTimeout(){
+    return forcedResetTimeout;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNIUser::setForceReset(bool useTimeout, bool forceImmediateRestart){
+    bForceRestart = forceImmediateRestart;
+    if(!useTimeout){
+        bForceReset = true;
+    }else{
+        resetCount++;
+        if(resetCount > forcedResetTimeout/25){
+            resetCount = 0;
+            bForceReset = true;
+        }
+    }
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNIUser::getForceReset(){
+    return bForceReset;
 }
 
 //--------------------------------------------------------------

@@ -1036,6 +1036,7 @@ void ofxOpenNI::allocateIRBuffers(){
 bool ofxOpenNI::allocateUsers(){
     if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     ofLogVerbose(LOG_NAME) << "Allocating users";
+    
     XnStatus nRetVal = XN_STATUS_OK;
     bool ok = false;
     
@@ -1153,8 +1154,8 @@ void ofxOpenNI::update(){
             }
 		}
         
-		for (int nID = 1; nID <= maxNumUsers; nID++) {
-            ofxOpenNIUser & user = currentTrackedUsers[nID];
+		for(int i = 0; i < getNumTrackedUsers(); i++){
+            ofxOpenNIUser & user = getTrackedUser(i);
             if(user.bIsTracking){
                 if(user.getUsePointCloud() && user.bNewPointCloud){
                     swap(user.pointCloud[0], user.pointCloud[1]);
@@ -1164,13 +1165,42 @@ void ofxOpenNI::update(){
                         ofLogVerbose(LOG_NAME) << "Allocating mask texture " << user.id;
                         user.maskTexture.allocate(getWidth(), getHeight(), GL_RGBA);
                     }
-                    user.maskTexture.loadData(user.maskPixels.getPixels(), getWidth(), getHeight(), GL_RGBA);
+                    if(user.maskPixels.getPixels() != NULL) user.maskTexture.loadData(user.maskPixels.getPixels(), getWidth(), getHeight(), GL_RGBA);
                 }
                 user.bNewPixels = false;
                 user.bNewPointCloud = false;
             }
         }
+        set<XnUserID> usersToDelete;
         
+        set<XnUserID> trackedUserIDs;
+        map<XnUserID, ofxOpenNIUser>::iterator it;
+        for(it = currentTrackedUsers.begin(); it != currentTrackedUsers.end(); it++){
+            ofxOpenNIUser & user = it->second;
+            if(user.getForceReset()){
+                ofLogVerbose(LOG_NAME) << "Force stopping user tracking" << user.getID();
+                resetUserTracking(user.getID(), user.bForceRestart);
+                user.bForceRestart = false;
+                user.bForceReset = false;
+            }
+            if(user.isFound()) {
+                trackedUserIDs.insert(user.getID());
+            }else{
+                ofLogVerbose(LOG_NAME) << "Mark for deleting user" << user.getID();
+                usersToDelete.insert(user.getID());
+            }
+            
+        }
+        
+        currentTrackedUserIDs.assign(trackedUserIDs.begin(), trackedUserIDs.end());
+
+        set<XnUserID>::iterator its;
+        for(its = usersToDelete.begin(); its!=usersToDelete.end(); its++){
+            
+            ofLogVerbose(LOG_NAME) << "Deleting user" << *its;
+            currentTrackedUsers.erase(*its);
+        }
+
         for(int i = 0; i < currentDepthThresholds.size(); i++){
             ofxOpenNIDepthThreshold & depthThreshold = currentDepthThresholds[i];
             if(depthThreshold.bNewPixels){
@@ -1367,37 +1397,55 @@ void ofxOpenNI::updateHandTracker(){
 //--------------------------------------------------------------
 void ofxOpenNI::updateUserTracker(){
     if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    
 	vector<XnUserID> userIDs(maxNumUsers);
     XnUInt16 xnMaxNumUsers = maxNumUsers;
 	g_User.GetUsers(&userIDs[0], xnMaxNumUsers);
-	set<XnUserID> trackedUserIDs;
     
-	for (int i = 0; i < maxNumUsers; ++i) {
-		if(g_User.GetSkeletonCap().IsTracking(userIDs[i])) {
-			ofxOpenNIUser & user = currentTrackedUsers[userIDs[i]];
-			user.id = userIDs[i];
+	for(int i = 0; i < maxNumUsers; ++i){
+        XnUserID nID = userIDs[i];
+		if(g_User.GetSkeletonCap().IsTracking(nID)){
+            if(currentTrackedUsers.find(nID) == currentTrackedUsers.end()) continue;
+			ofxOpenNIUser & user = currentTrackedUsers[nID];
+			user.id = nID;
 			XnPoint3D center;
-			g_User.GetCoM(userIDs[i], center);
+			g_User.GetCoM(nID, center);
 			user.center = toOf(center);
             bool lastbIsSkeleton = user.isSkeleton();
             if(user.getUseSkeleton()){
+                
                 user.bIsSkeleton = false;
-                for (int j=0; j<NumLimbs; j++){
-                    XnSkeletonJointPosition a,b;
-                    g_User.GetSkeletonCap().GetSkeletonJointPosition(user.id, user.limbs[j].start_joint, a);
-                    g_User.GetSkeletonCap().GetSkeletonJointPosition(user.id, user.limbs[j].end_joint, b);
-                    g_User.GetSkeletonCap().GetSkeletonJointOrientation(user.id,user.limbs[j].start_joint, user.limbs[j].orientation);
-                    if(a.fConfidence < user.limbDetectionConfidence || b.fConfidence < user.limbDetectionConfidence){
-                        user.limbs[j].found = false;
-                        continue;
-                    }
-                    user.limbs[j].found = true;
-                    user.limbs[j].begin = worldToProjective(a.position);
-                    user.limbs[j].end = worldToProjective(b.position);
-                    user.limbs[j].worldBegin = toOf(a.position);
-                    user.limbs[j].worldEnd = toOf(b.position);
+                bool confident = false;
+                
+                for (int j = 0; j < user.getNumJoints(); j++){
+                    
+                    ofxOpenNIJoint & joint = user.getJoint((Joint)j);
+//                    cout << getJointAsString((Joint)j) << endl;
+                    XnSkeletonJointPosition transform;
+                    XnSkeletonJointOrientation orientation;
+                    g_User.GetSkeletonCap().GetSkeletonJointPosition(user.id, joint.xnJoint, transform);
+                    g_User.GetSkeletonCap().GetSkeletonJointOrientation(user.id, joint.xnJoint, orientation);
+                    
+                    joint.projectivePosition = worldToProjective(transform.position);
+                    joint.worldPosition = toOf(transform.position);
+                    joint.positionConfidence = transform.fConfidence;
+
+                    joint.xnJointOrientation = orientation;
+                    joint.orientationConfidence = orientation.fConfidence;
+                    
+                    joint.calculateOrientation();
+                    
+                    if(joint.isFound()) confident = true;
                     user.bIsSkeleton = true;
+                    
                 }
+ 
+                if(!confident){
+                    user.setForceReset();
+                }else{
+                    user.resetCount = 0;
+                }
+                
             }
             
             if(user.getUsePointCloud() || user.getUseMaskPixels()){
@@ -1410,8 +1458,6 @@ void ofxOpenNI::updateUserTracker(){
 			if(user.getUsePointCloud()) updatePointClouds(user);
 			if(user.getUseMaskPixels() || user.getUseMaskTexture()) updateUserPixels(user);
             
-			trackedUserIDs.insert(user.id);
-            
             if(user.isSkeleton() != lastbIsSkeleton){
                 ofLogNotice(LOG_NAME) << "Skeleton" << (string)(user.isSkeleton() ? "found" : "lost") << "for user" << user.getID();
                 ofxOpenNIUserEvent event = ofxOpenNIUserEvent(getDeviceID(), (user.isSkeleton() ? USER_SKELETON_FOUND : USER_SKELETON_LOST), user.id, ofGetElapsedTimeMillis());
@@ -1419,7 +1465,7 @@ void ofxOpenNI::updateUserTracker(){
             }
 		}
 	}
-    currentTrackedUserIDs.assign(trackedUserIDs.begin(), trackedUserIDs.end());
+
 }
 
 //--------------------------------------------------------------
@@ -1658,6 +1704,8 @@ XnSkeletonProfile ofxOpenNI::getSkeletonProfile(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::resetUserTracking(XnUserID nID, bool forceImmediateRestart){
+    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    if(currentTrackedUsers.find(nID) == currentTrackedUsers.end()) return;
     stopTrackingUser(nID);
     if(forceImmediateRestart) startTrackingUser(nID);
 }
@@ -1680,47 +1728,9 @@ ofxOpenNIUser& ofxOpenNI::getTrackedUser(int index){
 }
 
 //--------------------------------------------------------------
-ofxOpenNIUser& ofxOpenNI::getUser(XnUserID nID){
-    if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
-    ofxOpenNIUser & user = baseUser;
-    map<XnUserID,ofxOpenNIUser>::iterator it = currentTrackedUsers.find(nID);
-    if(it != currentTrackedUsers.end()){
-        user = it->second;
-    }else{
-        if(nID == 0) {
-            ofLogError(LOG_NAME) << "You have requested a user ID of 0 - perhaps you wanted to use getTrackedUser()"
-            << "OR you need to iterate using something like: for (int i = 1; i <= openNIDevices[0].getMaxNumUsers(); i++)"
-            << "Returning a reference to the baseUserClass user (it doesn't do anything!!!)!";
-        }else{
-            ofLogError() << "User ID not found. Probably you need to setMaxNumUsers to a higher value!"
-            << "Returning a reference to the baseUserClass user (it doesn't do anything!!!)!";
-        }
-        
-        user.id = 0;
-    }
-    return user;
-}
-
-//--------------------------------------------------------------
 void ofxOpenNI::setMaxNumUsers(int numUsers){
     if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     maxNumUsers = numUsers;
-    int oldMaxUsers = currentTrackedUsers.size();
-    
-    if(maxNumUsers < oldMaxUsers) {
-        for (XnUserID nID = maxNumUsers + 1; nID <= oldMaxUsers; ++nID){
-            map<XnUserID, ofxOpenNIUser>::iterator it = currentTrackedUsers.find(nID);
-            currentTrackedUsers.erase(it);
-        }
-    } else {
-        for (XnUserID nID = oldMaxUsers + 1; nID <= maxNumUsers; ++nID){
-            //ofxOpenNIUser user;
-            baseUser.id = nID;
-            currentTrackedUsers.insert(pair<XnUserID, ofxOpenNIUser>(nID, baseUser));
-        }
-    }
-    
-    ofLogVerbose(LOG_NAME) << "Resized tracked user map from" << oldMaxUsers << "to" << currentTrackedUsers.size();
 }
 
 //--------------------------------------------------------------
@@ -1731,49 +1741,87 @@ int	ofxOpenNI::getMaxNumUsers(){
 //--------------------------------------------------------------
 void ofxOpenNI::setUseMaskTextureAllUsers(bool b){
     baseUser.setUseMaskTexture(b);
-    for (XnUserID nID = 1; nID <= maxNumUsers; nID++){
-        currentTrackedUsers[nID].setUseMaskTexture(b);
+    for (int i = 0; i < getNumTrackedUsers(); i++){
+        currentTrackedUsers[currentTrackedUserIDs[i]].setUseMaskTexture(b);
     }
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::getUseMaskTextureAllUsers(){
+    return baseUser.getUseMaskTexture();
 }
 
 //--------------------------------------------------------------
 void ofxOpenNI::setUseMaskPixelsAllUsers(bool b){
     baseUser.setUseMaskPixels(b);
-    for (XnUserID nID = 1; nID <= maxNumUsers; nID++){
-        currentTrackedUsers[nID].setUseMaskPixels(b);
+    for (int i = 0; i < getNumTrackedUsers(); i++){
+        currentTrackedUsers[currentTrackedUserIDs[i]].setUseMaskPixels(b);
     }
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::getUseMaskPixelsAllUsers(){
+    return baseUser.getUseMaskPixels();
 }
 
 //--------------------------------------------------------------
 void ofxOpenNI::setUsePointCloudsAllUsers(bool b){
     baseUser.setUsePointCloud(b);
-    for (XnUserID nID = 1; nID <= maxNumUsers; nID++){
-        currentTrackedUsers[nID].setUsePointCloud(b);
+    for (int i = 0; i < getNumTrackedUsers(); i++){
+        currentTrackedUsers[currentTrackedUserIDs[i]].setUsePointCloud(b);
     }
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::getUsePointCloudsAllUsers(){
+    return baseUser.getUsePointCloud();
 }
 
 //--------------------------------------------------------------
 void ofxOpenNI::setPointCloudDrawSizeAllUsers(int size){
     baseUser.setPointCloudDrawSize(size);
-    for (XnUserID nID = 1; nID <= maxNumUsers; nID++){
-        currentTrackedUsers[nID].setPointCloudDrawSize(size);
+    for (int i = 0; i < getNumTrackedUsers(); i++){
+        currentTrackedUsers[currentTrackedUserIDs[i]].setPointCloudDrawSize(size);
     }
+}
+
+//--------------------------------------------------------------
+int ofxOpenNI::getPointCloudDrawSizeAllUsers(){
+    return baseUser.getPointCloudDrawSize();
 }
 
 //--------------------------------------------------------------
 void ofxOpenNI::setPointCloudResolutionAllUsers(int resolution){
     baseUser.setPointCloudResolution(resolution);
-    for (XnUserID nID = 1; nID <= maxNumUsers; nID++){
-        currentTrackedUsers[nID].setPointCloudResolution(resolution);
+    for (int i = 0; i < getNumTrackedUsers(); i++){
+        currentTrackedUsers[currentTrackedUserIDs[i]].setPointCloudResolution(resolution);
     }
+}
+
+//--------------------------------------------------------------
+int ofxOpenNI::getPointCloudResolutionAllUsers(){
+    return baseUser.getPointCloudResolution();
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setUseOrientationAllUsers(bool b){
+    baseUser.setUseOrientation(b);
+    for (int i = 0; i < getNumTrackedUsers(); i++){
+        ofxOpenNIUser & user = currentTrackedUsers[currentTrackedUserIDs[i]];
+        user.setUseOrientation(b);
+    }
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::getUseOrientationAllUsers(){
+    return baseUser.getUseOrientation();
 }
 
 //--------------------------------------------------------------
 void ofxOpenNI::setBaseUserClass(ofxOpenNIUser & user){
     baseUser = user;
-    for (XnUserID nID = 1; nID <= maxNumUsers; ++nID){
-        currentTrackedUsers[nID] = user;
-    }
+    ofLogWarning(LOG_NAME) << "Do not call this once tracking has begun!!";
+    // TODO: implement change from tracked to baseUser class??
 }
 
 /**************************************************************
@@ -2633,14 +2681,15 @@ xn::AudioMetaData& ofxOpenNI::getAudioMetaData(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::startTrackingUser(XnUserID nID){
+    if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     XnStatus nRetVal = XN_STATUS_OK;
-    if(nID > getMaxNumUsers()){
-        ofLogNotice(LOG_NAME) << "Start tracking cancelled for user" << nID << "since maxNumUsers is" << maxNumUsers;
-        stopTrackingUser(nID);
-        return;
-    } else {
+//    if(getNumTrackedUsers() + 1 > getMaxNumUsers()){
+//        ofLogNotice(LOG_NAME) << "Start tracking cancelled for user" << nID << "since maxNumUsers is" << maxNumUsers;
+//        stopTrackingUser(nID);
+//        return;
+//    } else {
         ofLogNotice(LOG_NAME) << "Start tracking user" << nID;
-    }
+//    }
 	nRetVal = g_User.GetSkeletonCap().StartTracking(nID);
     CHECK_ERR_RC(nRetVal, "Get skeleton capability - start tracking");
     if(nRetVal == XN_STATUS_OK){
@@ -2654,6 +2703,7 @@ void ofxOpenNI::startTrackingUser(XnUserID nID){
 
 //--------------------------------------------------------------
 void ofxOpenNI::stopTrackingUser(XnUserID nID){
+    if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     XnStatus nRetVal = XN_STATUS_OK;
     if(g_User.GetSkeletonCap().IsCalibrating(nID)){// || g_User.GetSkeletonCap().IsCalibrated(nID)){
         ofLogNotice(LOG_NAME) << "Calibration stopped for user" << nID;
@@ -2665,8 +2715,9 @@ void ofxOpenNI::stopTrackingUser(XnUserID nID){
         nRetVal = g_User.GetSkeletonCap().Reset(nID);
         CHECK_ERR_RC(nRetVal, "Get skeleton capability - stop tracking");
     }
-    if(nID > getMaxNumUsers()) return;
+    //if(getNumTrackedUsers() + 1 > getMaxNumUsers()) return;
     ofLogNotice(LOG_NAME) << "Stop tracking user" << nID;
+    if(currentTrackedUsers.find(nID) == currentTrackedUsers.end()) return;
     currentTrackedUsers[nID].bIsFound = false;
     currentTrackedUsers[nID].bIsTracking = false;
     currentTrackedUsers[nID].bIsSkeleton = false;
@@ -2677,12 +2728,19 @@ void ofxOpenNI::stopTrackingUser(XnUserID nID){
 
 //--------------------------------------------------------------
 void ofxOpenNI::requestCalibration(XnUserID nID){
+    if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     XnStatus nRetVal = XN_STATUS_OK;
-    if(nID > maxNumUsers){
+    if(getNumTrackedUsers() + 1 > getMaxNumUsers()){
         ofLogVerbose(LOG_NAME) << "Calibration requested cancelled for user" << nID << "since maxNumUsers is" << maxNumUsers;
         return;
-    } else {
+    }else{
         ofLogNotice(LOG_NAME) << "Calibration requested for user" << nID;
+        if(currentTrackedUsers.find(nID) == currentTrackedUsers.end()){
+            ofLogNotice(LOG_NAME) << "Create tracked user" << nID;
+            currentTrackedUsers[nID] = baseUser;//.insert(pair<XnUserID, ofxOpenNIUser>(nID, baseUser));
+            currentTrackedUsers[nID].id = nID;
+            currentTrackedUsers[nID].setup();
+        }
     }
 	nRetVal = g_User.GetSkeletonCap().RequestCalibration(nID, TRUE);
     CHECK_ERR_RC(nRetVal, "Get skeleton capability - request calibration");
@@ -2696,13 +2754,20 @@ void ofxOpenNI::requestCalibration(XnUserID nID){
 
 //--------------------------------------------------------------
 void ofxOpenNI::startPoseDetection(XnUserID nID){
+    if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     XnStatus nRetVal = XN_STATUS_OK;
-    if(nID > maxNumUsers){
+    if(getNumTrackedUsers() + 1 > getMaxNumUsers()){
         ofLogVerbose(LOG_NAME) << "Pose detection cancelled for user" << nID << "since maxNumUsers is" << maxNumUsers;
         stopPoseDetection(nID);
         return;
-    } else {
+    }else{
         ofLogNotice(LOG_NAME) << "Start pose detection for user" << nID;
+        if(currentTrackedUsers.find(nID) == currentTrackedUsers.end()){
+            ofLogNotice(LOG_NAME) << "Create tracked user" << nID;
+            currentTrackedUsers[nID] = baseUser;//.insert(pair<XnUserID, ofxOpenNIUser>(nID, baseUser));
+            currentTrackedUsers[nID].id = nID;
+            currentTrackedUsers[nID].setup();
+        }
     }
 	nRetVal = g_User.GetPoseDetectionCap().StartPoseDetection(userCalibrationPose, nID);
     SHOW_RC(nRetVal, "Get pose detection capability - start");
@@ -2716,6 +2781,7 @@ void ofxOpenNI::startPoseDetection(XnUserID nID){
 
 //--------------------------------------------------------------
 void ofxOpenNI::stopPoseDetection(XnUserID nID){
+    if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     XnStatus nRetVal = XN_STATUS_OK;
     ofLogNotice(LOG_NAME) << "Stop pose detection for user" << nID;
 	nRetVal = g_User.GetPoseDetectionCap().StopPoseDetection(nID);
@@ -2778,7 +2844,7 @@ void XN_CALLBACK_TYPE ofxOpenNI::UserCB_handleCalibrationEnd(xn::SkeletonCapabil
 		openNI->startTrackingUser(nID);
 	} else {
         ofLogVerbose(openNI->LOG_NAME) << "...fail" << nID;
-		if(openNI->getAutoUserCalibrationPossible() && openNI->getUser(nID).bUseAutoCalibration) {
+		if(openNI->getAutoUserCalibrationPossible() && openNI->baseUser.bUseAutoCalibration) {
 			openNI->requestCalibration(nID);
 		} else {
             openNI->startPoseDetection(nID);
@@ -2938,6 +3004,7 @@ void ofxOpenNI::drawDebug(float x, float y){
 
 //--------------------------------------------------------------
 void ofxOpenNI::drawDebug(float x, float y, float w, float h){
+    if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
 	if(!bIsContextReady) return;
     
     int generatorCount = g_bIsDepthOn + g_bIsImageOn + g_bIsInfraOn;
@@ -2963,10 +3030,10 @@ void ofxOpenNI::drawDebug(float x, float y, float w, float h){
     if(g_bIsImageOn || g_bIsInfraOn) drawImage();
     if(g_bIsUserOn){
         if(g_bIsImageOn || g_bIsInfraOn) ofTranslate(-getWidth(), 0.0f);
-        for (int nID = 1; nID <= maxNumUsers; nID++) {
-            ofxOpenNIUser & user = getUser(nID);
+        for (int i = 0; i < getNumTrackedUsers(); i++) {
+            ofxOpenNIUser & user = getTrackedUser(i);
             ofSetColor(255, 255, 0);
-            ofDrawBitmapString(user.getDebugInfo(), 8, getHeight() - (30*maxNumUsers) + (nID-1) * 30);
+            ofDrawBitmapString(user.getDebugInfo(), 8, getHeight() - (30*maxNumUsers) + (i-1) * 30);
         }
     }
     //ofPopMatrix();
@@ -2993,6 +3060,7 @@ void ofxOpenNI::drawDepth(float x, float y){
 
 //--------------------------------------------------------------
 void ofxOpenNI::drawDepth(float x, float y, float w, float h){
+    if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
 	if(bUseTexture && bIsContextReady) depthTexture.draw(x, y, w, h);
 }
 
@@ -3014,6 +3082,7 @@ void ofxOpenNI::drawImage(float x, float y){
 
 //--------------------------------------------------------------
 void ofxOpenNI::drawImage(float x, float y, float w, float h){
+    if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
 	if(bUseTexture && bIsContextReady) imageTexture.draw(x, y, w, h);
 }
 
@@ -3035,6 +3104,7 @@ void ofxOpenNI::drawSkeletons(float x, float y){
 
 //--------------------------------------------------------------
 void ofxOpenNI::drawSkeletons(float x, float y, float w, float h){
+    if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
 	if(!bIsContextReady) return;
     for(int i = 0;  i < getNumTrackedUsers(); ++i){
         drawSkeleton(x, y, w, h, i);
@@ -3053,6 +3123,7 @@ void ofxOpenNI::drawSkeleton(float x, float y, int nID){
 
 //--------------------------------------------------------------
 void ofxOpenNI::drawSkeleton(float x, float y, float w, float h, int nID){
+    if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
 	if(nID - 1 > getNumTrackedUsers()) return;
     ofPushStyle();
     ofPushMatrix();
@@ -3081,6 +3152,7 @@ void ofxOpenNI::drawHands(float x, float y){
 
 //--------------------------------------------------------------
 void ofxOpenNI::drawHands(float x, float y, float w, float h){
+    if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     for (int i = 0; i < getNumTrackedHands(); i++) {
         drawHand(i);
     }
@@ -3098,6 +3170,7 @@ void ofxOpenNI::drawHand(float x, float y, int index){
 
 //--------------------------------------------------------------
 void ofxOpenNI::drawHand(float x, float y, float w, float, int index){
+    if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     if(index > getNumTrackedHands()) return;
     ofPushStyle();
     ofPushMatrix();

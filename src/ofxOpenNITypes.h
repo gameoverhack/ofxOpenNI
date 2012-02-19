@@ -1,7 +1,7 @@
 /*
  * ofxOpenNITypes.h
  *
- * Copyright 2011 (c) Matthew Gingold [gameover] http://gingold.com.au
+ * Copyright 2011 (c) Matthew Gingold [gameover] http://gingold.coau
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -30,56 +30,309 @@
 #define _H_OFXOPENNITYPES
 
 #include "ofxOpenNIUtils.h"
+#include "ofNode.h"
 
-#include <XnTypes.h>
-#include "ofConstants.h"
-#include "ofPoint.h"
-#include "ofMesh.h"
-#include "ofPixels.h"
-#include "ofTexture.h"
-#include "ofGraphics.h"
+class ofxOpenNIJoint {
+    
+public:
+    
+    ofxOpenNIJoint(){};
+    
+	void set(XnSkeletonJoint _joint, float _confidenceThreshold = 0.5f){
+		xnJoint = _joint;
+        bUseOrientation = false;
+//        bUseLocalOrientation = false;
+        projectivePosition.set(0,0,0);
+        worldPosition.set(0,0,0);
+        originalOrientation.zeroRotation();
+        //originalOrientation.makeRotate(-90,0,0,1);
+//        originalOrientation.makeRotate (-180, ofVec3f(0,0,1),
+//                                        0,   ofVec3f(1,0,0),
+//                                        180, ofVec3f(0,1,0));
+        mOrientation.zeroRotation();
+        mDerivedOrientation.zeroRotation();
+        positionConfidence = orientationConfidence = 0.0f;
+        confidenceThreshold = _confidenceThreshold;
+        parent = NULL;
+        method = false;
+        ofRegisterKeyEvents(this);
+	}
+    void keyPressed(ofKeyEventArgs & e){
+        method = !method;
+        cout << method << endl;
+    }
+    void keyReleased(ofKeyEventArgs & e){
+    }
+    void setParent(ofxOpenNIJoint & joint){
+        this->parent = &joint;
+    }
+    
+    void setInitialOrientation(ofQuaternion q){
+        normalizeQuaternion(q);
+        //originalOrientation = q;
+        mOrientation = q;
+        mDerivedOrientation = q;
+    }
+    
+    ofPoint & getProjectivePosition(){
+        return projectivePosition;
+    }
+    
+    ofPoint & getWorldPosition(){
+        return worldPosition;
+    }
+    
+    void calculateOrientation(){
+        if(bUseOrientation){
+            // method from SinBad example & ogre
+            // unclear why it's not working ;-)
+            ofQuaternion newOrientation;
+            newOrientation.zeroRotation();
+//            ofVec3f axisX = ofVec3f(xnJointOrientation.orientation.elements[0], xnJointOrientation.orientation.elements[3], xnJointOrientation.orientation.elements[6]);
+//			ofVec3f axisY = ofVec3f(xnJointOrientation.orientation.elements[1], xnJointOrientation.orientation.elements[4], xnJointOrientation.orientation.elements[7]);
+//			ofVec3f axisZ = ofVec3f(xnJointOrientation.orientation.elements[2], xnJointOrientation.orientation.elements[5], xnJointOrientation.orientation.elements[8]);
+            if(method){
+                ofMatrix4x4 temp;
+                temp(0,0) = xnJointOrientation.orientation.elements[0]; 
+                temp(0,1) = -xnJointOrientation.orientation.elements[1]; 
+                temp(0,2) = xnJointOrientation.orientation.elements[2]; 
+                temp(0,3) = 0; 
+                temp(1,0) = -xnJointOrientation.orientation.elements[3]; 
+                temp(1,1) = xnJointOrientation.orientation.elements[4]; 
+                temp(1,2) = -xnJointOrientation.orientation.elements[5]; 
+                temp(1,3) = 0; 
+                temp(2,0) = xnJointOrientation.orientation.elements[6]; 
+                temp(2,1) = -xnJointOrientation.orientation.elements[7]; 
+                temp(2,2) = xnJointOrientation.orientation.elements[8]; 
+                temp(2,3) = 0; 
+                temp(3,0) = 0; 
+                temp(3,1) = 0; 
+                temp(3,2) = 0; 
+                temp(3,3) = 1; 
+                newOrientation.set(temp);
+            }else{
+                rotationMatrix.set(xnJointOrientation.orientation.elements[0],
+                                   -xnJointOrientation.orientation.elements[1],
+                                   xnJointOrientation.orientation.elements[2],
+                                   -xnJointOrientation.orientation.elements[3],
+                                   xnJointOrientation.orientation.elements[4],
+                                   -xnJointOrientation.orientation.elements[5],
+                                   xnJointOrientation.orientation.elements[6],
+                                   -xnJointOrientation.orientation.elements[7],
+                                   xnJointOrientation.orientation.elements[8]);
+                
+                rotationMatrixToQuaternian(rotationMatrix, newOrientation);
+            }
+            
+
+            //cout << "Transform " << getXNJointAsString(xnJoint);
+            //newOrientation = convertWorldToLocalOrientation(newOrientation);
+            mOrientation.zeroRotation();
+            mOrientation = newOrientation * originalOrientation;
+            normalizeQuaternion(mOrientation);
+            
+            localEulerRotation = mOrientation.getEuler();
+        }
+    }
+    
+    ofQuaternion convertWorldToLocalOrientation(ofQuaternion & worldOrientation){
+        //cout << " Start: ";
+        updateFromParent();
+        //cout << " :End" << endl;
+        return mDerivedOrientation.inverse() * worldOrientation;
+    }
+
+    void updateFromParent(){
+        //cout << "-> " << getXNJointAsString(xnJoint);
+        if(parent != NULL){
+            ofQuaternion & parentOrientation = parent->getDerivedOrientation();
+            mDerivedOrientation = parentOrientation * mOrientation;
+        }else{
+            mDerivedOrientation = mOrientation;
+        }
+    }
+    
+    ofQuaternion & getDerivedOrientation(){
+		updateFromParent();
+        return mDerivedOrientation;
+    }
+    
+    void setConfidenceThreshold(float _threshold){
+        confidenceThreshold = _threshold;
+    }
+    
+    float getConfidenceThreshold(){
+        return confidenceThreshold;
+    }
+    
+    float getPositionConfidence(){
+        return positionConfidence;
+    }
+    
+    float getOrientationConfidence(){
+        return orientationConfidence;
+    }
+    
+    void setUseOrientation(bool b){
+        bUseOrientation = b;
+    }
+    
+    bool getUseOrientation(){
+        return bUseOrientation;
+    }
+    
+    float getProjectiveDistanceToParent(){
+        if(parent != NULL){
+            return ofVec2f(parent->getProjectivePosition()).distance(ofVec2f(getProjectivePosition()));
+        }else{
+            return 0.0f;
+        }
+    }
+    
+//    void setUseLocalOrientation(bool b){
+//        bUseLocalOrientation = b;
+//        if(b) bUseOrientation = b;
+//    }
+//    
+//    bool getUseLocalOrientation(){
+//        return bUseLocalOrientation;
+//    }
+    
+	bool isFound(){
+        return getPositionConfidence() > getConfidenceThreshold();// || getOrientationConfidence() > getConfidenceThreshold();
+    }
+
+	void draw(){
+        ofPushStyle();
+
+        if(bUseOrientation){
+            ofPushMatrix();
+            ofTranslate(projectivePosition.x, projectivePosition.y);//, projectivePosition.z);
+            float angle; ofVec3f vec;
+            mOrientation.getRotate(angle, vec);
+            ofRotate(angle, vec.x, vec.y, vec.z);
+            
+            ofLine(0, 0, 0, getProjectiveDistanceToParent());
+            
+            ofDrawAxis(30);
+            ofPopMatrix();
+        }
+        
+        ofPushMatrix();
+        
+        if(getPositionConfidence() > 0.0f){
+            ofTranslate(projectivePosition.x, projectivePosition.y);//, projectivePosition.z);
+            if(isFound()){
+                // draw in green
+                ofSetColor(0, 255, 0);
+            }else{
+                // draw in red
+                ofSetColor(255, 0, 0);
+            }
+            
+            ofFill();
+            ofCircle(0, 0, 5);
+            ofNoFill();
+        }
+        
+        if(parent != NULL){
+            if(parent->getPositionConfidence() > 0.0f){
+                if(isFound() && parent->isFound()){
+                    // draw in green
+                    ofSetColor(0, 255, 0);
+                }else{
+                    // draw in red
+                    ofSetColor(255, 0, 0);
+                }
+                ofSetLineWidth(5);
+                if(parent != NULL){
+                    ofVec2f bone =  ofVec2f(parent->getProjectivePosition()) - ofVec2f(getProjectivePosition());
+                    if(!bUseOrientation) ofLine(0, 0, 0, bone.x, bone.y, 0);
+                }
+            }
+        }
+        
+        ofPopMatrix();
+		ofPopStyle();
+	}
+    
+protected:
+    
+    friend class ofxOpenNI;
+    
+    // my parent joint
+    ofxOpenNIJoint * parent;
+    
+    // xn joint and orientation
+	XnSkeletonJoint xnJoint;
+	XnSkeletonJointOrientation xnJointOrientation;
+    
+    // confidence levels & threshold
+    float positionConfidence, orientationConfidence, confidenceThreshold;
+    
+	// position in projective coordinates
+	ofPoint projectivePosition;
+    
+	// position in real world coordinates
+	ofPoint worldPosition;
+
+    // rotation matrix
+    ofMatrix3x3 rotationMatrix;
+    ofQuaternion originalOrientation;
+    
+    ofQuaternion mOrientation;
+    ofQuaternion mDerivedOrientation;
+    
+    ofVec3f worldEulerRotation;
+    ofVec3f localEulerRotation;
+    bool method;
+    bool bUseOrientation;
+//    bool bUseLocalOrientation;
+};
 
 class ofxOpenNILimb {
 
 public:
     
-	ofxOpenNILimb(XnSkeletonJoint nStartJoint, XnSkeletonJoint nEndJoint)
-	:start_joint(nStartJoint), end_joint(nEndJoint),found(false){};
-
 	ofxOpenNILimb(){};
 
-	void set(XnSkeletonJoint nStartJoint, XnSkeletonJoint nEndJoint){
-		start_joint = nStartJoint;
-		end_joint = nEndJoint;
-		found = false;
-		begin.set(0,0,0);
-		end.set(0,0,0);
+	void set(ofxOpenNIJoint & _startJoint, ofxOpenNIJoint & _endJoint){
+		this->startJoint = &_startJoint;
+		this->endJoint = &_endJoint;
 	}
 
-	XnSkeletonJoint start_joint;
-	XnSkeletonJoint end_joint;
-	XnSkeletonJointOrientation orientation;
-
-	// position in projective coordinates
-	ofPoint begin, end;
-
-	// position in real world coordinates
-	ofPoint worldBegin, worldEnd;
+    ofxOpenNIJoint & getStartJoint(){
+        return (*startJoint);
+    }
     
-	bool found;
-
+    ofxOpenNIJoint & getEndJoint(){
+        return (*endJoint);
+    }
+    
+    bool isFound(){
+        return startJoint->isFound() && endJoint->isFound();
+    }
+    
 	void draw() {
-		if(!found) return;
+
         ofPushStyle();
-        if (start_joint == end_joint) {
-            ofFill();
-            ofCircle(begin.x, begin.y, 10);
+        if(isFound()){
+            // draw in green
+            ofSetColor(0, 255, 0);
         }else{
-            ofSetLineWidth(5);
-            ofLine(ofVec2f(begin),ofVec2f(end));
+            // draw in red
+            ofSetColor(255, 0, 0);
         }
+        ofSetLineWidth(5);
+        ofLine(ofVec2f(startJoint->getProjectivePosition()),ofVec2f(endJoint->getProjectivePosition()));
 		ofPopStyle();
 	}
+
+private:
+    
+    ofxOpenNIJoint * startJoint;
+	ofxOpenNIJoint * endJoint;
+    
 };
 
 class ofxOpenNIUser {
@@ -87,7 +340,12 @@ class ofxOpenNIUser {
 public:
     
 	ofxOpenNIUser();
-
+    ~ofxOpenNIUser();
+    
+    void setup();
+    void update();
+    void clear();
+    
     void drawSkeleton();
     void drawPointCloud();
     void drawMask();
@@ -113,11 +371,23 @@ public:
     void setUseSkeleton(bool b);
     bool getUseSkeleton();
     
-    void setLimbDetectionConfidence(float level);
-    float getLimbDetectionConfidence();
+    void setUseOrientation(bool b);
+    bool getUseOrientation();
+    
+    void setConfidenceThreshold(float confidenceThreshold);
+    float getConfidenceThreshold();
+    
+    void setForceResetTimeout(int millis);
+    int getForceResetTimeout();
+    
+    void setForceReset(bool useTimeout = true, bool forceImmediateRestart = false);
+    bool getForceReset();
     
     int getNumLimbs();
 	ofxOpenNILimb & getLimb(Limb limb);
+    
+    int getNumJoints();
+	ofxOpenNIJoint & getJoint(Joint joint);
     
     ofPoint & getCenter();
     ofMesh & getPointCloud();
@@ -133,11 +403,41 @@ public:
 
     string getDebugInfo();
     
+    ofxOpenNIUser(const ofxOpenNIUser& other){
+        if(this != &other){
+            
+            clear();
+            setup();
+            
+            pointCloudDrawSize = other.pointCloudDrawSize;
+            pointCloudResolution = other.pointCloudResolution;
+            confidenceThreshold = other.confidenceThreshold;
+            forcedResetTimeout = other.forcedResetTimeout;
+            resetCount = other.resetCount;
+            
+            bUseMaskPixels = other.bUseMaskPixels;
+            bUseMaskTexture = other.bUseMaskTexture;
+            bUseSkeleton = other.bUseSkeleton;
+            bUsePointCloud = other.bUsePointCloud;
+            bUseAutoCalibration = other.bUseAutoCalibration;
+            bForceReset = other.bForceReset;
+            bForceRestart = other.bForceRestart;
+            bUseOrientation = other.bUseOrientation;
+            
+            id = other.id;
+            
+            //cout << "COPY$$$$$$$$$$$$$$$$$ " << bUseSkeleton << endl;
+        }
+        
+        return *this;
+    }
+    
 private:
     
     friend class ofxOpenNI; // so we can access directly in ofxOpenNI
     
 	ofPoint center;
+    vector<ofxOpenNIJoint> joints;
 	vector<ofxOpenNILimb> limbs;
 	ofMesh pointCloud[2];
 	ofPixels maskPixels;
@@ -148,7 +448,8 @@ private:
     int pointCloudDrawSize;
     int pointCloudResolution;
     
-    float limbDetectionConfidence;
+    float confidenceThreshold;
+    int resetCount, forcedResetTimeout;
     
     bool bUseMaskPixels;
     bool bUseMaskTexture;
@@ -161,13 +462,40 @@ private:
     bool bIsCalibrating;
     bool bNewPixels;
     bool bNewPointCloud;
+    bool bForceReset;
+    bool bForceRestart;
+    bool bUseOrientation;
     
-    unsigned short* userPixels;
+    unsigned short * userPixels;
     
-//    // block copy ctor and assignment operator
-//    ofxOpenNIUser(const ofxOpenNIUser& other);
-//    ofxOpenNIUser& operator=(const ofxOpenNIUser&);
+    ofxOpenNIUser& operator=(const ofxOpenNIUser& other){
+        if(this != &other){
 
+            clear();
+            setup();
+            
+            pointCloudDrawSize = other.pointCloudDrawSize;
+            pointCloudResolution = other.pointCloudResolution;
+            confidenceThreshold = other.confidenceThreshold;
+            forcedResetTimeout = other.forcedResetTimeout;
+            resetCount = other.resetCount;
+            
+            bUseMaskPixels = other.bUseMaskPixels;
+            bUseMaskTexture = other.bUseMaskTexture;
+            bUseSkeleton = other.bUseSkeleton;
+            bUsePointCloud = other.bUsePointCloud;
+            bUseAutoCalibration = other.bUseAutoCalibration;
+            bForceReset = other.bForceReset;
+            bForceRestart = other.bForceRestart;
+            bUseOrientation = other.bUseOrientation;
+            
+            id = other.id;
+            
+            //cout << "ASGN$$$$$$$$$$$$$$$$$ " << bUseSkeleton << endl;
+        }
+        
+        return *this;
+    }
 };
 
 class ofxOpenNIUserEvent {

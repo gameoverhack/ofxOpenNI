@@ -29,9 +29,29 @@
 #ifndef _H_OFXOPENNIUTILS
 #define _H_OFXOPENNIUTILS
 
+#include <set>
+#include <map>
+
+#include <XnOpenNI.h>
+#include <XnCodecIDs.h>
+#include <XnCppWrapper.h>
+#include <XnLog.h>
 #include <XnTypes.h>
+
+#include "ofConstants.h"
 #include "ofPoint.h"
-#include "ofTypes.h"
+#include "ofMesh.h"
+#include "ofPixels.h"
+#include "ofTexture.h"
+#include "ofGraphics.h"
+#include "ofMatrix3x3.h"
+#include "ofQuaternion.h"
+#include "of3dUtils.h"
+#include "ofLog.h"
+#include "ofThread.h"
+#include "ofEvents.h"
+#include "ofNode.h"
+#include "ofCamera.h"
 
 #define YUV422_U  0
 #define YUV422_Y1 1
@@ -55,7 +75,7 @@
 #define SHOW_RC(rc, what)                                                   \
 ofLogVerbose(LOG_NAME) << what << "status:" << xnGetStatusString(rc);
 #define BOOL_RC(rc, what)                                                   \
-if (rc != XN_STATUS_OK) {                                                   \
+if (rc != XN_STATUS_OK){                                                   \
 ofLogError(LOG_NAME) << what << "status:" << xnGetStatusString(rc);         \
 return false;                                                               \
 }else{                                                                      \
@@ -65,7 +85,7 @@ return true;                                                                \
 #define CHECK_ERR_RC(rc, what)                                              \
 if (rc != XN_STATUS_OK) ofLogError(LOG_NAME) << what << "status:" << xnGetStatusString(rc);
 #define BOOL_ERR_RC(rc, what)                                               \
-if (rc != XN_STATUS_OK) {                                                   \
+if (rc != XN_STATUS_OK){                                                   \
 ofLogError(LOG_NAME) << what << "status:" << xnGetStatusString(rc);         \
 return false;                                                               \
 }
@@ -115,42 +135,178 @@ enum HandStatusType {
     HAND_FOCUS_GESTURE_RECOGNIZED,
 };
 
-enum Limb {
-    Head = 0,
-    Neck,
+enum Joint {
     
-    // hands
-    LeftHand,
-    RightHand,
+    // start at root joint
+    JOINT_TORSO = 0,
+    JOINT_NECK,
+    JOINT_HEAD,
     
     // left arm + shoulder
-    LeftShoulder,
-    LeftUpperArm,
-    LeftLowerArm,
+    JOINT_LEFT_SHOULDER,
+    JOINT_LEFT_ELBOW,
+    JOINT_LEFT_HAND,
     
     // right arm + shoulder
-    RightShoulder,
-    RightUpperArm,
-    RightLowerArm,
+    JOINT_RIGHT_SHOULDER,
+    JOINT_RIGHT_ELBOW,
+    JOINT_RIGHT_HAND,
     
-    // torso
-    LeftUpperTorso,
-    RightUpperTorso,
+    // left leg
+    JOINT_LEFT_HIP,
+    JOINT_LEFT_KNEE,
+    JOINT_LEFT_FOOT,
+    
+    // right leg
+    JOINT_RIGHT_HIP,
+    JOINT_RIGHT_KNEE,
+    JOINT_RIGHT_FOOT,
+    
+    JOINT_COUNT
+};
+
+enum Limb {
+    
+    // left upper torso + arm
+    LIMB_LEFT_UPPER_TORSO = 0,
+    LIMB_LEFT_SHOULDER,
+    LIMB_LEFT_UPPER_ARM,
+    LIMB_LEFT_LOWER_ARM,
     
     // left lower torso + leg
-    LeftLowerTorso,
-    LeftUpperLeg,
-    LeftLowerLeg,
+    LIMB_LEFT_LOWER_TORSO,
+    LIMB_LEFT_UPPER_LEG,
+    LIMB_LEFT_LOWER_LEG,
+    
+    // right upper torso + arm
+    LIMB_RIGHT_UPPER_TORSO,
+    LIMB_RIGHT_SHOULDER,
+    LIMB_RIGHT_UPPER_ARM,
+    LIMB_RIGHT_LOWER_ARM,
     
     // right lower torso + leg
-    RightLowerTorso,
-    RightUpperLeg,
-    RightLowerLeg,
+    LIMB_RIGHT_LOWER_TORSO,
+    LIMB_RIGHT_UPPER_LEG,
+    LIMB_RIGHT_LOWER_LEG,
     
-    Hip,
+    LIMB_NECK,
+    LIMB_PELVIS,
     
-    NumLimbs
+    LIMB_COUNT
 };
+
+//-----------------------------------------------------------------------
+static inline void rotationMatrixToQuaternian(ofMatrix3x3 & kRot, ofQuaternion & q){
+    // Converted from Ogre's Quaternion::FromRotationMatrix (const Matrix3& kRot)
+    
+    // Algorithm in Ken Shoemake's article in 1987 SIGGRAPH course notes
+    // article "Quaternion Calculus and Fast Animation".
+    
+    // Ogre matrix to of matrix elements
+    //[0][0]a [0][1]b [0][2]c
+    //[1][0]d [1][1]e [1][2]f
+    //[2][0]g [2][1]h [2][2]i
+    //kRot.transpose(); // not necessary?
+    
+    float fTrace = kRot[0 * 3 + 0] + kRot[1 * 3 + 1] + kRot[2 * 3 + 2];
+    float fRoot;
+    
+    if(fTrace > 0.0){
+        // |w| > 1/2, may as well choose w > 1/2
+        fRoot = sqrt(fTrace + 1.0f);  // 2w
+        q.w() = 0.5f * fRoot;
+        fRoot = 0.5f / fRoot;  // 1/(4w)
+        q.x() = (kRot[2 * 3 + 1] - kRot[1 * 3 + 2]) * fRoot;
+        q.y() = (kRot[0 * 3 + 2] - kRot[2 * 3 + 0]) * fRoot;
+        q.z() = (kRot[1 * 3 + 0] - kRot[0 * 3 + 1]) * fRoot;
+    }else{
+        // |w| <= 1/2
+        static size_t s_iNext[3] = { 1, 2, 0 };
+        size_t i = 0;
+        if ( kRot[1 * 3 + 1] > kRot[0 * 3 + 0] )
+            i = 1;
+        if ( kRot[2 * 3 + 2] > kRot[i * 3 + i] )
+            i = 2;
+        size_t j = s_iNext[i];
+        size_t k = s_iNext[j];
+        
+        fRoot = sqrt(kRot[i * 3 + i] - kRot[j * 3 + j] - kRot[k * 3 + k] + 1.0f);
+        float* apkQuat[3] = { &q.x(), &q.y(), &q.z() };
+        *apkQuat[i] = 0.5f * fRoot;
+        fRoot = 0.5f / fRoot;
+        q.w() = (kRot[k * 3 + j] - kRot[j * 3 + k]) * fRoot;
+        *apkQuat[j] = (kRot[j * 3 + i] + kRot[i * 3 + j]) * fRoot;
+        *apkQuat[k] = (kRot[k * 3 + i] + kRot[i * 3 + k]) * fRoot;
+        
+    }
+};
+
+//-----------------------------------------------------------------------
+static inline void quaternianToRotationMatrix(ofQuaternion & q, ofMatrix3x3 & kRot){
+    float fTx  = q.x() + q.x();
+    float fTy  = q.x() + q.x();
+    float fTz  = q.z() + q.z();
+    float fTwx = fTx * q.w();
+    float fTwy = fTy * q.w();
+    float fTwz = fTz * q.w();
+    float fTxx = fTx * q.x();
+    float fTxy = fTy * q.x();
+    float fTxz = fTz * q.x();
+    float fTyy = fTy * q.y();
+    float fTyz = fTz * q.y();
+    float fTzz = fTz * q.z();
+    
+    kRot[0 * 3 + 0] = 1.0f-(fTyy+fTzz);
+    kRot[0 * 3 + 1] = fTxy-fTwz;
+    kRot[0 * 3 + 2] = fTxz+fTwy;
+    kRot[1 * 3 + 0] = fTxy+fTwz;
+    kRot[1 * 3 + 1] = 1.0f-(fTxx+fTzz);
+    kRot[1 * 3 + 2] = fTyz-fTwx;
+    kRot[2 * 3 + 0] = fTxz-fTwy;
+    kRot[2 * 3 + 1] = fTyz+fTwx;
+    kRot[2 * 3 + 2] = 1.0f-(fTxx+fTyy);
+};
+
+//-----------------------------------------------------------------------
+static inline void quaternianFromAngleAxis(ofQuaternion & q, float rfAngle, ofVec3f rkAxis)
+{
+    // assert:  axis[] is unit length
+    //
+    // The quaternion representing the rotation is
+    //   q = cos(A/2)+sin(A/2)*(x*i+y*j+z*k)
+    
+    float fHalfAngle(0.5 * rfAngle);
+    float fSin = sin(fHalfAngle);
+    q.w() = cos(fHalfAngle);
+    q.x() = fSin * rkAxis.x;
+    q.y() = fSin * rkAxis.y;
+    q.z() = fSin * rkAxis.z;
+}
+
+//-----------------------------------------------------------------------
+static inline void quaternionToAxes(ofQuaternion & q, ofVec3f & xaxis, ofVec3f & yaxis, ofVec3f & zaxis){
+    ofMatrix3x3 kRot;
+    
+    quaternianToRotationMatrix(q, kRot);
+    
+    xaxis.x = kRot[0 * 3 + 0];
+    xaxis.y = kRot[1 * 3 + 0];
+    xaxis.z = kRot[2 * 3 + 0];
+    
+    yaxis.x = kRot[0 * 3 + 1];
+    yaxis.y = kRot[1 * 3 + 1];
+    yaxis.z = kRot[2 * 3 + 1];
+    
+    zaxis.x = kRot[0 * 3 + 2];
+    zaxis.y = kRot[1 * 3 + 2];
+    zaxis.z = kRot[2 * 3 + 2];
+};
+
+static inline void normalizeQuaternion(ofQuaternion & q){
+    float len = q.w()*q.w()+q.x()*q.x()+q.y()*q.y()+q.z()*q.z();
+    float factor = 1.0f / sqrt(len);
+    q = q * factor;
+}
 
 //--------------------------------------------------------------
 static void CreateRainbowPallet(){
@@ -196,11 +352,11 @@ inline void getDepthColor(DepthColoring depthColoring, const unsigned short & de
     float max;
     XnUInt16 col_index;
     
-    switch (depthColoring){
+    switch(depthColoring){
         case COLORING_PSYCHEDELIC_SHADES:
             color.a *= (((XnFloat)(depth % 10) / 20) + 0.5);
         case COLORING_PSYCHEDELIC:
-            switch ((depth/10) % 10){
+            switch((depth/10) % 10){
                 case 0:
                     color.r = 255;
                     break;
@@ -312,6 +468,8 @@ inline void getDepthColor(DepthColoring depthColoring, const unsigned short & de
     }
 }
 
+
+
 //--------------------------------------------------------------
 static inline ofPoint toOf(const XnPoint3D & p){
 	return *(ofPoint*)&p;
@@ -340,8 +498,200 @@ inline string boolToString(bool b){
 }
 
 //--------------------------------------------------------------
-inline string getHandStatusAsString(HandStatusType type) {
-	switch (type) {
+inline string getXNJointAsString(XnSkeletonJoint type){
+	switch(type){
+        case XN_SKEL_HEAD:
+			return "XN_SKEL_HEAD";
+			break;
+		case XN_SKEL_NECK:
+			return "XN_SKEL_NECK";
+			break;
+        case XN_SKEL_LEFT_HAND:
+			return "XN_SKEL_LEFT_HAND";
+			break;
+        case XN_SKEL_RIGHT_HAND:
+			return "XN_SKEL_RIGHT_HAND";
+			break;
+		case XN_SKEL_LEFT_SHOULDER:
+			return "XN_SKEL_LEFT_SHOULDER";
+			break;
+        case XN_SKEL_RIGHT_SHOULDER:
+			return "XN_SKEL_RIGHT_SHOULDER";
+			break;
+        case XN_SKEL_RIGHT_ELBOW:
+			return "XN_SKEL_RIGHT_ELBOW";
+			break;
+        case XN_SKEL_LEFT_ELBOW:
+			return "XN_SKEL_LEFT_ELBOW";
+            break;
+        case XN_SKEL_LEFT_COLLAR:
+			return "XN_SKEL_LEFT_COLLAR";
+			break;
+        case XN_SKEL_LEFT_WRIST:
+			return "XN_SKEL_LEFT_WRIST";
+			break;
+		case XN_SKEL_LEFT_FINGERTIP:
+			return "XN_SKEL_LEFT_FINGERTIP";
+			break;
+        case XN_SKEL_RIGHT_COLLAR:
+			return "XN_SKEL_RIGHT_COLLAR";
+			break;
+        case XN_SKEL_RIGHT_WRIST:
+			return "XN_SKEL_RIGHT_WRIST";
+			break;
+        case XN_SKEL_RIGHT_FINGERTIP:
+			return "XN_SKEL_RIGHT_FINGERTIP";
+			break;
+        case XN_SKEL_TORSO:
+			return "XN_SKEL_TORSO";
+			break;
+        case XN_SKEL_WAIST:
+			return "XN_SKEL_WAIST";
+			break;
+        case XN_SKEL_LEFT_HIP:
+			return "XN_SKEL_LEFT_HIP";
+			break;
+        case XN_SKEL_LEFT_KNEE:
+			return "XN_SKEL_LEFT_KNEE";
+			break;
+        case XN_SKEL_LEFT_FOOT:
+			return "XN_SKEL_LEFT_FOOT";
+			break;
+        case XN_SKEL_RIGHT_HIP:
+			return "XN_SKEL_RIGHT_HIP";
+			break;
+        case XN_SKEL_RIGHT_KNEE:
+			return "XN_SKEL_RIGHT_KNEE";
+			break;
+        case XN_SKEL_RIGHT_FOOT:
+			return "XN_SKEL_RIGHT_FOOT";
+			break;
+        case XN_SKEL_LEFT_ANKLE:
+			return "XN_SKEL_LEFT_ANKLE";
+			break;
+        case XN_SKEL_RIGHT_ANKLE:
+			return "XN_SKEL_RIGHT_ANKLE";
+			break;
+		default:
+			return "UNKNOWN_XN_SKEL_TYPE";
+			break;
+    }
+}
+
+//--------------------------------------------------------------
+inline string getJointAsString(Joint type){
+	switch(type){
+        case JOINT_HEAD:
+			return "JOINT_HEAD";
+			break;
+		case JOINT_NECK:
+			return "JOINT_NECK";
+			break;
+        case JOINT_LEFT_HAND:
+			return "JOINT_LEFT_HAND";
+			break;
+        case JOINT_RIGHT_HAND:
+			return "JOINT_RIGHT_HAND";
+			break;
+		case JOINT_LEFT_SHOULDER:
+			return "JOINT_LEFT_SHOULDER";
+			break;
+        case JOINT_RIGHT_SHOULDER:
+			return "JOINT_RIGHT_SHOULDER";
+			break;
+        case JOINT_RIGHT_ELBOW:
+			return "JOINT_RIGHT_ELBOW";
+			break;
+        case JOINT_LEFT_ELBOW:
+			return "JOINT_LEFT_ELBOW";
+			break;
+        case JOINT_TORSO:
+			return "JOINT_TORSO";
+			break;
+        case JOINT_LEFT_HIP:
+			return "JOINT_LEFT_HIP";
+			break;
+        case JOINT_LEFT_KNEE:
+			return "JOINT_LEFT_KNEE";
+			break;
+        case JOINT_LEFT_FOOT:
+			return "JOINT_LEFT_FOOT";
+			break;
+        case JOINT_RIGHT_HIP:
+			return "JOINT_RIGHT_HIP";
+			break;
+        case JOINT_RIGHT_KNEE:
+			return "JOINT_RIGHT_KNEE";
+			break;
+        case JOINT_RIGHT_FOOT:
+			return "JOINT_RIGHT_FOOT";
+			break;
+		default:
+			return "UNKNOWN_JOINT_TYPE";
+			break;
+    }
+}
+
+//--------------------------------------------------------------
+inline string getLimbAsString(Limb type){
+	switch(type){
+        case LIMB_NECK:
+			return "LIMB_NECK";
+			break;
+		case LIMB_LEFT_SHOULDER:
+			return "LIMB_LEFT_SHOULDER";
+			break;
+        case LIMB_LEFT_UPPER_ARM:
+			return "LIMB_LEFT_UPPER_ARM";
+			break;
+        case LIMB_LEFT_LOWER_ARM:
+			return "LIMB_LEFT_LOWER_ARM";
+			break;
+		case LIMB_RIGHT_SHOULDER:
+			return "LIMB_RIGHT_SHOULDER";
+			break;
+        case LIMB_RIGHT_UPPER_ARM:
+			return "LIMB_RIGHT_UPPER_ARM";
+			break;
+        case LIMB_RIGHT_LOWER_ARM:
+			return "LIMB_RIGHT_LOWER_ARM";
+			break;
+        case LIMB_LEFT_UPPER_TORSO:
+			return "LIMB_LEFT_UPPER_TORSO";
+			break;
+        case LIMB_RIGHT_UPPER_TORSO:
+			return "LIMB_RIGHT_UPPER_TORSO";
+			break;
+        case LIMB_LEFT_LOWER_TORSO:
+			return "LIMB_LEFT_LOWER_TORSO";
+			break;
+        case LIMB_LEFT_UPPER_LEG:
+			return "LIMB_LEFT_UPPER_LEG";
+			break;
+        case LIMB_LEFT_LOWER_LEG:
+			return "LIMB_LEFT_LOWER_LEG";
+			break;
+        case LIMB_RIGHT_LOWER_TORSO:
+			return "LIMB_RIGHT_LOWER_TORSO";
+			break;
+        case LIMB_RIGHT_UPPER_LEG:
+			return "LIMB_RIGHT_UPPER_LEG";
+			break;
+        case LIMB_RIGHT_LOWER_LEG:
+			return "LIMB_RIGHT_LOWER_LEG";
+			break;
+        case LIMB_PELVIS:
+			return "LIMB_PELVIS";
+			break;
+		default:
+			return "UNKNOWN_LIMB_TYPE";
+			break;
+    }
+}
+
+//--------------------------------------------------------------
+inline string getHandStatusAsString(HandStatusType type){
+	switch(type){
         case HAND_TRACKING_STOPPED:
 			return "HAND_TRACKING_STOPPED";
 			break;
@@ -364,8 +714,8 @@ inline string getHandStatusAsString(HandStatusType type) {
 }
 
 //--------------------------------------------------------------
-inline string getGestureStatusAsString(GestureStatusType type) {
-	switch (type) {
+inline string getGestureStatusAsString(GestureStatusType type){
+	switch(type){
         case GESTURE_PROGRESS:
 			return "GESTURE_PROGRESS";
 			break;
@@ -379,8 +729,8 @@ inline string getGestureStatusAsString(GestureStatusType type) {
 }
 
 //--------------------------------------------------------------
-inline string getUserStatusAsString(UserStatusType type) {
-	switch (type) {
+inline string getUserStatusAsString(UserStatusType type){
+	switch(type){
         case USER_TRACKING_STOPPED:
 			return "USER_TRACKING_STOPPED";
 			break;
@@ -406,8 +756,8 @@ inline string getUserStatusAsString(UserStatusType type) {
 }
 
 //--------------------------------------------------------------
-inline string getCalibrationStatusAsString(XnCalibrationStatus type) {
-	switch (type) {
+inline string getCalibrationStatusAsString(XnCalibrationStatus type){
+	switch(type){
 		case XN_CALIBRATION_STATUS_OK:
 			return "XN_CALIBRATION_STATUS_OK";
 			break;
@@ -451,8 +801,8 @@ inline string getCalibrationStatusAsString(XnCalibrationStatus type) {
 }
 
 //--------------------------------------------------------------
-inline string getNodeTypeAsString(XnProductionNodeType type) {
-	switch (type) {
+inline string getNodeTypeAsString(XnProductionNodeType type){
+	switch(type){
 		case XN_NODE_TYPE_INVALID:
 			return "XN_NODE_TYPE_INVALID";
 			break;
