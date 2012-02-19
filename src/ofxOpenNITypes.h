@@ -608,6 +608,147 @@ private:
     
 };
 
+class ofxOpenNIHotspot {
+    
+public:
+    
+    ofxOpenNIHotspot(){};
+    
+    ofxOpenNIHotspot(ofPoint _leftBottomNearWorld, ofPoint _rightTopFarWorld, xn::DepthGenerator & g_Depth){
+        set(_leftBottomNearWorld, _rightTopFarWorld, g_Depth);
+    };
+    
+    void set(ofPoint _leftBottomNearWorld, ofPoint _rightTopFarWorld, xn::DepthGenerator & g_Depth){
+        leftBottomNearWorld = _leftBottomNearWorld;
+        rightTopFarWorld = _rightTopFarWorld;
+        if(&g_Depth != NULL){
+            
+            leftBottomNearProjective = worldToProjective(leftBottomNearWorld, g_Depth);
+            ofPoint rightTopNearWorld = ofPoint(rightTopFarWorld.x, rightTopFarWorld.y, leftBottomNearWorld.z);
+            rightTopNearProjective = worldToProjective(rightTopNearWorld, g_Depth);
+            
+            rightTopFarProjective = worldToProjective(rightTopFarWorld, g_Depth);
+            ofPoint leftBottomFarWorld = ofPoint(leftBottomNearWorld.x, leftBottomNearWorld.y, rightTopFarWorld.z);
+            leftBottomFarProjective = worldToProjective(leftBottomFarWorld, g_Depth);
+            
+            nearPlane.set(ofVec2f(leftBottomNearProjective), rightTopNearProjective.x - leftBottomNearProjective.x, rightTopNearProjective.y - leftBottomNearProjective.y);
+            farPlane.set(ofVec2f(leftBottomFarProjective), rightTopFarProjective.x - leftBottomFarProjective.x, rightTopFarProjective.y - leftBottomFarProjective.y);
+            
+            centerWorld = leftBottomNearWorld.middle(rightTopFarWorld);
+            centerProjective = worldToProjective(centerWorld, g_Depth);
+            maxDistance = centerWorld.distance(leftBottomNearWorld);
+        }
+    }
+    
+    bool drawInside(ofxOpenNIUser & user){
+        for(int j = 0; j < user.getNumJoints(); j++){
+            ofxOpenNIJoint & joint = user.getJoint((Joint)j);
+            return drawInside(joint);
+        }
+    }
+    
+    bool drawInside(ofxOpenNIJoint & joint){
+        if(inside(joint)){
+            ofPushStyle();
+            float magnitude = distanceToCenter(joint)/maxDistance;
+            ofSetColor(255*magnitude, 0, 255);
+            ofCircle(ofVec2f(joint.getProjectivePosition()), 5);
+            ofSetLineWidth(2);
+            ofLine(ofVec2f(joint.getProjectivePosition()), ofVec2f(centerProjective));
+            ofPopStyle();
+            return true;
+        }
+        return false;
+    }
+    
+    void draw(){
+        ofPushStyle();
+        
+        ofNoFill();
+        ofSetLineWidth(0.5);
+        ofCircle(ofVec2f(centerProjective), 5);
+        
+        ofRect(nearPlane);
+        ofRect(farPlane);
+        
+        ofLine(ofVec2f(leftBottomNearProjective), ofVec2f(leftBottomFarProjective));
+        ofLine(ofVec2f(rightTopNearProjective), ofVec2f(rightTopFarProjective));
+        ofLine(ofVec2f(leftBottomNearProjective.x, rightTopNearProjective.y), ofVec2f(leftBottomFarProjective.x, rightTopFarProjective.y));
+        ofLine(ofVec2f(rightTopNearProjective.x, leftBottomNearProjective.y), ofVec2f(rightTopFarProjective.x, leftBottomFarProjective.y));
+
+        ofPopStyle();
+    }
+    
+    inline float distanceToCenter(ofxOpenNIJoint & joint){
+        return centerWorld.distance(joint.getProjectivePosition());
+    }
+    
+    inline int numJointsInside(ofxOpenNIUser & user){
+        int limbsInside = 0;
+        for(int j = 0; j < user.getNumJoints(); j++){
+            ofxOpenNIJoint & joint = user.getJoint((Joint)j);
+            if(inside(joint)) limbsInside++;
+        }
+        return limbsInside;
+    }
+    
+    inline float percentInside(ofxOpenNIUser & user){
+        return (float)numJointsInside(user)/user.getNumJoints();
+    }
+    
+    inline bool inside(ofxOpenNIUser & user){
+        inside(user, user.getNumJoints());
+    }
+    
+    inline bool inside(ofxOpenNIUser & user, float pct){
+        int numLimbs = floor(user.getNumJoints() * pct);
+        inside(user, numLimbs);
+    }
+    
+    inline bool inside(ofxOpenNIUser & user, int numLimbs){
+        if(numLimbs > user.getNumJoints()){
+            ofLogError() << "More limbs than the user for inside test!!";
+            return false;
+        }
+        int limbsInside = -numLimbs;
+        for(int j = 0; j < user.getNumJoints(); j++){
+            ofxOpenNIJoint & joint = user.getJoint((Joint)j);
+            if(inside(joint)) limbsInside++;
+            if(limbsInside == numLimbs){
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    inline bool inside(ofxOpenNILimb & limb){
+        return inside(limb.getStartJoint().getWorldPosition()) && inside(limb.getEndJoint().getWorldPosition());
+    }
+    
+    inline bool inside(ofxOpenNIJoint & joint){
+        return inside(joint.getWorldPosition());
+    }
+    
+    inline bool inside(ofPoint & worldPosition){
+        if(worldPosition.x > leftBottomNearWorld.x && worldPosition.y > leftBottomNearWorld.y && worldPosition.y > leftBottomNearWorld.y &&
+           worldPosition.x < rightTopFarWorld.x && worldPosition.y < rightTopFarWorld.y && worldPosition.y < rightTopFarWorld.y){
+            //ofLogVerbose() << "Inside hotspot";
+            return true;
+        }else{
+            return false;
+        }
+    }
+    
+    float maxDistance;
+    ofPoint centerWorld, centerProjective;
+    
+    ofPoint leftBottomNearWorld, rightTopFarWorld;
+    ofRectangle nearPlane, farPlane;
+    ofPoint leftBottomNearProjective, rightTopFarProjective;
+    ofPoint rightTopNearProjective, leftBottomFarProjective;
+};
+
+
 class ofxOpenNIGestureEvent {
     
 public:

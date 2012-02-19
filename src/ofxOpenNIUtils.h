@@ -495,6 +495,19 @@ static inline XnPoint3D toXn(const ofPoint & p){
 }
 
 //--------------------------------------------------------------
+static inline ofPoint worldToProjective(const XnVector3D& p, xn::DepthGenerator & g_Depth){
+	XnVector3D proj;
+	g_Depth.ConvertRealWorldToProjective(1,&p,&proj);
+	return toOf(proj);
+}
+
+//--------------------------------------------------------------
+static inline ofPoint worldToProjective(const ofPoint& p, xn::DepthGenerator & g_Depth){
+	XnVector3D world = toXn(p);
+	return worldToProjective(world, g_Depth);
+}
+
+//--------------------------------------------------------------
 inline string boolToString(bool b){
     return (string)(b ? "TRUE" : "FALSE");
 }

@@ -1724,6 +1724,10 @@ int	ofxOpenNI::getNumTrackedUsers(){
 //--------------------------------------------------------------
 ofxOpenNIUser& ofxOpenNI::getTrackedUser(int index){
     if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    if(index > currentTrackedUserIDs.size()){
+        ofLogError(LOG_NAME) << "no tracked user for that index...have you called getNumTrackedUsers()? Returning garbage baseUser";
+        return baseUser;
+    }
     return currentTrackedUsers[currentTrackedUserIDs[index]];
 }
 
