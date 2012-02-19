@@ -36,10 +36,13 @@ class ofxOpenNIJoint {
     
 public:
     
-    ofxOpenNIJoint(){};
+    ofxOpenNIJoint(){
+        type = JOINT_UNKOWN;
+    };
     
 	void set(XnSkeletonJoint _joint, float _confidenceThreshold = 0.5f){
 		xnJoint = _joint;
+        type = XnToOfJoint(xnJoint);
         bUseOrientation = false;
         bUseLocalOrientation = false;
         projectivePosition.set(0,0,0);
@@ -55,6 +58,18 @@ public:
 
     void setParent(ofxOpenNIJoint & joint){
         this->parent = &joint;
+    }
+    
+    ofxOpenNIJoint & getParent(){
+        return (*parent);
+    }
+    
+    string getName(){
+        return getJointAsString(type);
+    }
+    
+    Joint getType(){
+        return type;
     }
     
     bool isParent(){
@@ -246,6 +261,8 @@ public:
 protected:
     
     friend class ofxOpenNI;
+    
+    Joint type;
     
     // my parent joint
     ofxOpenNIJoint * parent;

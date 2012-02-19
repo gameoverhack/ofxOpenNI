@@ -91,7 +91,9 @@ ofxOpenNI::ofxOpenNI(){
     maxNumHands = 1;
     minTimeBetweenHands = 500;
     minDistanceBetweenHands = 100;
-
+    
+    backDepthRawPixels = NULL;
+    
 	CreateRainbowPallet();
     
     logLevel = OF_LOG_SILENT;
@@ -1318,7 +1320,7 @@ void ofxOpenNI::updateDepthPixels(){
 	if(g_DepthMD.FrameID() == 0) return;
 
 	// copy raw values
-	if(g_bIsDepthRawOn){
+	if(g_bIsDepthRawOn && backDepthRawPixels != NULL && depth != NULL){
 		backDepthRawPixels->setFromPixels(depth, getWidth(), getHeight(), OF_IMAGE_COLOR);
 	}
 	
@@ -2389,6 +2391,7 @@ bool ofxOpenNI::getSafeThreading(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::setUseDepthRawPixels(bool b){
+    if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     if(b) allocateDepthRawBuffers();
     g_bIsDepthRawOn = b;
 }

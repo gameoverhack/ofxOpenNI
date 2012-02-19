@@ -162,7 +162,8 @@ enum Joint {
     JOINT_RIGHT_KNEE,
     JOINT_RIGHT_FOOT,
     
-    JOINT_COUNT
+    JOINT_COUNT,
+    JOINT_UNKOWN
 };
 
 enum Limb {
@@ -192,7 +193,8 @@ enum Limb {
     LIMB_NECK,
     LIMB_PELVIS,
     
-    LIMB_COUNT
+    LIMB_COUNT,
+    LIMB_UNKOWN
 };
 
 //-----------------------------------------------------------------------
@@ -497,6 +499,86 @@ inline string boolToString(bool b){
     return (string)(b ? "TRUE" : "FALSE");
 }
 
+inline Joint XnToOfJoint(XnSkeletonJoint type){
+    switch(type){
+        case XN_SKEL_HEAD:
+			return JOINT_HEAD;
+			break;
+		case XN_SKEL_NECK:
+			return JOINT_NECK;
+			break;
+        case XN_SKEL_LEFT_HAND:
+			return JOINT_LEFT_HAND;
+			break;
+        case XN_SKEL_RIGHT_HAND:
+			return JOINT_RIGHT_HAND;
+			break;
+		case XN_SKEL_LEFT_SHOULDER:
+			return JOINT_LEFT_SHOULDER;
+			break;
+        case XN_SKEL_RIGHT_SHOULDER:
+			return JOINT_RIGHT_SHOULDER;
+			break;
+        case XN_SKEL_RIGHT_ELBOW:
+			return JOINT_RIGHT_ELBOW;
+			break;
+        case XN_SKEL_LEFT_ELBOW:
+			return JOINT_LEFT_ELBOW;
+            break;
+//        case XN_SKEL_LEFT_COLLAR:
+//			return "XN_SKEL_LEFT_COLLAR";
+//			break;
+//        case XN_SKEL_LEFT_WRIST:
+//			return "XN_SKEL_LEFT_WRIST";
+//			break;
+//		case XN_SKEL_LEFT_FINGERTIP:
+//			return "XN_SKEL_LEFT_FINGERTIP";
+//			break;
+//        case XN_SKEL_RIGHT_COLLAR:
+//			return "XN_SKEL_RIGHT_COLLAR";
+//			break;
+//        case XN_SKEL_RIGHT_WRIST:
+//			return "XN_SKEL_RIGHT_WRIST";
+//			break;
+//        case XN_SKEL_RIGHT_FINGERTIP:
+//			return "XN_SKEL_RIGHT_FINGERTIP";
+//			break;
+        case XN_SKEL_TORSO:
+			return JOINT_TORSO;
+			break;
+//        case XN_SKEL_WAIST:
+//			return "XN_SKEL_WAIST";
+//			break;
+        case XN_SKEL_LEFT_HIP:
+			return JOINT_LEFT_HIP;
+			break;
+        case XN_SKEL_LEFT_KNEE:
+			return JOINT_LEFT_KNEE;
+			break;
+        case XN_SKEL_LEFT_FOOT:
+			return JOINT_LEFT_FOOT;
+			break;
+        case XN_SKEL_RIGHT_HIP:
+			return JOINT_RIGHT_FOOT;
+			break;
+        case XN_SKEL_RIGHT_KNEE:
+			return JOINT_RIGHT_KNEE;
+			break;
+        case XN_SKEL_RIGHT_FOOT:
+			return JOINT_RIGHT_FOOT;
+			break;
+//        case XN_SKEL_LEFT_ANKLE:
+//			return "XN_SKEL_LEFT_ANKLE";
+//			break;
+//        case XN_SKEL_RIGHT_ANKLE:
+//			return "XN_SKEL_RIGHT_ANKLE";
+//			break;
+		default:
+			return JOINT_UNKOWN;
+			break;
+    }
+}
+
 //--------------------------------------------------------------
 inline string getXNJointAsString(XnSkeletonJoint type){
 	switch(type){
@@ -627,7 +709,7 @@ inline string getJointAsString(Joint type){
 			return "JOINT_RIGHT_FOOT";
 			break;
 		default:
-			return "UNKNOWN_JOINT_TYPE";
+			return "JOINT_UNKOWN";
 			break;
     }
 }
@@ -684,7 +766,7 @@ inline string getLimbAsString(Limb type){
 			return "LIMB_PELVIS";
 			break;
 		default:
-			return "UNKNOWN_LIMB_TYPE";
+			return "LIMB_UNKOWN";
 			break;
     }
 }
