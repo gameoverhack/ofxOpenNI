@@ -133,6 +133,9 @@ public:
 	void setUseTexture(bool useTexture);
 	void setDepthColoring(DepthColoring coloring);
 	
+    void setUseDepthRawPixels(bool b);
+    bool getUseDepthRawPixels();
+    
     void setUseBackBuffer(bool b);
     bool getUseBackBuffer();
     
@@ -342,7 +345,7 @@ private:
     bool g_bIsGestureOn;
     bool g_bIsHandsOn;
 	bool g_bIsAudioOn;
-	bool g_bIsDepthRawOnOption;
+	bool g_bIsDepthRawOn;
     bool g_bIsRecordOn;
     bool g_bIsPlayerOn;
 

@@ -46,7 +46,7 @@ ofxOpenNI::ofxOpenNI(){
     
 	bIsThreaded = false;
 	g_bIsDepthOn = false;
-	g_bIsDepthRawOnOption = false;
+	g_bIsDepthRawOn = false;
 	g_bIsImageOn = false;
 	g_bIsInfraOn = false;
     g_bIsUserOn = false;
@@ -161,7 +161,7 @@ bool ofxOpenNI::initContext(string xmlFilePath){
     ofLogNotice(LOG_NAME) << "Init context...";
     
     g_bIsDepthOn = false;
-	g_bIsDepthRawOnOption = false;
+	g_bIsDepthRawOn = false;
 	g_bIsImageOn = false;
 	g_bIsInfraOn = false;
     g_bIsUserOn = false;
@@ -241,7 +241,6 @@ bool ofxOpenNI::initCommon(){
                 case XN_NODE_TYPE_DEPTH:
                     ofLogVerbose(LOG_NAME) << "Creating depth generator from ONI/XML";
                     g_bIsDepthOn = true;
-                    //g_bIsDepthRawOnOption = true;
                     (*it).GetInstance(g_Depth);
                     allocateDepthBuffers();
                     break;
@@ -380,7 +379,6 @@ void ofxOpenNI::stopCommon(){
         cout << LOG_NAME << ": releasing depth generator" << endl;
         g_Depth.StopGenerating();
         g_Depth.Release();
-        g_bIsDepthRawOnOption = false;
         g_bIsDepthOn = false;
     }
         
@@ -999,8 +997,8 @@ void ofxOpenNI::allocateDepthRawBuffers(){
     if(depthRawPixels[0].getWidth() != width || depthRawPixels[0].getHeight() != height){
         ofLogVerbose(LOG_NAME) << "Allocating depth raw";
         maxDepth = g_Depth.GetDeviceMaxDepth();
-        depthRawPixels[0].allocate(width, height, OF_PIXELS_MONO);
-        depthRawPixels[1].allocate(width, height, OF_PIXELS_MONO);
+        depthRawPixels[0].allocate(width, height, OF_IMAGE_COLOR);
+        depthRawPixels[1].allocate(width, height, OF_IMAGE_COLOR);
         currentDepthRawPixels = &depthRawPixels[0];
         backDepthRawPixels = &depthRawPixels[1];
     }
@@ -1288,7 +1286,7 @@ void ofxOpenNI::updateGenerators(){
     if(bUseBackBuffer){
         if(g_bIsDepthOn && g_Depth.IsDataNew()){
             swap(backDepthPixels, currentDepthPixels);
-            if(g_bIsDepthRawOnOption){
+            if(g_bIsDepthRawOn){
                 swap(backDepthRawPixels, currentDepthRawPixels);
             }
         }
@@ -1320,8 +1318,8 @@ void ofxOpenNI::updateDepthPixels(){
 	if(g_DepthMD.FrameID() == 0) return;
 
 	// copy raw values
-	if(g_bIsDepthRawOnOption){
-		backDepthRawPixels->setFromPixels(depth, g_DepthMD.XRes(), g_DepthMD.YRes(), OF_IMAGE_COLOR);
+	if(g_bIsDepthRawOn){
+		backDepthRawPixels->setFromPixels(depth, getWidth(), getHeight(), OF_IMAGE_COLOR);
 	}
 	
 	// copy depth into texture-map
@@ -2390,6 +2388,17 @@ bool ofxOpenNI::getSafeThreading(){
  *************************************************************/
 
 //--------------------------------------------------------------
+void ofxOpenNI::setUseDepthRawPixels(bool b){
+    if(b) allocateDepthRawBuffers();
+    g_bIsDepthRawOn = b;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::getUseDepthRawPixels(){
+    return g_bIsDepthRawOn;
+}
+
+//--------------------------------------------------------------
 void ofxOpenNI::setUseBackBuffer(bool b){
 	bUseBackBuffer = b;
 }
@@ -2428,9 +2437,9 @@ ofPixels& ofxOpenNI::getDepthPixels(){
 //--------------------------------------------------------------
 ofShortPixels& ofxOpenNI::getDepthRawPixels(){
 	if(bIsThreaded) Poco::ScopedLock<ofMutex> lock(mutex);
-	if(!g_bIsDepthRawOnOption){
-		ofLogWarning(LOG_NAME) << "g_bIsDepthRawOnOption was disabled, enabling raw pixels";
-		g_bIsDepthRawOnOption = true;
+	if(!g_bIsDepthRawOn){
+		ofLogWarning(LOG_NAME) << "g_bIsDepthRawOn was disabled, enabling raw pixels. Should really call setUseDepthRawPixels(true) first?";
+		setUseDepthRawPixels(true);
 	}
     if(bUseBackBuffer){
         return *currentDepthRawPixels;
@@ -3227,8 +3236,8 @@ ofPoint ofxOpenNI::cameraToWorld(const ofVec2f& c){
 void ofxOpenNI::cameraToWorld(const vector<ofVec2f>& c, vector<ofVec3f>& w){
 	const int nPoints = c.size();
 	w.resize(nPoints);
-	if(!g_bIsDepthRawOnOption){
-		ofLogError(LOG_NAME) << "ofxOpenNI::cameraToWorld - cannot perform this function ifg_bIsDepthRawOnOption is false. You can enabled g_bIsDepthRawOnOption by calling getDepthRawPixels(..).";
+	if(!g_bIsDepthRawOn){
+		ofLogError(LOG_NAME) << "ofxOpenNI::cameraToWorld - cannot perform this function if g_bIsDepthRawOn is false. You can enabled g_bIsDepthRawOn by calling getDepthRawPixels(..) or setUseDepthRawPixels(true)";
 		return;
 	}
 	
