@@ -57,6 +57,10 @@ public:
         this->parent = &joint;
     }
     
+    bool isParent(){
+        return (parent != NULL);
+    }
+    
     void setInitialOrientation(ofQuaternion q){
         normalizeQuaternion(q);
         originalOrientation = q;
@@ -132,7 +136,7 @@ public:
 
     void updateFromParent(){
         //cout << "-> " << getXNJointAsString(xnJoint);
-        if(parent != NULL){
+        if(isParent()){
             ofQuaternion & parentOrientation = parent->getDerivedOrientation();
             mDerivedOrientation = parentOrientation * mOrientation;
         }else{
@@ -170,7 +174,7 @@ public:
     }
     
     float getProjectiveDistanceToParent(){
-        if(parent != NULL){
+        if(isParent()){
             return ofVec2f(parent->getProjectivePosition()).distance(ofVec2f(getProjectivePosition()));
         }else{
             return 0.0f;
@@ -214,7 +218,7 @@ public:
             ofNoFill();
         }
         
-        if(parent != NULL){
+        if(isParent()){
             if(parent->getPositionConfidence() > 0.0f){
                 if(isFound() && parent->isFound()){
                     // draw in green
@@ -224,7 +228,7 @@ public:
                     ofSetColor(255, 0, 0);
                 }
                 ofSetLineWidth(5);
-                if(parent != NULL){
+                if(isParent()){
                     ofVec2f bone =  ofVec2f(parent->getProjectivePosition()) - ofVec2f(getProjectivePosition());
                     if(!bUseOrientation) ofLine(0, 0, 0, bone.x, bone.y, 0);
                 }
