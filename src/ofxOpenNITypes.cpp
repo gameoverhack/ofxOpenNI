@@ -406,8 +406,8 @@ bool ofxOpenNIUser::getForceReset(){
 }
 
 //--------------------------------------------------------------
-int ofxOpenNIUser::getID(){
-    return id;
+int ofxOpenNIUser::getXnID(){
+    return XnID;
 }
 
 //--------------------------------------------------------------
@@ -433,7 +433,7 @@ bool ofxOpenNIUser::isCalibrating(){
 //--------------------------------------------------------------
 string ofxOpenNIUser::getDebugInfo(){
     ostringstream info;
-    info << "userID: " << ofToString(id) << " ";
+    info << "XnUserID: " << ofToString(XnID) << " ";
     info << "autoCalibrate: " << boolToString(bUseAutoCalibration) << " ";
     info << "isFound: " << boolToString(isFound()) << " ";
     info << "isTracking: " << boolToString(isTracking()) << " ";

@@ -398,7 +398,7 @@ public:
     ofPixels & getMaskPixels();
     ofTexture & getMaskTextureReference();
     
-    int getID();
+    int getXnID();
     
     bool isFound();
     bool isTracking();
@@ -428,7 +428,7 @@ public:
             bForceRestart = other.bForceRestart;
             bUseOrientation = other.bUseOrientation;
             
-            id = other.id;
+            XnID = other.XnID;
             
             //cout << "COPY$$$$$$$$$$$$$$$$$ " << bUseSkeleton << endl;
         }
@@ -447,7 +447,7 @@ private:
 	ofPixels maskPixels;
     ofTexture maskTexture;
     
-    int id;
+    int XnID;
     
     int pointCloudDrawSize;
     int pointCloudResolution;
@@ -493,7 +493,7 @@ private:
             bForceRestart = other.bForceRestart;
             bUseOrientation = other.bUseOrientation;
             
-            id = other.id;
+            XnID = other.XnID;
             
             //cout << "ASGN$$$$$$$$$$$$$$$$$ " << bUseSkeleton << endl;
         }
@@ -633,29 +633,34 @@ public:
             
             nearPlane.set(ofVec2f(leftBottomNearProjective), rightTopNearProjective.x - leftBottomNearProjective.x, rightTopNearProjective.y - leftBottomNearProjective.y);
             farPlane.set(ofVec2f(leftBottomFarProjective), rightTopFarProjective.x - leftBottomFarProjective.x, rightTopFarProjective.y - leftBottomFarProjective.y);
-            
-            centerWorld = leftBottomNearWorld.middle(rightTopFarWorld);
+            ofPoint lbn =leftBottomNearWorld;
+            centerWorld = lbn.middle(rightTopFarWorld);
             centerProjective = worldToProjective(centerWorld, g_Depth);
             maxDistance = centerWorld.distance(leftBottomNearWorld);
         }
     }
     
     bool drawInside(ofxOpenNIUser & user){
+        if(user.getNumJoints() == 0) return false;
+        int jointsInside = 0;
         for(int j = 0; j < user.getNumJoints(); j++){
             ofxOpenNIJoint & joint = user.getJoint((Joint)j);
-            return drawInside(joint);
+            if(drawInside(joint)){
+                jointsInside++;
+            }
         }
+        return (jointsInside > 0);
     }
     
     bool drawInside(ofxOpenNIJoint & joint){
         if(inside(joint)){
-            ofPushStyle();
+            
             float magnitude = distanceToCenter(joint)/maxDistance;
             ofSetColor(255*magnitude, 0, 255);
             ofCircle(ofVec2f(joint.getProjectivePosition()), 5);
             ofSetLineWidth(2);
             ofLine(ofVec2f(joint.getProjectivePosition()), ofVec2f(centerProjective));
-            ofPopStyle();
+            
             return true;
         }
         return false;
@@ -684,6 +689,7 @@ public:
     }
     
     inline int numJointsInside(ofxOpenNIUser & user){
+        if(user.getNumJoints() == 0) return 0;
         int limbsInside = 0;
         for(int j = 0; j < user.getNumJoints(); j++){
             ofxOpenNIJoint & joint = user.getJoint((Joint)j);
@@ -693,23 +699,23 @@ public:
     }
     
     inline float percentInside(ofxOpenNIUser & user){
+        if(user.getNumJoints() == 0) return false;
         return (float)numJointsInside(user)/user.getNumJoints();
     }
     
     inline bool inside(ofxOpenNIUser & user){
+        if(user.getNumJoints() == 0) return false;
         inside(user, user.getNumJoints());
     }
     
     inline bool inside(ofxOpenNIUser & user, float pct){
+        if(user.getNumJoints() == 0) return false;
         int numLimbs = floor(user.getNumJoints() * pct);
         inside(user, numLimbs);
     }
     
     inline bool inside(ofxOpenNIUser & user, int numLimbs){
-        if(numLimbs > user.getNumJoints()){
-            ofLogError() << "More limbs than the user for inside test!!";
-            return false;
-        }
+        if(numLimbs > user.getNumJoints()) return false;
         int limbsInside = -numLimbs;
         for(int j = 0; j < user.getNumJoints(); j++){
             ofxOpenNIJoint & joint = user.getJoint((Joint)j);
@@ -728,10 +734,10 @@ public:
     inline bool inside(ofxOpenNIJoint & joint){
         return inside(joint.getWorldPosition());
     }
-    
+
     inline bool inside(ofPoint & worldPosition){
-        if(worldPosition.x > leftBottomNearWorld.x && worldPosition.y > leftBottomNearWorld.y && worldPosition.y > leftBottomNearWorld.y &&
-           worldPosition.x < rightTopFarWorld.x && worldPosition.y < rightTopFarWorld.y && worldPosition.y < rightTopFarWorld.y){
+        if(worldPosition.x > leftBottomNearWorld.x && worldPosition.y > leftBottomNearWorld.y && worldPosition.z > leftBottomNearWorld.z &&
+           worldPosition.x < rightTopFarWorld.x && worldPosition.y < rightTopFarWorld.y && worldPosition.z < rightTopFarWorld.z){
             //ofLogVerbose() << "Inside hotspot";
             return true;
         }else{

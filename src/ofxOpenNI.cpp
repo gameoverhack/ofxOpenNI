@@ -1162,7 +1162,7 @@ void ofxOpenNI::update(){
                 }
                 if(user.getUseMaskTexture() && user.bNewPixels){
                     if(user.maskTexture.getWidth() != getWidth() || user.maskTexture.getHeight() != getHeight()){
-                        ofLogVerbose(LOG_NAME) << "Allocating mask texture " << user.id;
+                        ofLogVerbose(LOG_NAME) << "Allocating mask texture " << user.getXnID();
                         user.maskTexture.allocate(getWidth(), getHeight(), GL_RGBA);
                     }
                     if(user.maskPixels.getPixels() != NULL) user.maskTexture.loadData(user.maskPixels.getPixels(), getWidth(), getHeight(), GL_RGBA);
@@ -1178,16 +1178,16 @@ void ofxOpenNI::update(){
         for(it = currentTrackedUsers.begin(); it != currentTrackedUsers.end(); it++){
             ofxOpenNIUser & user = it->second;
             if(user.getForceReset()){
-                ofLogVerbose(LOG_NAME) << "Force stopping user tracking" << user.getID();
-                resetUserTracking(user.getID(), user.bForceRestart);
+                ofLogVerbose(LOG_NAME) << "Force stopping user tracking" << user.getXnID();
+                resetUserTracking(user.getXnID(), user.bForceRestart);
                 user.bForceRestart = false;
                 user.bForceReset = false;
             }
             if(user.isFound()) {
-                trackedUserIDs.insert(user.getID());
+                trackedUserIDs.insert(user.getXnID());
             }else{
-                ofLogVerbose(LOG_NAME) << "Mark for deleting user" << user.getID();
-                usersToDelete.insert(user.getID());
+                ofLogVerbose(LOG_NAME) << "Mark for deleting user" << user.getXnID();
+                usersToDelete.insert(user.getXnID());
             }
             
         }
@@ -1407,7 +1407,7 @@ void ofxOpenNI::updateUserTracker(){
 		if(g_User.GetSkeletonCap().IsTracking(nID)){
             if(currentTrackedUsers.find(nID) == currentTrackedUsers.end()) continue;
 			ofxOpenNIUser & user = currentTrackedUsers[nID];
-			user.id = nID;
+			user.XnID = nID;
 			XnPoint3D center;
 			g_User.GetCoM(nID, center);
 			user.center = toOf(center);
@@ -1423,8 +1423,8 @@ void ofxOpenNI::updateUserTracker(){
 //                    cout << getJointAsString((Joint)j) << endl;
                     XnSkeletonJointPosition transform;
                     XnSkeletonJointOrientation orientation;
-                    g_User.GetSkeletonCap().GetSkeletonJointPosition(user.id, joint.xnJoint, transform);
-                    g_User.GetSkeletonCap().GetSkeletonJointOrientation(user.id, joint.xnJoint, orientation);
+                    g_User.GetSkeletonCap().GetSkeletonJointPosition(user.getXnID(), joint.xnJoint, transform);
+                    g_User.GetSkeletonCap().GetSkeletonJointOrientation(user.getXnID(), joint.xnJoint, orientation);
                     
                     joint.projectivePosition = worldToProjective(transform.position);
                     joint.worldPosition = toOf(transform.position);
@@ -1450,7 +1450,7 @@ void ofxOpenNI::updateUserTracker(){
             
             if(user.getUsePointCloud() || user.getUseMaskPixels()){
                 xn::SceneMetaData smd;
-                if(g_User.GetUserPixels(user.id, smd) == XN_STATUS_OK) {
+                if(g_User.GetUserPixels(user.getXnID(), smd) == XN_STATUS_OK) {
                     user.userPixels = (unsigned short*)smd.Data();
                 }
             }
@@ -1459,8 +1459,8 @@ void ofxOpenNI::updateUserTracker(){
 			if(user.getUseMaskPixels() || user.getUseMaskTexture()) updateUserPixels(user);
             
             if(user.isSkeleton() != lastbIsSkeleton){
-                ofLogNotice(LOG_NAME) << "Skeleton" << (string)(user.isSkeleton() ? "found" : "lost") << "for user" << user.getID();
-                ofxOpenNIUserEvent event = ofxOpenNIUserEvent(getDeviceID(), (user.isSkeleton() ? USER_SKELETON_FOUND : USER_SKELETON_LOST), user.id, ofGetElapsedTimeMillis());
+                ofLogNotice(LOG_NAME) << "Skeleton" << (string)(user.isSkeleton() ? "found" : "lost") << "for user" << user.getXnID();
+                ofxOpenNIUserEvent event = ofxOpenNIUserEvent(getDeviceID(), (user.isSkeleton() ? USER_SKELETON_FOUND : USER_SKELETON_LOST), user.getXnID(), ofGetElapsedTimeMillis());
                 ofNotifyEvent(userEvent, event, this);
             }
 		}
@@ -1488,7 +1488,7 @@ void ofxOpenNI::updatePointClouds(ofxOpenNIUser & user){
 	for (int nY = 0; nY < getHeight(); nY += step) {
 		for (int nX = 0; nX < getWidth(); nX += step) {
             nIndex = nY * getWidth() + nX;
-			if(user.userPixels[nIndex] == user.id) {
+			if(user.userPixels[nIndex] == user.getXnID()) {
 				user.pointCloud[0].addVertex(ofPoint(nX, nY, pDepth[nIndex]));
 				if(g_bIsImageOn){
 					user.pointCloud[0].addColor(ofColor(pColor[nIndex].nRed, pColor[nIndex].nGreen, pColor[nIndex].nBlue));
@@ -1512,7 +1512,7 @@ void ofxOpenNI::updateUserPixels(ofxOpenNIUser & user){
     for (int nY = 0; nY < getHeight(); nY++) {
 		for (int nX = 0; nX < getWidth(); nX++) {
             nIndex = nY * getWidth() + nX;
-            if(user.userPixels[nIndex] == user.id) {
+            if(user.userPixels[nIndex] == user.getXnID()) {
                 user.maskPixels[nIndex * 4 + 0] = 255;
                 user.maskPixels[nIndex * 4 + 1] = 255;
                 user.maskPixels[nIndex * 4 + 2] = 255;
@@ -2755,7 +2755,7 @@ void ofxOpenNI::requestCalibration(XnUserID nID){
         if(currentTrackedUsers.find(nID) == currentTrackedUsers.end()){
             ofLogNotice(LOG_NAME) << "Create tracked user" << nID;
             currentTrackedUsers[nID] = baseUser;//.insert(pair<XnUserID, ofxOpenNIUser>(nID, baseUser));
-            currentTrackedUsers[nID].id = nID;
+            currentTrackedUsers[nID].XnID = nID;
             currentTrackedUsers[nID].setup();
         }
     }
@@ -2782,7 +2782,7 @@ void ofxOpenNI::startPoseDetection(XnUserID nID){
         if(currentTrackedUsers.find(nID) == currentTrackedUsers.end()){
             ofLogNotice(LOG_NAME) << "Create tracked user" << nID;
             currentTrackedUsers[nID] = baseUser;//.insert(pair<XnUserID, ofxOpenNIUser>(nID, baseUser));
-            currentTrackedUsers[nID].id = nID;
+            currentTrackedUsers[nID].XnID = nID;
             currentTrackedUsers[nID].setup();
         }
     }
