@@ -58,7 +58,7 @@ ofxOpenNI::ofxOpenNI(){
     bPaused = false;
     bIsLooped = true;
     
-    
+    bInitGrabBackgroundPixels = false;
     bUseBackgroundSubtraction = false;
     bGrabBackgroundPixels = false;
     
@@ -1295,14 +1295,26 @@ void ofxOpenNI::updateDepthPixels(){
     
 	if(g_DepthMD.FrameID() == 0) return;
     
-    const XnDepthPixel* backgroundDepth;
     if(bGrabBackgroundPixels){
-        bGrabBackgroundPixels = false;
-        g_BackgroundMD.InitFrom(g_DepthMD);
-    }
-    
-    if(bUseBackgroundSubtraction){
-        backgroundDepth = g_BackgroundMD.Data();
+        
+        if(bInitGrabBackgroundPixels){
+            ofLogNotice(LOG_NAME) << "Capturing background frames...";
+            bInitGrabBackgroundPixels = false;
+            backgroundPixels.setFromPixels(depth, getWidth(), getHeight(), OF_IMAGE_COLOR_ALPHA);
+            //numBackgroundFrames = 0;
+        }
+        //if(numBackgroundFrames < 5*25) {
+            //numBackgroundFrames++;
+            const XnDepthPixel* depthPixels = g_DepthMD.Data();
+            for(int y = 0; y < getHeight(); y++){
+                for(int x = 0; x < getWidth(); x++, depthPixels++){
+                    backgroundPixels[y * getWidth() + x] += *depthPixels;
+                }
+            }
+//        }else{
+//            ofLogNotice(LOG_NAME) << "...finished capturing" << numBackgroundFrames << "background frames";
+//            bGrabBackgroundPixels = false;
+//        }
     }
     
 	// copy raw values
@@ -1317,13 +1329,13 @@ void ofxOpenNI::updateDepthPixels(){
             
             ofColor depthColor;
             
-            if(bUseBackgroundSubtraction){
-                if(*depth + 1000 > *backgroundDepth){
-                    depthColor = ofColor(0,0,0,0);
-                }
+            bool bUseSubtraction = false;
+            if(bUseBackgroundSubtraction && !bGrabBackgroundPixels && 
+               *depth - backgroundPixels[y*getWidth()+x] <= 500){
+                bUseSubtraction = true;
             }
             
-            if(currentDepthThresholds.size() > 0) updateDepthThresholds(*depth, depthColor, x, y);
+            if(getNumDepthThresholds() > 0) updateDepthThresholds((bUseSubtraction ? 11000 : *depth), depthColor, x, y);
             
             getDepthColor(depthColoring, *depth, depthColor, maxDepth);
             
@@ -1597,9 +1609,11 @@ void ofxOpenNI::updateDepthThresholds(const unsigned short& depth, ofColor& dept
     if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     int nIndex = nY * getWidth() + nX;
     ofPoint p = ofPoint(nX, nY, depth);
+    bool anyDepthThresholdInside = false;
     for(int i = 0; i < currentDepthThresholds.size(); i++){
         ofxOpenNIDepthThreshold & depthThreshold = currentDepthThresholds[i];
         bool inside = depthThreshold.inside(p);
+        if(inside) anyDepthThresholdInside = true;
         if(depthThreshold.getUseMaskPixels()){
             if(depthThreshold.maskPixels.getWidth() != getWidth() || depthThreshold.maskPixels.getHeight() != getHeight()){
                 ofLogVerbose(LOG_NAME) << "Allocating mask pixels for depthThreshold";
@@ -1656,7 +1670,6 @@ void ofxOpenNI::updateDepthThresholds(const unsigned short& depth, ofColor& dept
                     depthThreshold.bNewPointCloud = true;
                 }
             }
-            
         }
     }
 }
@@ -2393,11 +2406,15 @@ bool ofxOpenNI::getUseBackgroundDepthSubtraction(){
 }
 
 //--------------------------------------------------------------
-void ofxOpenNI::setBackgroundDepthImage(){
+void ofxOpenNI::setCaptureBackgroundDepthPixels(bool b){
     if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
-	if(g_bIsDepthOn){
-        bGrabBackgroundPixels = true;
-    }
+    if(b) bInitGrabBackgroundPixels = true;
+    bGrabBackgroundPixels = b;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::getCaptureBackgroundDepthPixels(){
+    return bGrabBackgroundPixels;
 }
 
 //--------------------------------------------------------------

@@ -135,7 +135,9 @@ public:
     
     void setUseBackgroundDepthSubtraction(bool b);
     bool getUseBackgroundDepthSubtraction();
-    void setBackgroundDepthImage();
+    
+    void setCaptureBackgroundDepthPixels(bool b);
+    bool getCaptureBackgroundDepthPixels();
 	
     void setUseDepthRawPixels(bool b);
     bool getUseDepthRawPixels();
@@ -340,7 +342,7 @@ private:
     void updateUserPixels(ofxOpenNIUser & user);
 	void updatePointClouds(ofxOpenNIUser & user);
 	void updateRecorder();
-    void updateDepthThresholds(const unsigned short & depth, ofColor & depthColor, int nX, int nY);
+    void updateDepthThresholds(const unsigned short& depth, ofColor& depthColor, int nX, int nY);
     
 	bool g_bIsDepthOn;
 	bool g_bIsImageOn;
@@ -363,6 +365,7 @@ private:
     bool bUseBackBuffer;
 	bool bUseTexture;
     bool bUseBackgroundSubtraction;
+    bool bInitGrabBackgroundPixels;
     bool bGrabBackgroundPixels;
     bool bUseSafeThreading;
     
@@ -379,6 +382,7 @@ private:
     bool bUseMaskPixels;
     
     int numDevices;
+    int numBackgroundFrames;
     
     int width;
     int height;
@@ -397,6 +401,7 @@ private:
 	ofShortPixels* backDepthRawPixels;
 	ofShortPixels* currentDepthRawPixels;
 	ofShortPixels backgroundPixels;
+    const XnDepthPixel* backgroundDepthPixels;
     
 	// image
 	ofTexture imageTexture;
