@@ -132,6 +132,10 @@ public:
     
 	void setUseTexture(bool useTexture);
 	void setDepthColoring(DepthColoring coloring);
+    
+    void setUseBackgroundDepthSubtraction(bool b);
+    bool getUseBackgroundDepthSubtraction();
+    void setBackgroundDepthImage();
 	
     void setUseDepthRawPixels(bool b);
     bool getUseDepthRawPixels();
@@ -358,6 +362,8 @@ private:
     
     bool bUseBackBuffer;
 	bool bUseTexture;
+    bool bUseBackgroundSubtraction;
+    bool bGrabBackgroundPixels;
     bool bUseSafeThreading;
     
     bool bUseRegistration;
@@ -376,6 +382,7 @@ private:
     
     int width;
     int height;
+    float maxDepth;
     int fps;
     
 	// depth
@@ -384,13 +391,13 @@ private:
 	ofPixels* backDepthPixels;
 	ofPixels* currentDepthPixels;
 	DepthColoring depthColoring;
-	float maxDepth;
 	
 	// depth raw
 	ofShortPixels depthRawPixels[2];
 	ofShortPixels* backDepthRawPixels;
 	ofShortPixels* currentDepthRawPixels;
-	
+	ofShortPixels backgroundPixels;
+    
 	// image
 	ofTexture imageTexture;
 	ofPixels imagePixels[2];
@@ -414,6 +421,7 @@ private:
     
 	// meta data
 	xn::DepthMetaData g_DepthMD;
+    xn::DepthMetaData g_BackgroundMD;
 	xn::ImageMetaData g_ImageMD;
 	xn::IRMetaData	g_InfraMD;
     xn::SceneMetaData g_SceneMD;

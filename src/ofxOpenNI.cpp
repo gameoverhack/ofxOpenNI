@@ -58,6 +58,10 @@ ofxOpenNI::ofxOpenNI(){
     bPaused = false;
     bIsLooped = true;
     
+    
+    bUseBackgroundSubtraction = false;
+    bGrabBackgroundPixels = false;
+    
 	depthColoring = COLORING_RAINBOW;
 	
     bIsContextReady = false;
@@ -987,6 +991,7 @@ void ofxOpenNI::allocateDepthBuffers(){
         maxDepth = g_Depth.GetDeviceMaxDepth();
         depthPixels[0].allocate(width, height, OF_IMAGE_COLOR_ALPHA);
         depthPixels[1].allocate(width, height, OF_IMAGE_COLOR_ALPHA);
+        backgroundPixels.allocate(getWidth(), getHeight(), OF_IMAGE_COLOR_ALPHA);
         currentDepthPixels = &depthPixels[0];
         backDepthPixels = &depthPixels[1];
         if(bUseTexture) depthTexture.allocate(width, height, GL_RGBA);
@@ -1287,9 +1292,19 @@ void ofxOpenNI::updateDepthPixels(){
     if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
 	// get the pixels
 	const XnDepthPixel* depth = g_DepthMD.Data();
-	
+    
 	if(g_DepthMD.FrameID() == 0) return;
-
+    
+    const XnDepthPixel* backgroundDepth;
+    if(bGrabBackgroundPixels){
+        bGrabBackgroundPixels = false;
+        g_BackgroundMD.InitFrom(g_DepthMD);
+    }
+    
+    if(bUseBackgroundSubtraction){
+        backgroundDepth = g_BackgroundMD.Data();
+    }
+    
 	// copy raw values
 	if(g_bIsDepthRawOn){
 		backDepthRawPixels->setFromPixels(depth, getWidth(), getHeight(), OF_IMAGE_COLOR_ALPHA);
@@ -1299,10 +1314,19 @@ void ofxOpenNI::updateDepthPixels(){
 	for (XnUInt16 y = g_DepthMD.YOffset(); y < g_DepthMD.YRes() + g_DepthMD.YOffset(); y++){
 		unsigned char * texture = backDepthPixels->getPixels() + y * g_DepthMD.XRes() * 4 + g_DepthMD.XOffset() * 4;
 		for (XnUInt16 x = 0; x < g_DepthMD.XRes(); x++, depth++, texture += 4){
-
-			ofColor depthColor;
-			getDepthColor(depthColoring, *depth, depthColor, maxDepth);
-			
+            
+            ofColor depthColor;
+            
+            if(bUseBackgroundSubtraction){
+                if(*depth + 1000 > *backgroundDepth){
+                    depthColor = ofColor(0,0,0,0);
+                }
+            }
+            
+            if(currentDepthThresholds.size() > 0) updateDepthThresholds(*depth, depthColor, x, y);
+            
+            getDepthColor(depthColoring, *depth, depthColor, maxDepth);
+            
 			texture[0] = depthColor.r;
 			texture[1] = depthColor.g;
 			texture[2] = depthColor.b;
@@ -1313,7 +1337,6 @@ void ofxOpenNI::updateDepthPixels(){
 				texture[3] = depthColor.a;
             }
             
-            if(currentDepthThresholds.size() > 0) updateDepthThresholds(*depth, depthColor, x, y);
 		}
 	}
 }
@@ -1442,7 +1465,7 @@ void ofxOpenNI::updatePointClouds(ofxOpenNIUser & user){
 	const XnRGB24Pixel*	pColor;
 	const XnDepthPixel*	pDepth = g_DepthMD.Data();
     
-	if(g_bIsImageOn) {
+	if(g_bIsImageOn){
 		pColor = g_ImageMD.RGB24Data();
 	}
     
@@ -1453,10 +1476,10 @@ void ofxOpenNI::updatePointClouds(ofxOpenNIUser & user){
 	user.backPointCloud->getColors().clear();
 	user.backPointCloud->setMode(OF_PRIMITIVE_POINTS);
     
-	for (int nY = 0; nY < getHeight(); nY += step) {
-		for (int nX = 0; nX < getWidth(); nX += step) {
+	for(int nY = 0; nY < getHeight(); nY += step){
+		for(int nX = 0; nX < getWidth(); nX += step){
             nIndex = nY * getWidth() + nX;
-			if(user.userPixels[nIndex] == user.getXnID()) {
+			if(user.userPixels[nIndex] == user.getXnID()){
 				user.backPointCloud->addVertex(ofPoint(nX, nY, pDepth[nIndex]));
 				if(g_bIsImageOn){
 					user.backPointCloud->addColor(ofColor(pColor[nIndex].nRed, pColor[nIndex].nGreen, pColor[nIndex].nBlue));
@@ -2357,6 +2380,25 @@ bool ofxOpenNI::getSafeThreading(){
  *      getters/setters: pixel and texture properties/modes
  *
  *************************************************************/
+
+//--------------------------------------------------------------
+void ofxOpenNI::setUseBackgroundDepthSubtraction(bool b){
+    if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+    bUseBackgroundSubtraction = b;
+}
+
+//--------------------------------------------------------------
+bool ofxOpenNI::getUseBackgroundDepthSubtraction(){
+    return bUseBackgroundSubtraction;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setBackgroundDepthImage(){
+    if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+	if(g_bIsDepthOn){
+        bGrabBackgroundPixels = true;
+    }
+}
 
 //--------------------------------------------------------------
 void ofxOpenNI::setUseDepthRawPixels(bool b){
