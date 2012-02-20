@@ -231,21 +231,21 @@ public:
             ofFill();
             ofCircle(0, 0, 5);
             ofNoFill();
-        }
-        
-        if(isParent()){
-            if(parent->getPositionConfidence() > 0.0f){
-                if(isFound() && parent->isFound()){
-                    // draw in green
-                    ofSetColor(0, 255, 0);
-                }else{
-                    // draw in red
-                    ofSetColor(255, 0, 0);
-                }
-                ofSetLineWidth(5);
-                if(isParent()){
-                    ofVec2f bone =  ofVec2f(parent->getProjectivePosition()) - ofVec2f(getProjectivePosition());
-                    if(!bUseOrientation) ofLine(0, 0, 0, bone.x, bone.y, 0);
+            
+            if(isParent()){
+                if(parent->getPositionConfidence() > 0.0f){
+                    if(isFound() && parent->isFound()){
+                        // draw in green
+                        ofSetColor(0, 255, 0);
+                    }else{
+                        // draw in red
+                        ofSetColor(255, 0, 0);
+                    }
+                    ofSetLineWidth(5);
+                    if(isParent()){
+                        ofVec2f bone =  ofVec2f(parent->getProjectivePosition()) - ofVec2f(getProjectivePosition());
+                        if(!bUseOrientation) ofLine(0, 0, 0, bone.x, bone.y, 0);
+                    }
                 }
             }
         }
@@ -410,8 +410,16 @@ public:
     ofxOpenNIUser(const ofxOpenNIUser& other){
         if(this != &other){
             
-            clear();
-            setup();
+            
+            //setup();
+            center = other.center;
+            joints = other.joints;
+            limbs = other.limbs;
+            pointCloud[0] = other.pointCloud[0];
+            pointCloud[1] = other.pointCloud[1];
+            maskPixels = other.maskPixels;
+            maskTexture = other.maskTexture;
+            userPixels = other.userPixels;
             
             pointCloudDrawSize = other.pointCloudDrawSize;
             pointCloudResolution = other.pointCloudResolution;
@@ -430,10 +438,12 @@ public:
             
             XnID = other.XnID;
             
+            //clear();
+            
             //cout << "COPY$$$$$$$$$$$$$$$$$ " << bUseSkeleton << endl;
         }
         
-        return *this;
+        //return *this;
     }
     
 private:
@@ -444,6 +454,8 @@ private:
     vector<ofxOpenNIJoint> joints;
 	vector<ofxOpenNILimb> limbs;
 	ofMesh pointCloud[2];
+    ofMesh* backPointCloud;
+	ofMesh* currentPointCloud;
 	ofPixels maskPixels;
     ofTexture maskTexture;
     
@@ -475,8 +487,17 @@ private:
     ofxOpenNIUser& operator=(const ofxOpenNIUser& other){
         if(this != &other){
 
-            clear();
-            setup();
+            //clear();
+            //setup();
+            
+            center = other.center;
+            joints = other.joints;
+            limbs = other.limbs;
+            pointCloud[0] = other.pointCloud[0];
+            pointCloud[1] = other.pointCloud[1];
+            maskPixels = other.maskPixels;
+            maskTexture = other.maskTexture;
+            userPixels = other.userPixels;
             
             pointCloudDrawSize = other.pointCloudDrawSize;
             pointCloudResolution = other.pointCloudResolution;
@@ -518,34 +539,213 @@ public:
     
 };
 
+class ofxOpenNIROI {
+    
+public:
+    
+    ofxOpenNIROI(){};
+    
+    ofxOpenNIROI(ofPoint _leftBottomNearWorld, ofPoint _rightTopFarWorld){
+        set(_leftBottomNearWorld, _rightTopFarWorld);
+    };
+
+    void set(ofPoint _leftBottomNearWorld, ofPoint _rightTopFarWorld){
+        
+        leftBottomNearWorld = _leftBottomNearWorld;
+        rightTopFarWorld = _rightTopFarWorld;
+        
+        if(leftBottomNearWorld.x == 0 && leftBottomNearWorld.y == 0 &&
+           rightTopFarWorld.x == 0 && rightTopFarWorld.y == 0){
+            g_maxROIAtDepth(leftBottomNearWorld, rightTopFarWorld);
+        }
+        
+        ofPoint rightTopNearWorld = ofPoint(rightTopFarWorld.x, rightTopFarWorld.y, leftBottomNearWorld.z);
+        ofPoint leftBottomFarWorld = ofPoint(leftBottomNearWorld.x, leftBottomNearWorld.y, rightTopFarWorld.z);
+        
+        leftBottomNearProjective = g_worldToProjective(leftBottomNearWorld);
+        rightTopFarProjective = g_worldToProjective(rightTopFarWorld);
+        leftBottomFarProjective = g_worldToProjective(leftBottomFarWorld);
+        rightTopNearProjective = g_worldToProjective(rightTopNearWorld);
+        
+        nearPlane.set(ofVec2f(leftBottomNearProjective),
+                      rightTopNearProjective.x - leftBottomNearProjective.x,
+                      rightTopNearProjective.y - leftBottomNearProjective.y);
+        
+        farPlane.set(ofVec2f(leftBottomFarProjective),
+                     rightTopFarProjective.x - leftBottomFarProjective.x,
+                     rightTopFarProjective.y - leftBottomFarProjective.y);
+        
+        ofPoint lbn =leftBottomNearWorld;
+        centerWorld = lbn.middle(rightTopFarWorld);
+        centerProjective = g_worldToProjective(centerWorld);
+        maxDistance = centerWorld.distance(leftBottomNearWorld);
+    }
+    
+    void drawInside(vector<ofxOpenNIJoint*> & joints){
+        for(int j = 0; j < joints.size(); j++){
+            ofxOpenNIJoint & joint = *joints[j];
+            drawJoint(joint);
+        }
+    }
+    
+    void drawInside(ofxOpenNIUser & user){
+        if(user.getNumJoints() == 0) return;
+        int jointsInside = 0;
+        vector<ofxOpenNIJoint*> joints = getJointsInside(user);
+        drawInside(joints);
+    }
+    
+    void drawInside(ofxOpenNIJoint & joint){
+        if(inside(joint)) drawJoint(joint);
+    }
+    
+    void drawROI(){
+        ofPushStyle();
+        ofPushMatrix();
+        ofNoFill();
+        ofSetLineWidth(0.5);
+        ofCircle(ofVec2f(centerProjective), 5);
+        
+        ofRect(nearPlane);
+        ofRect(farPlane);
+        
+        ofLine(ofVec2f(leftBottomNearProjective), ofVec2f(leftBottomFarProjective));
+        ofLine(ofVec2f(rightTopNearProjective), ofVec2f(rightTopFarProjective));
+        ofLine(ofVec2f(leftBottomNearProjective.x, rightTopNearProjective.y), ofVec2f(leftBottomFarProjective.x, rightTopFarProjective.y));
+        ofLine(ofVec2f(rightTopNearProjective.x, leftBottomNearProjective.y), ofVec2f(rightTopFarProjective.x, leftBottomFarProjective.y));
+        ofPopMatrix();
+        ofPopStyle();
+    }
+    
+    void drawJoint(ofxOpenNIJoint & joint){
+        ofSetColor(255*magnitude(joint), 0, 255);
+        ofCircle(ofVec2f(joint.getProjectivePosition()), 5);
+        ofSetLineWidth(2);
+        ofLine(ofVec2f(joint.getProjectivePosition()), ofVec2f(centerProjective));
+    }
+    
+    inline int numJointsInside(ofxOpenNIUser & user){
+        if(user.getNumJoints() == 0) return 0;
+        return getJointsInside(user).size();
+    }
+    
+    inline float percentJointsInside(ofxOpenNIUser & user){
+        if(user.getNumJoints() == 0) return 0.0f;
+        return (float)numJointsInside(user)/user.getNumJoints();
+    }
+    
+    inline bool allJointsInside(ofxOpenNIUser & user){
+        if(user.getNumJoints() == 0) return false;
+        return inside(user, user.getNumJoints());
+    }
+    
+    inline bool anyJointInside(ofxOpenNIUser & user){
+        if(user.getNumJoints() == 0) return false;
+        return inside(user, 1);
+    }
+    
+    inline bool inside(ofxOpenNIUser & user, float pct){
+        if(user.getNumJoints() == 0) return false;
+        int numLimbs = floor(user.getNumJoints() * pct);
+        return inside(user, numLimbs);
+    }
+    
+    inline bool inside(ofxOpenNIUser & user, int numLimbs){
+        if(numLimbs > user.getNumJoints()) return false;
+        if(getJointsInside(user).size() >= numLimbs){
+            return true;
+        }else{
+            return false;
+        }
+    }
+    
+    inline vector<ofxOpenNIJoint*> getJointsInside(ofxOpenNIUser & user){
+        vector<ofxOpenNIJoint*> joints;
+        if(user.getNumJoints() == 0) return joints;
+        for(int j = 0; j < user.getNumJoints(); j++){
+            ofxOpenNIJoint & joint = user.getJoint((Joint)j);
+            if(inside(joint)) joints.push_back(&joint);
+        }
+        return joints;
+    }
+    
+    inline bool inside(ofxOpenNILimb & limb){
+        return inside(limb.getStartJoint().getWorldPosition()) && inside(limb.getEndJoint().getWorldPosition());
+    }
+    
+    inline bool inside(ofxOpenNIJoint & joint){
+        return inside(joint.getWorldPosition());
+    }
+    
+    inline bool inside(ofPoint & worldPosition){
+        if(worldPosition.x > leftBottomNearWorld.x && worldPosition.y > leftBottomNearWorld.y && worldPosition.z > leftBottomNearWorld.z &&
+           worldPosition.x < rightTopFarWorld.x && worldPosition.y < rightTopFarWorld.y && worldPosition.z < rightTopFarWorld.z){
+            return true;
+        }else{
+            return false;
+        }
+    }
+    
+    inline float max(){
+        return maxDistance;
+    }
+    
+    inline float distance(ofxOpenNIJoint & joint){
+        return centerWorld.distance(joint.getProjectivePosition());
+    }
+    
+    inline float magnitude(ofxOpenNIJoint & joint){
+        return distance(joint)/maxDistance;
+    }
+    
+    ofPoint & getLeftBottomNearWorld(){
+        return leftBottomNearWorld;
+    }
+    
+    ofPoint & getRightTopFarWorld(){
+        return rightTopFarWorld;
+    }
+    
+protected:
+    
+    bool hasDepth;
+    
+    float maxDistance;
+    ofPoint centerWorld, centerProjective;
+    
+    ofPoint leftBottomNearWorld, rightTopFarWorld;
+    ofRectangle nearPlane, farPlane;
+    ofPoint leftBottomNearProjective, rightTopFarProjective;
+    ofPoint rightTopNearProjective, leftBottomFarProjective;
+    
+};
+
 class ofxOpenNIDepthThreshold {
     
 public:
     
     ofxOpenNIDepthThreshold();
-    ofxOpenNIDepthThreshold(int _nearThreshold,
-                            int _farThreshold,
-                            bool _bUsePointCloud = false,
-                            bool _bUseMaskPixels = true,
-                            bool _bUseMaskTexture = true,
-                            bool _bUseDepthPixels = false,
-                            bool _bUseDepthTexture = false)
-    :
-    nearThreshold(_nearThreshold),
-    farThreshold(_farThreshold),
-    bUsePointCloud(_bUsePointCloud),
-    bUseMaskPixels(_bUseMaskPixels || _bUseMaskTexture),
-    bUseMaskTexture(_bUseMaskTexture),
-    bUseDepthPixels(_bUseDepthPixels || _bUseDepthTexture),
-    bUseDepthTexture(_bUseDepthTexture){
-        pointCloudDrawSize = 2;
-        pointCloudResolution = 2;
-        bNewPixels = false;
-        bNewPointCloud = false;};
+    
+    ofxOpenNIDepthThreshold(int _nearThreshold, int _farThreshold, bool _bUsePointCloud = false, bool _bUseMaskPixels = true, bool _bUseMaskTexture = true, bool _bUseDepthPixels = false, bool _bUseDepthTexture = false, int _pointCloudDrawSize = 2, int _pointCloudResolution = 2);
+    
+    ofxOpenNIDepthThreshold(ofxOpenNIROI & _roi, bool _bUsePointCloud = false, bool _bUseMaskPixels = true, bool _bUseMaskTexture = true, bool _bUseDepthPixels = false, bool _bUseDepthTexture = false, int _pointCloudDrawSize = 2, int _pointCloudResolution = 2);
+    
+    void set(int _nearThreshold, int _farThreshold, bool _bUsePointCloud = false, bool _bUseMaskPixels = true, bool _bUseMaskTexture = true, bool _bUseDepthPixels = false, bool _bUseDepthTexture = false, int _pointCloudDrawSize = 2, int _pointCloudResolution = 2);
+    
+    void set(ofxOpenNIROI & _roi, bool _bUsePointCloud = false, bool _bUseMaskPixels = true, bool _bUseMaskTexture = true, bool _bUseDepthPixels = false, bool _bUseDepthTexture = false, int _pointCloudDrawSize = 2, int _pointCloudResolution = 2);
+    
+    inline bool inside(ofPoint& p){
+        if(bUseXY){
+            return roi.inside(p);
+        }else{
+            return p.z > getNearThreshold() && p.z < getFarThreshold();
+        }
+    }
     
     void drawPointCloud();
     void drawMask();
     void drawDepth();
+    void drawROI();
     
     void setNearThreshold(int _nearThreshold);
     int getNearThreshold();
@@ -579,21 +779,20 @@ public:
     ofTexture & getMaskTextureReference();
     ofPixels & getDepthPixels();
     ofTexture & getDepthTextureReference();
+    ofxOpenNIROI & getROI();
     
 private:
     
     friend class ofxOpenNI;
     
-    int nearThreshold;
-    int farThreshold;
+    ofxOpenNIROI roi;
+    bool bUseXY;
     
 	ofMesh pointCloud[2];
     ofPixels depthPixels;
     ofTexture depthTexture;
 	ofPixels maskPixels;
     ofTexture maskTexture;
-    
-    int id;
     
     int pointCloudDrawSize;
     int pointCloudResolution;
@@ -607,153 +806,6 @@ private:
     bool bNewPointCloud;
     
 };
-
-class ofxOpenNIHotspot {
-    
-public:
-    
-    ofxOpenNIHotspot(){};
-    
-    ofxOpenNIHotspot(ofPoint _leftBottomNearWorld, ofPoint _rightTopFarWorld, xn::DepthGenerator & g_Depth){
-        set(_leftBottomNearWorld, _rightTopFarWorld, g_Depth);
-    };
-    
-    void set(ofPoint _leftBottomNearWorld, ofPoint _rightTopFarWorld, xn::DepthGenerator & g_Depth){
-        leftBottomNearWorld = _leftBottomNearWorld;
-        rightTopFarWorld = _rightTopFarWorld;
-        if(&g_Depth != NULL){
-            
-            leftBottomNearProjective = worldToProjective(leftBottomNearWorld, g_Depth);
-            ofPoint rightTopNearWorld = ofPoint(rightTopFarWorld.x, rightTopFarWorld.y, leftBottomNearWorld.z);
-            rightTopNearProjective = worldToProjective(rightTopNearWorld, g_Depth);
-            
-            rightTopFarProjective = worldToProjective(rightTopFarWorld, g_Depth);
-            ofPoint leftBottomFarWorld = ofPoint(leftBottomNearWorld.x, leftBottomNearWorld.y, rightTopFarWorld.z);
-            leftBottomFarProjective = worldToProjective(leftBottomFarWorld, g_Depth);
-            
-            nearPlane.set(ofVec2f(leftBottomNearProjective), rightTopNearProjective.x - leftBottomNearProjective.x, rightTopNearProjective.y - leftBottomNearProjective.y);
-            farPlane.set(ofVec2f(leftBottomFarProjective), rightTopFarProjective.x - leftBottomFarProjective.x, rightTopFarProjective.y - leftBottomFarProjective.y);
-            ofPoint lbn =leftBottomNearWorld;
-            centerWorld = lbn.middle(rightTopFarWorld);
-            centerProjective = worldToProjective(centerWorld, g_Depth);
-            maxDistance = centerWorld.distance(leftBottomNearWorld);
-        }
-    }
-    
-    bool drawInside(ofxOpenNIUser & user){
-        if(user.getNumJoints() == 0) return false;
-        int jointsInside = 0;
-        for(int j = 0; j < user.getNumJoints(); j++){
-            ofxOpenNIJoint & joint = user.getJoint((Joint)j);
-            if(drawInside(joint)){
-                jointsInside++;
-            }
-        }
-        return (jointsInside > 0);
-    }
-    
-    bool drawInside(ofxOpenNIJoint & joint){
-        if(inside(joint)){
-            
-            float magnitude = distanceToCenter(joint)/maxDistance;
-            ofSetColor(255*magnitude, 0, 255);
-            ofCircle(ofVec2f(joint.getProjectivePosition()), 5);
-            ofSetLineWidth(2);
-            ofLine(ofVec2f(joint.getProjectivePosition()), ofVec2f(centerProjective));
-            
-            return true;
-        }
-        return false;
-    }
-    
-    void draw(){
-        ofPushStyle();
-        
-        ofNoFill();
-        ofSetLineWidth(0.5);
-        ofCircle(ofVec2f(centerProjective), 5);
-        
-        ofRect(nearPlane);
-        ofRect(farPlane);
-        
-        ofLine(ofVec2f(leftBottomNearProjective), ofVec2f(leftBottomFarProjective));
-        ofLine(ofVec2f(rightTopNearProjective), ofVec2f(rightTopFarProjective));
-        ofLine(ofVec2f(leftBottomNearProjective.x, rightTopNearProjective.y), ofVec2f(leftBottomFarProjective.x, rightTopFarProjective.y));
-        ofLine(ofVec2f(rightTopNearProjective.x, leftBottomNearProjective.y), ofVec2f(rightTopFarProjective.x, leftBottomFarProjective.y));
-
-        ofPopStyle();
-    }
-    
-    inline float distanceToCenter(ofxOpenNIJoint & joint){
-        return centerWorld.distance(joint.getProjectivePosition());
-    }
-    
-    inline int numJointsInside(ofxOpenNIUser & user){
-        if(user.getNumJoints() == 0) return 0;
-        int limbsInside = 0;
-        for(int j = 0; j < user.getNumJoints(); j++){
-            ofxOpenNIJoint & joint = user.getJoint((Joint)j);
-            if(inside(joint)) limbsInside++;
-        }
-        return limbsInside;
-    }
-    
-    inline float percentInside(ofxOpenNIUser & user){
-        if(user.getNumJoints() == 0) return false;
-        return (float)numJointsInside(user)/user.getNumJoints();
-    }
-    
-    inline bool inside(ofxOpenNIUser & user){
-        if(user.getNumJoints() == 0) return false;
-        inside(user, user.getNumJoints());
-    }
-    
-    inline bool inside(ofxOpenNIUser & user, float pct){
-        if(user.getNumJoints() == 0) return false;
-        int numLimbs = floor(user.getNumJoints() * pct);
-        inside(user, numLimbs);
-    }
-    
-    inline bool inside(ofxOpenNIUser & user, int numLimbs){
-        if(numLimbs > user.getNumJoints()) return false;
-        int limbsInside = -numLimbs;
-        for(int j = 0; j < user.getNumJoints(); j++){
-            ofxOpenNIJoint & joint = user.getJoint((Joint)j);
-            if(inside(joint)) limbsInside++;
-            if(limbsInside == numLimbs){
-                return true;
-            }
-        }
-        return false;
-    }
-    
-    inline bool inside(ofxOpenNILimb & limb){
-        return inside(limb.getStartJoint().getWorldPosition()) && inside(limb.getEndJoint().getWorldPosition());
-    }
-    
-    inline bool inside(ofxOpenNIJoint & joint){
-        return inside(joint.getWorldPosition());
-    }
-
-    inline bool inside(ofPoint & worldPosition){
-        if(worldPosition.x > leftBottomNearWorld.x && worldPosition.y > leftBottomNearWorld.y && worldPosition.z > leftBottomNearWorld.z &&
-           worldPosition.x < rightTopFarWorld.x && worldPosition.y < rightTopFarWorld.y && worldPosition.z < rightTopFarWorld.z){
-            //ofLogVerbose() << "Inside hotspot";
-            return true;
-        }else{
-            return false;
-        }
-    }
-    
-    float maxDistance;
-    ofPoint centerWorld, centerProjective;
-    
-    ofPoint leftBottomNearWorld, rightTopFarWorld;
-    ofRectangle nearPlane, farPlane;
-    ofPoint leftBottomNearProjective, rightTopFarProjective;
-    ofPoint rightTopNearProjective, leftBottomFarProjective;
-};
-
 
 class ofxOpenNIGestureEvent {
     

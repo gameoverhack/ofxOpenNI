@@ -52,8 +52,9 @@ ofxOpenNIUser::ofxOpenNIUser(){
     
     userPixels = NULL;
     
-    forcedResetTimeout = 250;
+    forcedResetTimeout = 1000;
     resetCount = 0;
+    
 }
 
 //--------------------------------------------------------------
@@ -62,6 +63,9 @@ ofxOpenNIUser::~ofxOpenNIUser(){
 }
 
 void ofxOpenNIUser::setup(){
+    
+    backPointCloud = &pointCloud[0];
+	currentPointCloud = &pointCloud[1];
     
     joints.resize(JOINT_COUNT);
 
@@ -200,7 +204,6 @@ void ofxOpenNIUser::clear(){
 //--------------------------------------------------------------
 void ofxOpenNIUser::drawSkeleton() {
     ofPushStyle();
-    ofPushMatrix();
     // DON'T NEED TO DRAW LIMBS ANYMORE!
 //	for(int i = 0; i < limbs.size(); i++){
 //		limbs[i].draw();
@@ -208,19 +211,16 @@ void ofxOpenNIUser::drawSkeleton() {
     for(int i = 0; i < joints.size(); i++){
 		joints[i].draw();
 	}
-    ofPopMatrix();
     ofPopStyle();
 }
 
 //--------------------------------------------------------------
 void ofxOpenNIUser::drawPointCloud(){
     ofPushStyle();
-    ofPushMatrix();
     glPointSize(pointCloudDrawSize);
     glEnable(GL_DEPTH_TEST);
-    pointCloud[1].drawVertices();
+    currentPointCloud->drawVertices();
     glDisable(GL_DEPTH_TEST);
-    ofPopMatrix();
     ofPopStyle();
 }
 
@@ -228,9 +228,7 @@ void ofxOpenNIUser::drawPointCloud(){
 void ofxOpenNIUser::drawMask(){
     if (bUseMaskTexture){
         ofPushStyle();
-        ofPushMatrix();
         maskTexture.draw(0, 0, maskPixels.getWidth(), maskPixels.getHeight());
-        ofPopMatrix();
         ofPopStyle();
     }
 }
@@ -350,7 +348,7 @@ ofPoint & ofxOpenNIUser::getCenter(){
 
 //--------------------------------------------------------------
 ofMesh & ofxOpenNIUser::getPointCloud(){
-    return pointCloud[1];
+    return (*currentPointCloud);
 }
 
 //--------------------------------------------------------------
@@ -453,15 +451,92 @@ string ofxOpenNIUser::getDebugInfo(){
 
 //--------------------------------------------------------------
 ofxOpenNIDepthThreshold::ofxOpenNIDepthThreshold(){
-    nearThreshold = 0; 
-    farThreshold = 10000;
+    ofPoint lbn = ofPoint(0, 0, 0);
+    ofPoint rtf = ofPoint(0, 0, MAXDEPTH);
+    roi.set(lbn, rtf);
     pointCloudDrawSize = 2;
     pointCloudResolution = 2;
+    bUsePointCloud = false;
     bUseMaskPixels = true;
     bUseMaskTexture = true;
     bUseDepthPixels = false;
     bUseDepthTexture = false;
-    bUsePointCloud = false;
+    bNewPixels = false;
+    bNewPointCloud = false;
+}
+
+//--------------------------------------------------------------
+ofxOpenNIDepthThreshold::ofxOpenNIDepthThreshold(int _nearThreshold,
+                                                 int _farThreshold,
+                                                 bool _bUsePointCloud,
+                                                 bool _bUseMaskPixels,
+                                                 bool _bUseMaskTexture,
+                                                 bool _bUseDepthPixels,
+                                                 bool _bUseDepthTexture,
+                                                 int _pointCloudDrawSize,
+                                                 int _pointCloudResolution){
+    set(_nearThreshold, _farThreshold, _bUsePointCloud, _bUseMaskPixels, _bUseMaskTexture, _bUseDepthPixels, _bUseDepthTexture, _pointCloudDrawSize, _pointCloudResolution);
+}
+
+//--------------------------------------------------------------
+ofxOpenNIDepthThreshold::ofxOpenNIDepthThreshold(ofxOpenNIROI & _roi,
+                                                 bool _bUsePointCloud,
+                                                 bool _bUseMaskPixels,
+                                                 bool _bUseMaskTexture,
+                                                 bool _bUseDepthPixels,
+                                                 bool _bUseDepthTexture,
+                                                 int _pointCloudDrawSize,
+                                                 int _pointCloudResolution){
+    set(_roi, _bUsePointCloud, _bUseMaskPixels, _bUseMaskTexture, _bUseDepthPixels, _bUseDepthTexture,_pointCloudDrawSize, _pointCloudResolution);
+}
+
+void ofxOpenNIDepthThreshold::set(int _nearThreshold,
+                                  int _farThreshold,
+                                  bool _bUsePointCloud,
+                                  bool _bUseMaskPixels,
+                                  bool _bUseMaskTexture,
+                                  bool _bUseDepthPixels,
+                                  bool _bUseDepthTexture,
+                                  int _pointCloudDrawSize,
+                                  int _pointCloudResolution){
+    ofPoint lbn = ofPoint(0, 0, _nearThreshold);
+    ofPoint rtf = ofPoint(0, 0, _farThreshold);
+    roi.set(lbn, rtf);
+    bUseXY = false;
+    pointCloudDrawSize = _pointCloudDrawSize;
+    pointCloudResolution = _pointCloudResolution;
+    bUsePointCloud = _bUsePointCloud;
+    bUseMaskPixels = _bUseMaskPixels;
+    bUseMaskTexture = _bUseMaskTexture;
+    bUseDepthPixels = _bUseDepthPixels;
+    bUseDepthTexture = _bUseDepthTexture;
+    bNewPixels = false;
+    bNewPointCloud = false;
+}
+
+void ofxOpenNIDepthThreshold::set(ofxOpenNIROI & _roi, 
+                                  bool _bUsePointCloud,
+                                  bool _bUseMaskPixels,
+                                  bool _bUseMaskTexture,
+                                  bool _bUseDepthPixels,
+                                  bool _bUseDepthTexture,
+                                  int _pointCloudDrawSize,
+                                  int _pointCloudResolution){
+    roi = _roi;
+    ofPoint & lbn = roi.getLeftBottomNearWorld();
+    ofPoint & rtf = roi.getRightTopFarWorld();
+    if(lbn.x == 0 && lbn.y == 0 && rtf.x == 0 && rtf.y == 0){
+        bUseXY = false;
+    }else{
+        bUseXY = true;
+    }
+    pointCloudDrawSize = _pointCloudDrawSize;
+    pointCloudResolution = _pointCloudResolution;
+    bUsePointCloud = _bUsePointCloud;
+    bUseMaskPixels = _bUseMaskPixels;
+    bUseMaskTexture = _bUseMaskTexture;
+    bUseDepthPixels = _bUseDepthPixels;
+    bUseDepthTexture = _bUseDepthTexture;
     bNewPixels = false;
     bNewPointCloud = false;
 }
@@ -469,12 +544,10 @@ ofxOpenNIDepthThreshold::ofxOpenNIDepthThreshold(){
 //--------------------------------------------------------------
 void ofxOpenNIDepthThreshold::drawPointCloud(){
     ofPushStyle();
-    ofPushMatrix();
     glPointSize(pointCloudDrawSize);
     glEnable(GL_DEPTH_TEST);
     pointCloud[1].drawVertices();
     glDisable(GL_DEPTH_TEST);
-    ofPopMatrix();
     ofPopStyle();
 }
 
@@ -482,9 +555,7 @@ void ofxOpenNIDepthThreshold::drawPointCloud(){
 void ofxOpenNIDepthThreshold::drawMask(){
     if (bUseMaskTexture){
         ofPushStyle();
-        ofPushMatrix();
         maskTexture.draw(0, 0, maskPixels.getWidth(), maskPixels.getHeight());
-        ofPopMatrix();
         ofPopStyle();
     }
 }
@@ -493,33 +564,42 @@ void ofxOpenNIDepthThreshold::drawMask(){
 void ofxOpenNIDepthThreshold::drawDepth(){
     if (bUseDepthTexture){
         ofPushStyle();
-        ofPushMatrix();
         depthTexture.draw(0, 0, depthPixels.getWidth(), depthPixels.getHeight());
-        ofPopMatrix();
         ofPopStyle();
     }
 }
 
 //--------------------------------------------------------------
+void ofxOpenNIDepthThreshold::drawROI(){
+    roi.drawROI();
+}
+
+//--------------------------------------------------------------
 void ofxOpenNIDepthThreshold::setNearThreshold(int _nearThreshold){
     CLAMP(_nearThreshold, 0, 10000);
-    nearThreshold = _nearThreshold;
+    ofPoint & lbn = roi.getLeftBottomNearWorld();
+    ofPoint & rtf = roi.getRightTopFarWorld();
+    lbn.z = _nearThreshold;
+    roi.set(lbn, rtf);
 }
 
 //--------------------------------------------------------------
 int ofxOpenNIDepthThreshold::getNearThreshold(){
-    return nearThreshold;
+    return roi.getLeftBottomNearWorld().z;
 }
 
 //--------------------------------------------------------------
 void ofxOpenNIDepthThreshold::setFarThreshold(int _farThreshold){
     CLAMP(_farThreshold, 0, 10000);
-    farThreshold = _farThreshold;
+    ofPoint & lbn = roi.getLeftBottomNearWorld();
+    ofPoint & rtf = roi.getRightTopFarWorld();
+    rtf.z = _farThreshold;
+    roi.set(lbn, rtf);
 }
 
 //--------------------------------------------------------------
 int ofxOpenNIDepthThreshold::getFarThreshold(){
-    return farThreshold;
+    return roi.getRightTopFarWorld().z;
 }
 
 //--------------------------------------------------------------
@@ -617,4 +697,9 @@ ofPixels & ofxOpenNIDepthThreshold::getDepthPixels(){
 //--------------------------------------------------------------
 ofTexture & ofxOpenNIDepthThreshold::getDepthTextureReference(){
     return depthTexture;
+}
+
+//--------------------------------------------------------------
+ofxOpenNIROI & ofxOpenNIDepthThreshold::getROI(){
+    return roi;
 }

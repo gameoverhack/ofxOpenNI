@@ -1154,25 +1154,7 @@ void ofxOpenNI::update(){
             }
 		}
         
-		for(int i = 0; i < getNumTrackedUsers(); i++){
-            ofxOpenNIUser & user = getTrackedUser(i);
-            if(user.bIsTracking){
-                if(user.getUsePointCloud() && user.bNewPointCloud){
-                    swap(user.pointCloud[0], user.pointCloud[1]);
-                }
-                if(user.getUseMaskTexture() && user.bNewPixels){
-                    if(user.maskTexture.getWidth() != getWidth() || user.maskTexture.getHeight() != getHeight()){
-                        ofLogVerbose(LOG_NAME) << "Allocating mask texture " << user.getXnID();
-                        user.maskTexture.allocate(getWidth(), getHeight(), GL_RGBA);
-                    }
-                    if(user.maskPixels.getPixels() != NULL) user.maskTexture.loadData(user.maskPixels.getPixels(), getWidth(), getHeight(), GL_RGBA);
-                }
-                user.bNewPixels = false;
-                user.bNewPointCloud = false;
-            }
-        }
         set<XnUserID> usersToDelete;
-        
         set<XnUserID> trackedUserIDs;
         map<XnUserID, ofxOpenNIUser>::iterator it;
         for(it = currentTrackedUsers.begin(); it != currentTrackedUsers.end(); it++){
@@ -1183,7 +1165,21 @@ void ofxOpenNI::update(){
                 user.bForceRestart = false;
                 user.bForceReset = false;
             }
-            if(user.isFound()) {
+            if(user.isFound()){
+                if(user.isTracking()){
+                    if(user.getUsePointCloud() && user.bNewPointCloud){
+                        swap(user.backPointCloud, user.currentPointCloud);
+                    }
+                    if(user.getUseMaskTexture() && user.bNewPixels){
+                        if(user.maskTexture.getWidth() != getWidth() || user.maskTexture.getHeight() != getHeight()){
+                            ofLogVerbose(LOG_NAME) << "Allocating mask texture " << user.getXnID();
+                            user.maskTexture.allocate(getWidth(), getHeight(), GL_RGBA);
+                        }
+                        if(user.maskPixels.getPixels() != NULL) user.maskTexture.loadData(user.maskPixels.getPixels(), getWidth(), getHeight(), GL_RGBA);
+                    }
+                    user.bNewPixels = false;
+                    user.bNewPointCloud = false;
+                }
                 trackedUserIDs.insert(user.getXnID());
             }else{
                 ofLogVerbose(LOG_NAME) << "Mark for deleting user" << user.getXnID();
@@ -1200,7 +1196,7 @@ void ofxOpenNI::update(){
             ofLogVerbose(LOG_NAME) << "Deleting user" << *its;
             currentTrackedUsers.erase(*its);
         }
-
+        
         for(int i = 0; i < currentDepthThresholds.size(); i++){
             ofxOpenNIDepthThreshold & depthThreshold = currentDepthThresholds[i];
             if(depthThreshold.bNewPixels){
@@ -1246,14 +1242,7 @@ void ofxOpenNI::updateGenerators(){
     
     if(!bIsContextReady) return;
     
-    if(g_bIsDepthOn || g_bIsImageOn || g_bIsInfraOn) g_Context.WaitAnyUpdateAll();
-    
-    //    this doesn't seem as fast/smooth, but is more 'correct':
-    //    if(g_bIsUserOn) {
-    //        g_Context.WaitOneUpdateAll(g_User);
-    //    } else {
-    //        g_Context.WaitAnyUpdateAll();
-    //    }
+    g_Context.WaitAnyUpdateAll();
     
 	if(g_bIsDepthOn && g_Depth.IsDataNew()) g_Depth.GetMetaData(g_DepthMD);
 	if(g_bIsImageOn && g_Image.IsDataNew()) g_Image.GetMetaData(g_ImageMD);
@@ -1266,24 +1255,6 @@ void ofxOpenNI::updateGenerators(){
 	if(g_bIsInfraOn) updateIRPixels();
     if(g_bIsUserOn) updateUserTracker();
     if(g_bIsHandsOn) updateHandTracker();
-
-    
-    // NB: Below info is from my old single context setup - need to retest with this new multicontext setup!  
-    // NEW SETUP for 12 frames tested avg -69.33ms latency with 2 x kinects (high ~80ms, low ~50ms)
-    
-    // I really don't think it's necessary to back buffer the image/ir/depth pixels
-    // as I understand it the GetMetaData() call is already acting as a back buffer
-    // since it is fetching the pixel data from the xn::Context which we then 'copy'
-    // during our generateDepth/Image/IRPixels() methods...
-    
-    // my tests show that it adds between ~10 to ~15 milliseconds to capture <-> screen latency 
-    // ie., the time between something occuring in the physical world, it's capture and subsequent display onscreen.
-    
-    // without back buffering my tests show 55 to 65ms, avg 61.5ms (consistent frame times, ie., no outliers in small samples)
-    // with back buffering my tests show 70 to 80ms, avg 73.8ms (this does not include outliers ie., usually 1 in 7 frames showing 150-275ms latency!)
-    
-    // NB: the above tests were done with 2 Kinects...with one Kinect (and not using backbuffering) I get between 50-60ms, avg ~53ms 
-    // (with some more outliers though one frame 33ms (!) andother 95ms(!))....hmmmm   
     
     if(bUseBackBuffer){
         if(g_bIsDepthOn && g_Depth.IsDataNew()){
@@ -1420,7 +1391,7 @@ void ofxOpenNI::updateUserTracker(){
                 for (int j = 0; j < user.getNumJoints(); j++){
                     
                     ofxOpenNIJoint & joint = user.getJoint((Joint)j);
-//                    cout << getJointAsString((Joint)j) << endl;
+
                     XnSkeletonJointPosition transform;
                     XnSkeletonJointOrientation orientation;
                     g_User.GetSkeletonCap().GetSkeletonJointPosition(user.getXnID(), joint.xnJoint, transform);
@@ -1440,11 +1411,8 @@ void ofxOpenNI::updateUserTracker(){
                     
                 }
  
-                if(!confident){
-                    user.setForceReset();
-                }else{
-                    user.resetCount = 0;
-                }
+                if(!confident && !user.isCalibrating()) user.setForceReset();
+                if(confident || user.isCalibrating()) user.resetCount = 0;
                 
             }
             
@@ -1481,19 +1449,19 @@ void ofxOpenNI::updatePointClouds(ofxOpenNIUser & user){
 	int step = user.getPointCloudResolution();
 	int nIndex = 0;
     
-	user.pointCloud[0].getVertices().clear();
-	user.pointCloud[0].getColors().clear();
-	user.pointCloud[0].setMode(OF_PRIMITIVE_POINTS);
+	user.backPointCloud->getVertices().clear();
+	user.backPointCloud->getColors().clear();
+	user.backPointCloud->setMode(OF_PRIMITIVE_POINTS);
     
 	for (int nY = 0; nY < getHeight(); nY += step) {
 		for (int nX = 0; nX < getWidth(); nX += step) {
             nIndex = nY * getWidth() + nX;
 			if(user.userPixels[nIndex] == user.getXnID()) {
-				user.pointCloud[0].addVertex(ofPoint(nX, nY, pDepth[nIndex]));
+				user.backPointCloud->addVertex(ofPoint(nX, nY, pDepth[nIndex]));
 				if(g_bIsImageOn){
-					user.pointCloud[0].addColor(ofColor(pColor[nIndex].nRed, pColor[nIndex].nGreen, pColor[nIndex].nBlue));
+					user.backPointCloud->addColor(ofColor(pColor[nIndex].nRed, pColor[nIndex].nGreen, pColor[nIndex].nBlue));
 				}else{
-					user.pointCloud[0].addColor(ofFloatColor(1,1,1));
+					user.backPointCloud->addColor(ofFloatColor(1,1,1));
 				}
 			}
 		}
@@ -1602,17 +1570,19 @@ void ofxOpenNI::updateRecorder(){
 }
 
 //--------------------------------------------------------------
-void ofxOpenNI::updateDepthThresholds(const unsigned short & depth, ofColor & depthColor, int nX, int nY){
+void ofxOpenNI::updateDepthThresholds(const unsigned short& depth, ofColor& depthColor, int nX, int nY){
     if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     int nIndex = nY * getWidth() + nX;
+    ofPoint p = ofPoint(nX, nY, depth);
     for(int i = 0; i < currentDepthThresholds.size(); i++){
         ofxOpenNIDepthThreshold & depthThreshold = currentDepthThresholds[i];
+        bool inside = depthThreshold.inside(p);
         if(depthThreshold.getUseMaskPixels()){
             if(depthThreshold.maskPixels.getWidth() != getWidth() || depthThreshold.maskPixels.getHeight() != getHeight()){
                 ofLogVerbose(LOG_NAME) << "Allocating mask pixels for depthThreshold";
                 depthThreshold.maskPixels.allocate(getWidth(), getHeight(), OF_PIXELS_RGBA);
             }
-            if(depth > depthThreshold.getNearThreshold() && depth < depthThreshold.getFarThreshold()){
+            if(inside){
                 depthThreshold.maskPixels[nIndex * 4 + 0] = 255;
                 depthThreshold.maskPixels[nIndex * 4 + 1] = 255;
                 depthThreshold.maskPixels[nIndex * 4 + 2] = 255;
@@ -1630,7 +1600,7 @@ void ofxOpenNI::updateDepthThresholds(const unsigned short & depth, ofColor & de
                 ofLogVerbose(LOG_NAME) << "Allocating depth pixels for depthThreshold";
                 depthThreshold.depthPixels.allocate(getWidth(), getHeight(), OF_PIXELS_RGBA);
             }
-            if(depth > depthThreshold.getNearThreshold() && depth < depthThreshold.getFarThreshold()){
+            if(inside){
                 depthThreshold.depthPixels[nIndex * 4 + 0] = depthColor.r;
                 depthThreshold.depthPixels[nIndex * 4 + 1] = depthColor.g;
                 depthThreshold.depthPixels[nIndex * 4 + 2] = depthColor.b;
@@ -1644,24 +1614,24 @@ void ofxOpenNI::updateDepthThresholds(const unsigned short & depth, ofColor & de
             depthThreshold.bNewPixels = true;
         }
         if(depthThreshold.getUsePointCloud()){
-            if(nIndex == 0){
-                depthThreshold.pointCloud[0].getVertices().clear();
-                depthThreshold.pointCloud[0].getColors().clear();
-                depthThreshold.pointCloud[0].setMode(OF_PRIMITIVE_POINTS);
-            }
             if(nX % depthThreshold.getPointCloudResolution() == 0 && 
-               nY % depthThreshold.getPointCloudResolution() == 0 &&
-               depth > depthThreshold.getNearThreshold() && 
-               depth < depthThreshold.getFarThreshold()){
-                const XnRGB24Pixel*	pColor;
-                depthThreshold.pointCloud[0].addVertex(ofPoint(nX, nY, depth));
-				if(g_bIsImageOn){
-                    pColor = g_ImageMD.RGB24Data();
-					depthThreshold.pointCloud[0].addColor(ofColor(pColor[nIndex].nRed, pColor[nIndex].nGreen, pColor[nIndex].nBlue));
-				}else{
-					depthThreshold.pointCloud[0].addColor(ofFloatColor(1,1,1));
-				}
-                depthThreshold.bNewPointCloud = true;
+               nY % depthThreshold.getPointCloudResolution() == 0){
+                if(nIndex == 0){
+                    depthThreshold.pointCloud[0].getVertices().clear();
+                    depthThreshold.pointCloud[0].getColors().clear();
+                    depthThreshold.pointCloud[0].setMode(OF_PRIMITIVE_POINTS);
+                }
+                if(inside){
+                    const XnRGB24Pixel*	pColor;
+                    depthThreshold.pointCloud[0].addVertex(p);
+                    if(g_bIsImageOn){
+                        pColor = g_ImageMD.RGB24Data();
+                        depthThreshold.pointCloud[0].addColor(ofColor(pColor[nIndex].nRed, pColor[nIndex].nGreen, pColor[nIndex].nBlue));
+                    }else{
+                        depthThreshold.pointCloud[0].addColor(ofFloatColor(1,1,1));
+                    }
+                    depthThreshold.bNewPointCloud = true;
+                }
             }
             
         }
@@ -2148,18 +2118,13 @@ void ofxOpenNI::setBaseHandClass(ofxOpenNIHand & hand){
 //--------------------------------------------------------------
 void ofxOpenNI::addDepthThreshold(ofxOpenNIDepthThreshold & depthThreshold){
     if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
-    if(depthThreshold.nearThreshold >= depthThreshold.farThreshold || depthThreshold.nearThreshold > maxDepth || depthThreshold.farThreshold > maxDepth){
-        ofLogError(LOG_NAME) << "Near or Far Threshold are out of range!";
-        return;
-    }
-    ofLogVerbose(LOG_NAME) << "Adding depthThreshold:" << depthThreshold.nearThreshold << " - " << depthThreshold.farThreshold;
     currentDepthThresholds.push_back(depthThreshold);
 }
 
 //--------------------------------------------------------------
 void ofxOpenNI::addDepthThreshold(int _nearThreshold, int _farThreshold, bool _bUseCloudPoint, bool _bUseMaskPixels, bool _bUseMaskTexture, bool _bUseDepthPixels, bool _bUseDepthTexture){
-    ofxOpenNIDepthThreshold depthThreshold = ofxOpenNIDepthThreshold(_nearThreshold, _farThreshold, _bUseCloudPoint, _bUseMaskPixels, _bUseMaskTexture, _bUseDepthPixels, _bUseDepthTexture);
-    addDepthThreshold(depthThreshold);
+//    ofxOpenNIDepthThreshold depthThreshold = ofxOpenNIDepthThreshold(_nearThreshold, _farThreshold, _bUseCloudPoint, _bUseMaskPixels, _bUseMaskTexture, _bUseDepthPixels, _bUseDepthTexture);
+    //addDepthThreshold(depthThreshold);
 }
 
 //--------------------------------------------------------------
@@ -2700,13 +2665,7 @@ xn::AudioMetaData& ofxOpenNI::getAudioMetaData(){
 void ofxOpenNI::startTrackingUser(XnUserID nID){
     if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     XnStatus nRetVal = XN_STATUS_OK;
-//    if(getNumTrackedUsers() + 1 > getMaxNumUsers()){
-//        ofLogNotice(LOG_NAME) << "Start tracking cancelled for user" << nID << "since maxNumUsers is" << maxNumUsers;
-//        stopTrackingUser(nID);
-//        return;
-//    } else {
-        ofLogNotice(LOG_NAME) << "Start tracking user" << nID;
-//    }
+    ofLogNotice(LOG_NAME) << "Start tracking user" << nID;
 	nRetVal = g_User.GetSkeletonCap().StartTracking(nID);
     CHECK_ERR_RC(nRetVal, "Get skeleton capability - start tracking");
     if(nRetVal == XN_STATUS_OK){

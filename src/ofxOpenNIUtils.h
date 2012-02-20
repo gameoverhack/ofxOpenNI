@@ -470,8 +470,6 @@ inline void getDepthColor(DepthColoring depthColoring, const unsigned short & de
     }
 }
 
-
-
 //--------------------------------------------------------------
 static inline ofPoint toOf(const XnPoint3D & p){
 	return *(ofPoint*)&p;
@@ -494,8 +492,36 @@ static inline XnPoint3D toXn(const ofPoint & p){
 	 */
 }
 
+#define WIDTH 640
+#define HEIGHT 480
+#define MAXDEPTH 10000
+#define HALFWIDTH WIDTH/2
+#define HALFHEIGHT HEIGHT/2
+#define HFOV 1.01447
+#define VFOV 0.789809
+#define COEFX WIDTH/HFOV
+#define COEFY HEIGHT/VFOV
+#define HFOVTANHALF tan(HFOV/2)
+#define VFOVTANHALF tan(VFOV/2)
+
+//--------------------------------------------------------------
+static inline ofPoint g_worldToProjective(const ofPoint& p){
+    // this assumes a 640 x 480 resolution as per above defines
+    ofPoint projective;
+	projective.x = COEFX * p.x / p.z + HALFWIDTH;
+    projective.y = HALFHEIGHT - COEFY * p.y / p.z;
+    projective.z = p.z;
+	return projective;
+}
+
+//--------------------------------------------------------------
+static inline ofPoint g_worldToProjective(const XnVector3D& p){
+	return g_worldToProjective(toOf(p));
+}
+
 //--------------------------------------------------------------
 static inline ofPoint worldToProjective(const XnVector3D& p, xn::DepthGenerator & g_Depth){
+    //if(&g_Depth == NULL) return g_worldToProjective(p);
 	XnVector3D proj;
 	g_Depth.ConvertRealWorldToProjective(1,&p,&proj);
 	return toOf(proj);
@@ -503,8 +529,29 @@ static inline ofPoint worldToProjective(const XnVector3D& p, xn::DepthGenerator 
 
 //--------------------------------------------------------------
 static inline ofPoint worldToProjective(const ofPoint& p, xn::DepthGenerator & g_Depth){
+    //if(&g_Depth == NULL) return g_worldToProjective(p);
 	XnVector3D world = toXn(p);
 	return worldToProjective(world, g_Depth);
+}
+
+//--------------------------------------------------------------
+static inline void g_maxROIAtDepth(ofPoint& leftBottomNear, ofPoint& rightTopFar){
+    // this assumes a 640 x 480 resolution as per above defines
+    leftBottomNear.x = -(leftBottomNear.z * HFOVTANHALF);
+    leftBottomNear.y = -(leftBottomNear.z * VFOVTANHALF);
+    rightTopFar.x = (rightTopFar.z * HFOVTANHALF);
+    rightTopFar.y = (rightTopFar.z * VFOVTANHALF);
+}
+
+//--------------------------------------------------------------
+static inline void maxROIAtDepth(ofPoint& leftBottomNear, ofPoint& rightTopFar, xn::DepthGenerator & g_Depth){
+    //if(&g_Depth == NULL) return g_maxROIAtDepth(leftBottomNear, rightTopFar);
+    XnFieldOfView FOV;
+    g_Depth.GetFieldOfView(FOV);
+    leftBottomNear.x = -(leftBottomNear.z * tan(FOV.fHFOV/2));
+    leftBottomNear.y = -(leftBottomNear.z * tan(FOV.fVFOV/2));
+    rightTopFar.x = (rightTopFar.z * tan(FOV.fHFOV/2));
+    rightTopFar.y = (rightTopFar.z * tan(FOV.fVFOV/2));
 }
 
 //--------------------------------------------------------------
