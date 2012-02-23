@@ -3,37 +3,10 @@
   <ItemGroup>
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\testApp.cpp" />
-    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxDepthGenerator.cpp">
+    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxOpenNI.cpp">
       <Filter>ofxOpenNI\src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxGestureGenerator.cpp">
-      <Filter>ofxOpenNI\src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxHandGenerator.cpp">
-      <Filter>ofxOpenNI\src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxHardwareDriver.cpp">
-      <Filter>ofxOpenNI\src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxImageGenerator.cpp">
-      <Filter>ofxOpenNI\src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxIRGenerator.cpp">
-      <Filter>ofxOpenNI\src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxOpenNIContext.cpp">
-      <Filter>ofxOpenNI\src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxOpenNIRecorder.cpp">
-      <Filter>ofxOpenNI\src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxTrackedHand.cpp">
-      <Filter>ofxOpenNI\src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxTrackedUser.cpp">
-      <Filter>ofxOpenNI\src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxUserGenerator.cpp">
+    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxOpenNITypes.cpp">
       <Filter>ofxOpenNI\src</Filter>
     </ClCompile>
   </ItemGroup>
@@ -420,43 +393,13 @@
     <ClInclude Include="..\..\..\addons\ofxOpenNI\include\nite\XnVWaveDetector.h">
       <Filter>ofxOpenNI\include\nite</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxDepthGenerator.h">
-      <Filter>ofxOpenNI\src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxGestureGenerator.h">
-      <Filter>ofxOpenNI\src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxHandGenerator.h">
-      <Filter>ofxOpenNI\src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxHardwareDriver.h">
-      <Filter>ofxOpenNI\src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxImageGenerator.h">
-      <Filter>ofxOpenNI\src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxIRGenerator.h">
-      <Filter>ofxOpenNI\src</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxOpenNI.h">
       <Filter>ofxOpenNI\src</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxOpenNIContext.h">
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxOpenNITypes.h">
       <Filter>ofxOpenNI\src</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxOpenNIMacros.h">
-      <Filter>ofxOpenNI\src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxOpenNIRecorder.h">
-      <Filter>ofxOpenNI\src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxTrackedHand.h">
-      <Filter>ofxOpenNI\src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxTrackedUser.h">
-      <Filter>ofxOpenNI\src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxUserGenerator.h">
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxOpenNIUtils.h">
       <Filter>ofxOpenNI\src</Filter>
     </ClInclude>
   </ItemGroup>

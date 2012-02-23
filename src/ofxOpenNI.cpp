@@ -28,8 +28,6 @@
 
 #include "ofxOpenNI.h"
 
-static int instanceCount = -1;
-
 /**************************************************************
  *
  *      constructor and setup methods
@@ -40,10 +38,10 @@ static int instanceCount = -1;
 ofxOpenNI::ofxOpenNI(){
 	instanceCount++;
 	instanceID = instanceCount; // TODO: this should be replaced/combined with a listDevices and setDeviceID methods
-    
+
     LOG_NAME = "ofxOpenNIDevice[" + ofToString(instanceID) + "]";
     //cout << LOG_NAME << ": constructor called" << endl;
-    
+
 	bIsThreaded = false;
 	g_bIsDepthOn = false;
 	g_bIsDepthRawOn = false;
@@ -57,115 +55,116 @@ ofxOpenNI::ofxOpenNI(){
     g_bIsRecordOn = false;
     bPaused = false;
     bIsLooped = true;
-    
-    
+
+
     bUseBackgroundSubtraction = false;
     bGrabBackgroundPixels = false;
-    
+
 	depthColoring = COLORING_RAINBOW;
-	
+
     bIsContextReady = false;
     bIsDeviceReady = false;
     bIsShuttingDown = false;
-    
+
     bUseRegistration = false;
     bUseSync = false;
     bUseMirror = false;
-    
+
     bAutoCalibrationPossible = false;
-    
+
     bUseBackBuffer = false;
 	bUseTexture = true;
     bUseSafeThreading = false;
 	bNewPixels = false;
 	bNewFrame = false;
-	
+
     width = XN_VGA_X_RES;
     height = XN_VGA_Y_RES;
     fps = 30;
-    
+
     g_ONITask = ONI_NONE;
-    
+
     ofXmlFilePath = oniFilePath = "";
-    
+
     maxNumUsers = 1;
     minTimeBetweenGestures = 0;
     skeletonProfile = XN_SKEL_PROFILE_ALL;
-    
+
     maxNumHands = 1;
     minTimeBetweenHands = 500;
     minDistanceBetweenHands = 100;
-    
+
     backDepthRawPixels = NULL;
-    
+
 	CreateRainbowPallet();
-    
+
     logLevel = OF_LOG_SILENT;
 }
 
 //--------------------------------------------------------------
 bool ofxOpenNI::setup(bool threaded){
-    init("", "", threaded);
+    return init("", "", threaded);
 }
 
 //--------------------------------------------------------------
 bool ofxOpenNI::setupFromXML(string xmlFilePath, bool threaded){
-    init("", xmlFilePath, threaded);
+    return init("", xmlFilePath, threaded);
 }
 
 bool ofxOpenNI::setupFromONI(string oniFilePath, bool threaded){
-    init(oniFilePath, "", threaded);
+    return init(oniFilePath, "", threaded);
 }
 
 //--------------------------------------------------------------
 bool ofxOpenNI::init(string oniFilePath, string xmlFilePath, bool threaded){
     setSafeThreading(bUseSafeThreading);
-    
+
     XnStatus nRetVal = XN_STATUS_OK;
 	bIsThreaded = threaded;
-    
+
     // set log level to ofLogLevel base level at least
     if(ofGetLogLevel() < logLevel) logLevel = ofGetLogLevel();
     setLogLevel(logLevel);
-    
+
 	if(!initContext(xmlFilePath)){
         ofLogError(LOG_NAME) << "Context could not be initialized";
         return false;
 	}
-    
+
     if(oniFilePath != ""){
         if(!startPlayer(oniFilePath)){
             ofLogError(LOG_NAME) << "ONI Device could not be initialized";
             return false;
         }
     }
-    
+
     if(xmlFilePath != ""){
         if(!initCommon()){
             ofLogError(LOG_NAME) << "XML Device could not be initialized";
             return false;
         }
     }
-    
+
     if(!initDevice()){
         ofLogWarning(LOG_NAME) << "REAL Device could not be initialized - you can still use an ONI";
     }
-    
+
+    return bIsContextReady;
+}
+void ofxOpenNI::start(){
     if(bIsThreaded && !isThreadRunning()) {
         ofLogNotice(LOG_NAME) << "Starting ofxOpenNI with threading";
         startThread(true, false);
     } else if(!bIsThreaded) {
         ofLogNotice(LOG_NAME) << "Starting ofxOpenNI without threading";
     }
-    
-    return bIsContextReady;
 }
 
 //--------------------------------------------------------------
 bool ofxOpenNI::initContext(string xmlFilePath){
     if(bIsContextReady) return true;
     ofLogNotice(LOG_NAME) << "Init context...";
-    
+
     g_bIsDepthOn = false;
 	g_bIsDepthRawOn = false;
 	g_bIsImageOn = false;
@@ -177,7 +176,7 @@ bool ofxOpenNI::initContext(string xmlFilePath){
     g_bIsPlayerOn = false;
     g_bIsRecordOn = false;
     bPaused = false;
-    
+
     XnStatus nRetVal = XN_STATUS_OK;
     ofXmlFilePath = ofToDataPath(xmlFilePath); // of007 hack to make sure ofSetRootPath is done!
     if(xmlFilePath == ""){
@@ -201,11 +200,11 @@ bool ofxOpenNI::initDevice(){
         XnStatus nRetVal = XN_STATUS_OK;
         NodeInfoList deviceList;
         EnumerationErrors errors;
-        
+
         nRetVal = g_Context.EnumerateProductionTrees (XN_NODE_TYPE_DEVICE, NULL, deviceList, &errors);
         SHOW_RC(nRetVal, "Enumerate devices");
         if(nRetVal != XN_STATUS_OK) logErrors(errors);
-        
+
         numDevices = 0;
         NodeInfo nInfo = *deviceList.Begin();
         for (NodeInfoList::Iterator it = deviceList.Begin(); it != deviceList.End(); ++it, ++numDevices){
@@ -213,9 +212,9 @@ bool ofxOpenNI::initDevice(){
                 nInfo = *it;
             }
         }
-        
+
         ofLogNotice(LOG_NAME) << "Found" << numDevices << "devices connected";
-        
+
         if(numDevices > 0){
             nRetVal = g_Context.CreateProductionTree(nInfo, g_Device);
             SHOW_RC(nRetVal, "Creating production tree for device " + ofToString(instanceID));
@@ -289,7 +288,7 @@ bool ofxOpenNI::addLicence(string sVendor, string sKey){
     nRetVal = xnOSStrNCopy(license.strVendor, sVendor.c_str(),sVendor.size(), sizeof(license.strVendor));
     CHECK_ERR_RC(nRetVal, "Error creating vendor: " + sVendor);
     nRetVal = xnOSStrNCopy(license.strKey, sKey.c_str(), sKey.size(), sizeof(license.strKey));
-    CHECK_ERR_RC(nRetVal, "Error creating key: " + sKey);	
+    CHECK_ERR_RC(nRetVal, "Error creating key: " + sKey);
     nRetVal = g_Context.AddLicense(license);
     SHOW_RC(nRetVal, "Adding licence: " + sVendor + " " + sKey);
     //xnPrintRegisteredLicenses();
@@ -304,7 +303,7 @@ bool ofxOpenNI::addLicence(string sVendor, string sKey){
 
 //--------------------------------------------------------------
 ofxOpenNI::~ofxOpenNI(){
-    
+
     // don't use ofLog here!!!
     cout << LOG_NAME << ": destructor called" << endl;
     if(bIsShuttingDown) {
@@ -317,18 +316,18 @@ ofxOpenNI::~ofxOpenNI(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::stop(){
-    
+
     // don't use ofLog here!!!
     cout << LOG_NAME << ": stop called" << endl;
     if(bIsShuttingDown) {
         cout << LOG_NAME << ": ...already shut down" << endl;
         return;
     }
-       
+
     bIsShuttingDown = true;
 
     if(!bIsContextReady) return;
-    
+
     if(bIsThreaded){
         cout << LOG_NAME << ": trying to lock" << endl;
         lock();
@@ -337,7 +336,7 @@ void ofxOpenNI::stop(){
         waitForThread(true);
         bIsThreaded = false;
     }
-    
+
     cout << LOG_NAME << ": releasing all nodes" << endl;
     stopCommon();
 
@@ -345,22 +344,22 @@ void ofxOpenNI::stop(){
     currentTrackedUserIDs.clear();
     currentTrackedHands.clear();
     currentTrackedHandIDs.clear();
-    
+
     cout << LOG_NAME << ": releasing context" << endl;
     g_Context.StopGeneratingAll();
     g_Context.Release();
     bIsContextReady = false;
-    
+
     cout << LOG_NAME << ": releasing depth texture & pixels" << endl;
     depthTexture.clear();
 	depthPixels[0].clear();
     depthPixels[1].clear();
-    
+
     cout << LOG_NAME << ": releasing image texture & pixels" << endl;
     imageTexture.clear();
     imagePixels[0].clear();
     imagePixels[1].clear();
-    
+
     instanceCount--; // ok this will probably cause problems when dynamically creating and destroying -> you'd need to do it in order!
     bIsShuttingDown = false;
     cout << LOG_NAME << ": full stopped" << endl;
@@ -374,54 +373,54 @@ void ofxOpenNI::stopCommon(){
         g_Recorder.Release();
         g_bIsRecordOn = false;
     }
-    
-    if(g_bIsPlayerOn){ 
+
+    if(g_bIsPlayerOn){
         cout << LOG_NAME << ": releasing player" << endl;
         g_Player.Release();
         g_bIsPlayerOn = false;
     }
-    
+
     if(g_bIsDepthOn){
         cout << LOG_NAME << ": releasing depth generator" << endl;
         g_Depth.StopGenerating();
         g_Depth.Release();
         g_bIsDepthOn = false;
     }
-        
+
     if(g_bIsImageOn){
         cout << LOG_NAME << ": releasing image generator" << endl;
         g_Image.StopGenerating();
         g_Image.Release();
         g_bIsImageOn = false;
     }
-    
+
     if(g_bIsInfraOn){
         cout << LOG_NAME << ": releasing infra generator" << endl;
         g_Infra.StopGenerating();
         g_Infra.Release();
         g_bIsInfraOn = false;
     }
-        
+
     if(g_bIsAudioOn){
         cout << LOG_NAME << ": releasing audio generator" << endl;
         g_Audio.StopGenerating();
         g_Audio.Release();
     }
-    
+
     if(g_bIsUserOn){
         cout << LOG_NAME << ": releasing user generator" << endl;
         g_User.StopGenerating();
         g_User.Release();
         g_bIsUserOn = false;
     }
-    
+
     if(g_bIsGestureOn){
         cout << LOG_NAME << ": releasing gesture generator" << endl;
         g_Gesture.StopGenerating();
         g_Gesture.Release();
         g_bIsGestureOn = false;
     }
-    
+
     if(g_bIsHandsOn){
         cout << LOG_NAME << ": releasing hands generator" << endl;
         g_Hands.StopGenerating();
@@ -430,7 +429,7 @@ void ofxOpenNI::stopCommon(){
         g_HandsFocusGesture.Release();
         g_bIsHandsOn = false;
     }
-    
+
     if(bIsDeviceReady){
         cout << LOG_NAME << ": releasing device" << endl;
         g_Device.Release();
@@ -467,7 +466,7 @@ void ofxOpenNI::logErrors(xn::EnumerationErrors & errors){
 		XnChar desc[512];
 		xnProductionNodeDescriptionToString(&it.Description(), desc, 512);
         ofLogWarning(LOG_NAME) << desc << "failed:" << xnGetStatusString(it.Error());
-	}	
+	}
 }
 
 /**************************************************************
@@ -524,18 +523,10 @@ bool ofxOpenNI::isRecording(){
 
 //--------------------------------------------------------------
 bool ofxOpenNI::startPlayer(string oniFileName){
-    if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     XnStatus nRetVal = XN_STATUS_OK;
-    bool bWasPlaying = g_bIsPlayerOn;
-    if(bWasPlaying){
-        // stop the whole context
-        if(bIsThreaded) waitForThread(true);
-        stopCommon();
-        bIsContextReady = false;
-        g_Context.StopGeneratingAll();
-        g_Context.Release();
+    if(g_bIsPlayerOn){
+        stop();
         initContext();
-        if(bIsThreaded) startThread(true, false);
     }else{
         stopCommon();
     }
@@ -547,6 +538,7 @@ bool ofxOpenNI::startPlayer(string oniFileName){
         g_bIsPlayerOn = initCommon();
         bIsLooped = true; // ONI player defaults to looped state internally
         bPaused = false; // default to playing
+		start();
     }
     return g_bIsPlayerOn;
 }
@@ -1041,31 +1033,31 @@ void ofxOpenNI::allocateIRBuffers(){
 bool ofxOpenNI::allocateUsers(){
     if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     ofLogVerbose(LOG_NAME) << "Allocating users";
-    
+
     XnStatus nRetVal = XN_STATUS_OK;
     bool ok = false;
-    
+
     currentTrackedUserIDs.clear();
     currentTrackedUsers.clear();
-    
+
     setMaxNumUsers(maxNumUsers); // default to 1
-    
+
     // register user callbacks
     XnCallbackHandle User_CallbackHandler;
     XnCallbackHandle Calibration_CallbackHandler;
-    
+
 	nRetVal = g_User.RegisterUserCallbacks(UserCB_handleNewUser, UserCB_handleLostUser, this, User_CallbackHandler);
     BOOL_ERR_RC(nRetVal, "Register user New/Lost callbacks");
-    
+
 	nRetVal = g_User.GetSkeletonCap().RegisterToCalibrationStart(UserCB_handleCalibrationStart, this, Calibration_CallbackHandler);
     BOOL_ERR_RC(nRetVal, "Register user Calibration Start callback");
-    
+
 //    nRetVal = userGenerator.GetSkeletonCap().RegisterToCalibrationInProgress(UserCB_handleCalibrationProgress, this, Calibration_CallbackHandler);
 //    BOOL_ERR_RC(nRetVal, "Register user Calibration Progress callback");
-    
+
 	nRetVal = g_User.GetSkeletonCap().RegisterToCalibrationComplete(UserCB_handleCalibrationEnd, this, Calibration_CallbackHandler);
     BOOL_ERR_RC(nRetVal, "Register user Calibration End callback");
-    
+
     // check need for calibration
     if(g_User.GetSkeletonCap().NeedPoseForCalibration()){
         ofLogNotice(LOG_NAME) << "User generator DOES require pose for calibration";
@@ -1073,8 +1065,8 @@ bool ofxOpenNI::allocateUsers(){
     } else {
         ofLogNotice(LOG_NAME) << "User generator DOES NOT require pose for calibration";
         bAutoCalibrationPossible = true;
-    } 
-    
+    }
+
     // we add these even ifno pose is required so that individual users can be forced to strike a pose
     if(!g_User.IsCapabilitySupported(XN_CAPABILITY_POSE_DETECTION)) {
         ofLogError(LOG_NAME) << "Pose detection not supported";
@@ -1082,12 +1074,13 @@ bool ofxOpenNI::allocateUsers(){
         XnCallbackHandle Pose_CallbackHandler;
         nRetVal = g_User.GetPoseDetectionCap().RegisterToPoseDetected(UserCB_handlePoseDetected, this, Pose_CallbackHandler);
         BOOL_ERR_RC(nRetVal, "Register user Pose Detected callback");
-        
+
         nRetVal = g_User.GetSkeletonCap().GetCalibrationPose(userCalibrationPose);
         BOOL_ERR_RC(nRetVal, "Get calibration pose");
     }
-    
+
 	setSkeletonProfile(skeletonProfile);
+	return true;
 }
 
 //--------------------------------------------------------------
@@ -1107,7 +1100,7 @@ bool ofxOpenNI::allocateHands(){
     ofLogVerbose(LOG_NAME) << "Allocating hands";
     currentTrackedHands.clear();
     currentTrackedHandIDs.clear();
-    ofPoint p = ofPoint(INFINITY, INFINITY, INFINITY);
+    ofPoint p = ofPoint(0, 0, 0);
     lastHandEvent = ofxOpenNIHandEvent(getDeviceID(), HAND_TRACKING_STOPPED, NULL, worldToProjective(p), p, ofGetElapsedTimeMillis());
     XnStatus nRetVal = XN_STATUS_OK;
     XnCallbackHandle Hands_CallbackHandler;
@@ -1133,16 +1126,16 @@ void ofxOpenNI::threadedFunction(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::update(){
-    
+
     if(bIsShuttingDown) return;
     if(!bIsContextReady) return;
-    
+
 	if(!bIsThreaded){
 		updateGenerators();
 	} else {
 		lock();
 	}
-	
+
 	if(bNewPixels){
 		if(bUseTexture && g_bIsDepthOn){
             if(bUseBackBuffer) {
@@ -1158,7 +1151,7 @@ void ofxOpenNI::update(){
                 imageTexture.loadData(*backImagePixels);
             }
 		}
-        
+
         set<XnUserID> usersToDelete;
         set<XnUserID> trackedUserIDs;
         map<XnUserID, ofxOpenNIUser>::iterator it;
@@ -1190,18 +1183,18 @@ void ofxOpenNI::update(){
                 ofLogVerbose(LOG_NAME) << "Mark for deleting user" << user.getXnID();
                 usersToDelete.insert(user.getXnID());
             }
-            
+
         }
-        
+
         currentTrackedUserIDs.assign(trackedUserIDs.begin(), trackedUserIDs.end());
 
         set<XnUserID>::iterator its;
         for(its = usersToDelete.begin(); its!=usersToDelete.end(); its++){
-            
+
             ofLogVerbose(LOG_NAME) << "Deleting user" << *its;
             currentTrackedUsers.erase(*its);
         }
-        
+
         for(int i = 0; i < currentDepthThresholds.size(); i++){
             ofxOpenNIDepthThreshold & depthThreshold = currentDepthThresholds[i];
             if(depthThreshold.bNewPixels){
@@ -1225,9 +1218,9 @@ void ofxOpenNI::update(){
                 depthThreshold.bNewPixels = false;
                 depthThreshold.bNewPointCloud = false;
             }
-            
+
         }
-        
+
         bNewPixels = false;
 		bNewFrame = true;
 
@@ -1238,29 +1231,29 @@ void ofxOpenNI::update(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::updateGenerators(){
-    
+
 	if(bIsThreaded && bUseSafeThreading) lock(); // with this here I get ~30 fps with 2 Kinects/60 fps with 1 kinect -> BUT no crash on exit!
 	if(bIsShuttingDown || bPaused){
         if(bIsThreaded) unlock();
         return;
     }
-    
+
     if(!bIsContextReady) return;
-    
+
     g_Context.WaitAnyUpdateAll();
-    
+
 	if(g_bIsDepthOn && g_Depth.IsDataNew()) g_Depth.GetMetaData(g_DepthMD);
 	if(g_bIsImageOn && g_Image.IsDataNew()) g_Image.GetMetaData(g_ImageMD);
 	if(g_bIsInfraOn && g_Infra.IsDataNew()) g_Infra.GetMetaData(g_InfraMD);
-    
+
     if(bIsThreaded && !bUseSafeThreading) lock(); // with this her I get ~400-500+ fps with 2 Kinects!
-    
+
     if(g_bIsDepthOn) updateDepthPixels();
 	if(g_bIsImageOn) updateImagePixels();
 	if(g_bIsInfraOn) updateIRPixels();
     if(g_bIsUserOn) updateUserTracker();
     if(g_bIsHandsOn) updateHandTracker();
-    
+
     if(bUseBackBuffer){
         if(g_bIsDepthOn && g_Depth.IsDataNew()){
             swap(backDepthPixels, currentDepthPixels);
@@ -1272,11 +1265,11 @@ void ofxOpenNI::updateGenerators(){
             swap(backImagePixels, currentImagePixels);
         }
     }
-	
+
 	bNewPixels = true;
-    
+
     if(g_bIsRecordOn) updateRecorder();
-    
+
 	if(bIsThreaded) unlock();
 
 }
@@ -1292,51 +1285,51 @@ void ofxOpenNI::updateDepthPixels(){
     if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
 	// get the pixels
 	const XnDepthPixel* depth = g_DepthMD.Data();
-    
+
 	if(g_DepthMD.FrameID() == 0) return;
-    
+
     const XnDepthPixel* backgroundDepth;
     if(bGrabBackgroundPixels){
         bGrabBackgroundPixels = false;
         g_BackgroundMD.InitFrom(g_DepthMD);
     }
-    
+
     if(bUseBackgroundSubtraction){
         backgroundDepth = g_BackgroundMD.Data();
     }
-    
+
 	// copy raw values
 	if(g_bIsDepthRawOn){
 		backDepthRawPixels->setFromPixels(depth, getWidth(), getHeight(), OF_IMAGE_COLOR_ALPHA);
 	}
-	
+
 	// copy depth into texture-map
 	for (XnUInt16 y = g_DepthMD.YOffset(); y < g_DepthMD.YRes() + g_DepthMD.YOffset(); y++){
 		unsigned char * texture = backDepthPixels->getPixels() + y * g_DepthMD.XRes() * 4 + g_DepthMD.XOffset() * 4;
 		for (XnUInt16 x = 0; x < g_DepthMD.XRes(); x++, depth++, texture += 4){
-            
+
             ofColor depthColor;
-            
+
             if(bUseBackgroundSubtraction){
                 if(*depth + 1000 > *backgroundDepth){
                     depthColor = ofColor(0,0,0,0);
                 }
             }
-            
+
             if(currentDepthThresholds.size() > 0) updateDepthThresholds(*depth, depthColor, x, y);
-            
+
             getDepthColor(depthColoring, *depth, depthColor, maxDepth);
-            
+
 			texture[0] = depthColor.r;
 			texture[1] = depthColor.g;
 			texture[2] = depthColor.b;
-			
+
 			if(*depth == 0){
 				texture[3] = 0;
 			}else{
 				texture[3] = depthColor.a;
             }
-            
+
 		}
 	}
 }
@@ -1391,11 +1384,11 @@ void ofxOpenNI::updateHandTracker(){
 //--------------------------------------------------------------
 void ofxOpenNI::updateUserTracker(){
     if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
-    
+
 	vector<XnUserID> userIDs(maxNumUsers);
     XnUInt16 xnMaxNumUsers = maxNumUsers;
 	g_User.GetUsers(&userIDs[0], xnMaxNumUsers);
-    
+
 	for(int i = 0; i < maxNumUsers; ++i){
         XnUserID nID = userIDs[i];
 		if(g_User.GetSkeletonCap().IsTracking(nID)){
@@ -1407,38 +1400,38 @@ void ofxOpenNI::updateUserTracker(){
 			user.center = toOf(center);
             bool lastbIsSkeleton = user.isSkeleton();
             if(user.getUseSkeleton()){
-                
+
                 user.bIsSkeleton = false;
                 bool confident = false;
-                
+
                 for (int j = 0; j < user.getNumJoints(); j++){
-                    
+
                     ofxOpenNIJoint & joint = user.getJoint((Joint)j);
 
                     XnSkeletonJointPosition transform;
                     XnSkeletonJointOrientation orientation;
                     g_User.GetSkeletonCap().GetSkeletonJointPosition(user.getXnID(), joint.xnJoint, transform);
                     g_User.GetSkeletonCap().GetSkeletonJointOrientation(user.getXnID(), joint.xnJoint, orientation);
-                    
+
                     joint.projectivePosition = worldToProjective(transform.position);
                     joint.worldPosition = toOf(transform.position);
                     joint.positionConfidence = transform.fConfidence;
 
                     joint.xnJointOrientation = orientation;
                     joint.orientationConfidence = orientation.fConfidence;
-                    
+
                     joint.calculateOrientation();
-                    
+
                     if(joint.isFound()) confident = true;
                     user.bIsSkeleton = true;
-                    
+
                 }
- 
+
                 if(!confident && !user.isCalibrating()) user.setForceReset();
                 if(confident || user.isCalibrating()) user.resetCount = 0;
-                
+
             }
-            
+
             if(user.getUsePointCloud() || user.getUseMaskPixels()){
                 xn::SceneMetaData smd;
                 if(g_User.GetUserPixels(user.getXnID(), smd) == XN_STATUS_OK) {
@@ -1448,7 +1441,7 @@ void ofxOpenNI::updateUserTracker(){
 
 			if(user.getUsePointCloud()) updatePointClouds(user);
 			if(user.getUseMaskPixels() || user.getUseMaskTexture()) updateUserPixels(user);
-            
+
             if(user.isSkeleton() != lastbIsSkeleton){
                 ofLogNotice(LOG_NAME) << "Skeleton" << (string)(user.isSkeleton() ? "found" : "lost") << "for user" << user.getXnID();
                 ofxOpenNIUserEvent event = ofxOpenNIUserEvent(getDeviceID(), (user.isSkeleton() ? USER_SKELETON_FOUND : USER_SKELETON_LOST), user.getXnID(), ofGetElapsedTimeMillis());
@@ -1464,18 +1457,18 @@ void ofxOpenNI::updatePointClouds(ofxOpenNIUser & user){
     if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
 	const XnRGB24Pixel*	pColor;
 	const XnDepthPixel*	pDepth = g_DepthMD.Data();
-    
+
 	if(g_bIsImageOn){
 		pColor = g_ImageMD.RGB24Data();
 	}
-    
+
 	int step = user.getPointCloudResolution();
 	int nIndex = 0;
-    
+
 	user.backPointCloud->getVertices().clear();
 	user.backPointCloud->getColors().clear();
 	user.backPointCloud->setMode(OF_PRIMITIVE_POINTS);
-    
+
 	for(int nY = 0; nY < getHeight(); nY += step){
 		for(int nX = 0; nX < getWidth(); nX += step){
             nIndex = nY * getWidth() + nX;
@@ -1498,7 +1491,7 @@ void ofxOpenNI::updateUserPixels(ofxOpenNIUser & user){
     if(user.maskPixels.getWidth() != getWidth() || user.maskPixels.getHeight() != getHeight()){
         user.maskPixels.allocate(getWidth(), getHeight(), OF_IMAGE_COLOR_ALPHA);
     }
-    
+
     int nIndex = 0;
     for (int nY = 0; nY < getHeight(); nY++) {
 		for (int nX = 0; nX < getWidth(); nX++) {
@@ -1529,25 +1522,25 @@ void ofxOpenNI::updateRecorder(){
             nRetVal = g_Recorder.AddNodeToRecording(g_Device);
             SHOW_RC(nRetVal, "Adding device generator to recording");
             g_bIsRecordOn = (nRetVal == XN_STATUS_OK);
-            
+
             if(g_bIsDepthOn) {
                 nRetVal = g_Recorder.AddNodeToRecording(g_Depth, oniDepthFormat);
                 SHOW_RC(nRetVal, "Adding depth generator to recording");
                 g_bIsRecordOn = (nRetVal == XN_STATUS_OK);
             }
-            
+
             if(g_bIsImageOn) {
                 nRetVal = g_Recorder.AddNodeToRecording(g_Image, oniImageFormat);
                 SHOW_RC(nRetVal, "Adding image generator to recording");
                 g_bIsRecordOn = (nRetVal == XN_STATUS_OK);
             }
-            
+
             if(g_bIsInfraOn) {
                 nRetVal = g_Recorder.AddNodeToRecording(g_Infra, oniInfraFormat);
                 SHOW_RC(nRetVal, "Adding infra generator to recording");
                 g_bIsRecordOn = (nRetVal == XN_STATUS_OK);
             }
-            
+
             if(g_bIsAudioOn) {
                 nRetVal = g_Recorder.AddNodeToRecording(g_Audio, oniAudioFormat);
                 SHOW_RC(nRetVal, "Adding audio generator to recording");
@@ -1560,25 +1553,25 @@ void ofxOpenNI::updateRecorder(){
             nRetVal = g_Recorder.RemoveNodeFromRecording(g_Device);
             SHOW_RC(nRetVal, "Removing device generator from recording");
             g_bIsRecordOn = (nRetVal != XN_STATUS_OK);
-            
+
             if(g_bIsDepthOn) {
                 nRetVal = g_Recorder.RemoveNodeFromRecording(g_Depth);
                 SHOW_RC(nRetVal, "Removing depth generator from recording");
                 g_bIsRecordOn = (nRetVal != XN_STATUS_OK);
             }
-            
+
             if(g_bIsImageOn) {
                 nRetVal = g_Recorder.RemoveNodeFromRecording(g_Image);
                 SHOW_RC(nRetVal, "Removing image generator from recording");
                 g_bIsRecordOn = (nRetVal != XN_STATUS_OK);
             }
-            
+
             if(g_bIsInfraOn) {
                 nRetVal = g_Recorder.RemoveNodeFromRecording(g_Infra);
                 SHOW_RC(nRetVal, "Removing infra generator from recording");
                 g_bIsRecordOn = (nRetVal != XN_STATUS_OK);
             }
-            
+
             if(g_bIsAudioOn) {
                 nRetVal = g_Recorder.RemoveNodeFromRecording(g_Audio);
                 SHOW_RC(nRetVal, "Removing audio generator from recording");
@@ -1637,7 +1630,7 @@ void ofxOpenNI::updateDepthThresholds(const unsigned short& depth, ofColor& dept
             depthThreshold.bNewPixels = true;
         }
         if(depthThreshold.getUsePointCloud()){
-            if(nX % depthThreshold.getPointCloudResolution() == 0 && 
+            if(nX % depthThreshold.getPointCloudResolution() == 0 &&
                nY % depthThreshold.getPointCloudResolution() == 0){
                 if(nIndex == 0){
                     depthThreshold.pointCloud[0].getVertices().clear();
@@ -1656,7 +1649,7 @@ void ofxOpenNI::updateDepthThresholds(const unsigned short& depth, ofColor& dept
                     depthThreshold.bNewPointCloud = true;
                 }
             }
-            
+
         }
     }
 }
@@ -1689,6 +1682,7 @@ bool ofxOpenNI::setSkeletonProfile(XnSkeletonProfile profile){
         nRetVal = g_User.GetSkeletonCap().SetSkeletonProfile(skeletonProfile);
         BOOL_RC(nRetVal, "Set skeleton profile");
     }
+	return false;
 }
 
 XnSkeletonProfile ofxOpenNI::getSkeletonProfile(){
@@ -1845,7 +1839,7 @@ vector<string> & ofxOpenNI::getAvailableGestures(){
             return availableGestures;
         }
         availableGestures.resize(nGestures);
-        XnChar* astrGestures[nGestures];
+        XnChar* astrGestures[20]; // XnChar* astrGestures[nGestures]; need const expression on windows!
         for (int i = 0; i < nGestures; i++){
             astrGestures[i] = new XnChar[255];
         }
@@ -1899,6 +1893,7 @@ bool ofxOpenNI::addAllGestures(){
     for (int i = 0; i < availableGestures.size(); i++) {
         addGesture(availableGestures[i]);
     }
+	return true;
 }
 
 //--------------------------------------------------------------
@@ -1914,6 +1909,7 @@ bool ofxOpenNI::removeAllGestures(){
     for (int i = 0; i < availableGestures.size(); i++) {
         removeGesture(availableGestures[i]);
     }
+	return true;
 }
 
 //--------------------------------------------------------------
@@ -1935,14 +1931,14 @@ bool ofxOpenNI::addGesture(string niteGestureName, ofPoint LeftBottomNear, ofPoi
     // This is in real world co-ordinates ie., mm's to the left/bottom/near
     // and right/top/far of the sensor see: http://groups.google.com/group/openni-dev/browse_thread/thread/90cbf7414979ad14/cc91592be432ba4c
     // Lior Cohen:
-    // "LeftBottomNear.X = (-300); 
-    // LeftBottomNear.Y = (-300); 
-    // LeftBottomNear.Z = (1000); 
-    // RightTopFar.X = (300); 
-    // RightTopFar.Y = (300); 
-    // RightTopFar.Z = (2000); 
+    // "LeftBottomNear.X = (-300);
+    // LeftBottomNear.Y = (-300);
+    // LeftBottomNear.Z = (1000);
+    // RightTopFar.X = (300);
+    // RightTopFar.Y = (300);
+    // RightTopFar.Z = (2000);
     // These two points will create a XnBoundingBox3D with 600x600x1000mm dimensions and hanging in mid air from the sensor with a center point at (0,0,1500) mm."
-    
+
     // TODO: add id's to area so we can fire events specifically for these bounding areas
     XnBoundingBox3D * boundingBox3D = NULL;
     if(LeftBottomNear != NULL && RightTopFar != NULL) {
@@ -1952,9 +1948,9 @@ bool ofxOpenNI::addGesture(string niteGestureName, ofPoint LeftBottomNear, ofPoi
         boundingBox3D->RightTopFar = toXn(RightTopFar);
         // TODO: implement multimap to track active gesture hot spots??
     }
-    
+
     ofLogNotice(LOG_NAME) << "Adding NITE gesture" << niteGestureName;
-	
+
     XnStatus nRetVal = XN_STATUS_OK;
 	nRetVal = g_Gesture.AddGesture(niteGestureName.c_str(), boundingBox3D);
 	BOOL_RC(nRetVal, "Adding simple (NITE) gesture " + niteGestureName);
@@ -1971,7 +1967,7 @@ bool ofxOpenNI::removeGesture(string niteGestureName){
         return false;
     }
     ofLogNotice(LOG_NAME) << "Removing NITE gesture" << niteGestureName;
-	XnStatus nRetVal = XN_STATUS_OK;	
+	XnStatus nRetVal = XN_STATUS_OK;
 	nRetVal = g_Gesture.RemoveGesture(niteGestureName.c_str());
 	BOOL_RC(nRetVal, "Removing simple (NITE) gesture " + niteGestureName);
 }
@@ -2005,6 +2001,7 @@ bool ofxOpenNI::addAllHandFocusGestures(){
     for (int i = 0; i < availableGestures.size(); i++) {
         addGesture(availableGestures[i]);
     }
+	return true;
 }
 
 //--------------------------------------------------------------
@@ -2020,6 +2017,7 @@ bool ofxOpenNI::removeAllHandFocusGestures(){
     for (int i = 0; i < availableGestures.size(); i++) {
         removeGesture(availableGestures[i]);
     }
+	return true;
 }
 
 //--------------------------------------------------------------
@@ -2032,7 +2030,7 @@ bool ofxOpenNI::addHandFocusGesture(string niteGestureName, ofPoint LeftBottomNe
         ofLogError(LOG_NAME) << "Can't add gesture as this is an unkown type -> use getAvailableGestures to get a vector<string> of gesture names";
         return false;
     }
-    
+
     // TODO: add id's to area so we can fire events specifically for these bounding areas
     XnBoundingBox3D * boundingBox3D = NULL;
     if(LeftBottomNear != NULL && RightTopFar != NULL) {
@@ -2042,9 +2040,9 @@ bool ofxOpenNI::addHandFocusGesture(string niteGestureName, ofPoint LeftBottomNe
         boundingBox3D->RightTopFar = toXn(RightTopFar);
         // TODO: implement multimap to track active gesture hot spots??
     }
-    
+
     ofLogNotice(LOG_NAME) << "Adding NITE hand focus gesture" << niteGestureName;
-	
+
     XnStatus nRetVal = XN_STATUS_OK;
 	nRetVal = g_HandsFocusGesture.AddGesture(niteGestureName.c_str(), boundingBox3D);
 	BOOL_RC(nRetVal, "Adding simple (NITE) gesture " + niteGestureName);
@@ -2061,7 +2059,7 @@ bool ofxOpenNI::removeHandFocusGesture(string niteGestureName){
         return false;
     }
     ofLogNotice(LOG_NAME) << "Removing NITE hand focus gesture" << niteGestureName;
-	XnStatus nRetVal = XN_STATUS_OK;	
+	XnStatus nRetVal = XN_STATUS_OK;
 	nRetVal = g_HandsFocusGesture.RemoveGesture(niteGestureName.c_str());
 	BOOL_RC(nRetVal, "Removing simple (NITE) gesture " + niteGestureName);
 }
@@ -2086,10 +2084,10 @@ ofxOpenNIHand& ofxOpenNI::getHand(XnUserID nID){
         hand = it->second;
     }else{
         if(nID == 0) {
-            ofLogError(LOG_NAME) << "You have requested a hand ID of 0 - perhaps you wanted to use getTrackedHand()" 
+            ofLogError(LOG_NAME) << "You have requested a hand ID of 0 - perhaps you wanted to use getTrackedHand()"
             << "Returning a reference to the baseUserClass user (it doesn't do anything!!!)!";
         }else{
-            ofLogError() << "User ID not found. Probably you need to setMaxNumUsers to a higher value!" 
+            ofLogError() << "User ID not found. Probably you need to setMaxNumUsers to a higher value!"
             << "Returning a reference to the baseUserClass user (it doesn't do anything!!!)!";
         }
         hand.id = 0;
@@ -2175,7 +2173,7 @@ void ofxOpenNI::toggleRegister(){
 //--------------------------------------------------------------
 void ofxOpenNI::setRegister(bool b){
     XnStatus nRetVal = XN_STATUS_OK;
-    
+
     if(!g_bIsDepthOn){
         ofLogVerbose(LOG_NAME) << "Depth generator is not on";
         return;
@@ -2349,7 +2347,7 @@ void handleSignal(int err){
     cout << "This handler is a NASTY hack due to a known error in ofxOpenNI on (at least) Mac OSX with setSafeThreading(false)" << endl;
     cout << "this just silences the Mac CrashReporter in a live environment (it will NOT fire ifyou have GDB running)" << endl;
     cout << "...it's possible some other bit of your code has sent you here by mistake..." << endl;
-    exit(0);  
+    exit(0);
 }
 #endif
 
@@ -2493,30 +2491,30 @@ ofTexture& ofxOpenNI::getimageTextureReference(){
 //--------------------------------------------------------------
 bool ofxOpenNI::setResolution(int w, int h, int f){
     if(bIsThreaded) Poco::ScopedLock<ofMutex> lock(mutex);
-    
+
     ofLogWarning(LOG_NAME) << "Not implimented";
     return false; // uncomment to give it a try
-    
+
 //    XnResolution m_Res = xnResolutionGetFromXYRes(w, h);
 //    string resolutionType = xnResolutionGetName(m_Res);
 //    ofLogNotice(LOG_NAME) << "Requested resolution of" << w << " x " << h << "is" << resolutionType << "at" << f << "fps";
-//    
+//
 //    int oW = width; int oH = height; int oF = fps;
 //    width = w; height = h; fps = f;
-//    
+//
 //    bool ok = !bIsContextReady;
 //    if(g_bIsDepthOn) {
 //        allocateDepthBuffers();
 //    }
-//    
+//
 //    if(g_bIsImageOn) {
 //        allocateImageBuffers();
 //    }
-//    
+//
 //    if(g_bIsInfraOn) {
 //        allocateIRBuffers();
 //    }
-//    
+//
 //    return ok;
 }
 
@@ -2828,7 +2826,7 @@ void XN_CALLBACK_TYPE ofxOpenNI::UserCB_handleLostUser(xn::UserGenerator& userGe
     ofxOpenNI* openNI = static_cast<ofxOpenNI*>(pCookie);
 	ofLogVerbose(openNI->LOG_NAME) << "(CB) Lost user" << nID;
 	openNI->stopTrackingUser(nID);
-    
+
 }
 
 //--------------------------------------------------------------
@@ -2879,11 +2877,11 @@ void XN_CALLBACK_TYPE ofxOpenNI::UserCB_handleCalibrationEnd(xn::SkeletonCapabil
 //--------------------------------------------------------------
 void XN_CALLBACK_TYPE ofxOpenNI::GestureCB_handleGestureRecognized(xn::GestureGenerator& gestureGenerator, const XnChar* strGesture, const XnPoint3D* pIDPosition, const XnPoint3D* pEndPosition, void* pCookie){
     ofxOpenNI* openNI = static_cast<ofxOpenNI*>(pCookie);
-	ofLogVerbose(openNI->LOG_NAME)  << "(CB) Gesture Recognized: ID position (x y z) [" 
-                                    << (int)pIDPosition->X << (int)pIDPosition->Y 
-                                    << (int)pIDPosition->Z << "] end position (x y z) [" 
+	ofLogVerbose(openNI->LOG_NAME)  << "(CB) Gesture Recognized: ID position (x y z) ["
+                                    << (int)pIDPosition->X << (int)pIDPosition->Y
+                                    << (int)pIDPosition->Z << "] end position (x y z) ["
                                     << (int)pEndPosition->X << (int)pEndPosition->Y << (int)pEndPosition->Z << "]";
-    
+
     ofxOpenNIGestureEvent & lastGestureEvent = openNI->lastGestureEvent;
     // Filter by a minimum time between firing gestures
 	if(lastGestureEvent.timestampMillis == 0 || ofGetElapsedTimeMillis() > lastGestureEvent.timestampMillis + openNI->minTimeBetweenGestures){
@@ -2912,35 +2910,35 @@ void XN_CALLBACK_TYPE ofxOpenNI::GestureCB_handleGestureProgress(xn::GestureGene
 //--------------------------------------------------------------
 void XN_CALLBACK_TYPE ofxOpenNI::HandsCB_handleGestureRecognized(xn::GestureGenerator& gestureGenerator, const XnChar* strGesture, const XnPoint3D* pIDPosition, const XnPoint3D* pEndPosition, void* pCookie){
     ofxOpenNI* openNI = static_cast<ofxOpenNI*>(pCookie);
-    
+
     if(openNI->currentTrackedHands.size() >= openNI->getMaxNumHands()){
         //ofLogVerbose(openNI->LOG_NAME) << "Not tracking because nID >= maxNumHands" << openNI->currentTrackedHands.size() << openNI->getMaxNumHands();
         return;
     }
-    
+
     ofxOpenNIHandEvent & lastHandEvent = openNI->lastHandEvent;
-    
+
     if(ofGetElapsedTimeMillis() < lastHandEvent.timestampMillis + openNI->minTimeBetweenHands){
         //ofLogVerbose(openNI->LOG_NAME) << "Not tracking because time between hand events is < minTimeBetweenHands";
         return;
     }
-    
+
     ofPoint p = ofPoint(pEndPosition->Z, pEndPosition->Y, pEndPosition->Z);
-    
+
     float distanceToHand = sqrt(pow( lastHandEvent.worldPosition.x - p.x, 2 ) +
                                 pow( lastHandEvent.worldPosition.y - p.y, 2 ) +
                                 pow( lastHandEvent.worldPosition.z - p.z, 2 ) );
-    
+
     // ifthe hand is within the min distance then don't track it
     if(distanceToHand < openNI->minDistanceBetweenHands){
         //ofLogVerbose(openNI->LOG_NAME) << "Not tracking because distance between hands is < minDistanceBetweenHands" << distanceToHand;
         return;
     }
-    
-    
-	ofLogVerbose(openNI->LOG_NAME)  << "(CB) Hands Focus Gesture Recognized: ID position (x y z) [" 
-                                    << (int)pIDPosition->X << (int)pIDPosition->Y 
-                                    << (int)pIDPosition->Z << "] end position (x y z) [" 
+
+
+	ofLogVerbose(openNI->LOG_NAME)  << "(CB) Hands Focus Gesture Recognized: ID position (x y z) ["
+                                    << (int)pIDPosition->X << (int)pIDPosition->Y
+                                    << (int)pIDPosition->Z << "] end position (x y z) ["
                                     << (int)pEndPosition->X << (int)pEndPosition->Y << (int)pEndPosition->Z << "]";
 
     openNI->g_Hands.StartTracking(*pEndPosition);
@@ -3024,22 +3022,22 @@ void ofxOpenNI::drawDebug(float x, float y){
 void ofxOpenNI::drawDebug(float x, float y, float w, float h){
     if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
 	if(!bIsContextReady) return;
-    
+
     int generatorCount = g_bIsDepthOn + g_bIsImageOn + g_bIsInfraOn;
     float fullWidth = getWidth() * generatorCount;
     float fullHeight = getHeight();
-    
+
     if(w == -1.0f && h == -1.0f){
         w = fullWidth;
         h = fullHeight;
     }
-    
+
     ofPushStyle();
-    
+
     ofPushMatrix();
     ofTranslate(x, y);
     ofScale(w / (getWidth() * generatorCount), h / getHeight());
-    
+
     //ofPushMatrix();
     if(g_bIsDepthOn) drawDepth();
     if(g_bIsHandsOn) drawHands();
@@ -3057,7 +3055,7 @@ void ofxOpenNI::drawDebug(float x, float y, float w, float h){
     //ofPopMatrix();
     ofPopMatrix();
     ofPopStyle();
-    
+
 }
 
 /**************************************************************
@@ -3248,10 +3246,10 @@ void ofxOpenNI::cameraToWorld(const vector<ofVec2f>& c, vector<ofVec3f>& w){
 		ofLogError(LOG_NAME) << "ofxOpenNI::cameraToWorld - cannot perform this function if g_bIsDepthRawOn is false. You can enabled g_bIsDepthRawOn by calling getDepthRawPixels(..) or setUseDepthRawPixels(true)";
 		return;
 	}
-	
+
 	vector<XnPoint3D> projective(nPoints);
 	//XnPoint3D *out = &projective[0];
-	
+
 	//lock();
 	const XnDepthPixel* d = currentDepthRawPixels->getPixels();
 	unsigned int pixel;
@@ -3259,12 +3257,12 @@ void ofxOpenNI::cameraToWorld(const vector<ofVec2f>& c, vector<ofVec3f>& w){
 		pixel = (int)c[i].x + (int)c[i].y * g_DepthMD.XRes();
 		if(pixel >= g_DepthMD.XRes() * g_DepthMD.YRes())
 			continue;
-		
+
 		projective[i].X = c[i].x;
 		projective[i].Y = c[i].y;
 		projective[i].Z = float(d[pixel]) / 1000.0f;
 	}
 	//unlock();
-	
+
 	g_Depth.ConvertProjectiveToRealWorld(nPoints,&projective[0], (XnPoint3D*)&w[0]);
 }

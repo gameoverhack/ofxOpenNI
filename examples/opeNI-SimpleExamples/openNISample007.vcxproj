@@ -119,17 +119,8 @@ if not exist "$(ProjectDir)\bin\data" mkdir  "$(ProjectDir)\bin\data"
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxDepthGenerator.cpp" />
-    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxGestureGenerator.cpp" />
-    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxHandGenerator.cpp" />
-    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxHardwareDriver.cpp" />
-    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxImageGenerator.cpp" />
-    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxIRGenerator.cpp" />
-    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxOpenNIContext.cpp" />
-    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxOpenNIRecorder.cpp" />
-    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxTrackedHand.cpp" />
-    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxTrackedUser.cpp" />
-    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxUserGenerator.cpp" />
+    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxOpenNI.cpp" />
+    <ClCompile Include="..\..\..\addons\ofxOpenNI\src\ofxOpenNITypes.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\testApp.cpp" />
   </ItemGroup>
@@ -261,19 +252,9 @@ if not exist "$(ProjectDir)\bin\data" mkdir  "$(ProjectDir)\bin\data"
     <ClInclude Include="..\..\..\addons\ofxOpenNI\include\openni\XnUSBDevice.h" />
     <ClInclude Include="..\..\..\addons\ofxOpenNI\include\openni\XnUtils.h" />
     <ClInclude Include="..\..\..\addons\ofxOpenNI\include\openni\XnVersion.h" />
-    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxDepthGenerator.h" />
-    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxGestureGenerator.h" />
-    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxHandGenerator.h" />
-    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxHardwareDriver.h" />
-    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxImageGenerator.h" />
-    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxIRGenerator.h" />
     <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxOpenNI.h" />
-    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxOpenNIContext.h" />
-    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxOpenNIMacros.h" />
-    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxOpenNIRecorder.h" />
-    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxTrackedHand.h" />
-    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxTrackedUser.h" />
-    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxUserGenerator.h" />
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxOpenNITypes.h" />
+    <ClInclude Include="..\..\..\addons\ofxOpenNI\src\ofxOpenNIUtils.h" />
     <ClInclude Include="src\testApp.h" />
   </ItemGroup>
   <ItemGroup>

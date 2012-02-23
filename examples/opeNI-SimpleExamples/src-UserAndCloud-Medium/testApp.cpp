@@ -15,6 +15,7 @@ void testApp::setup() {
         openNIDevices[deviceID].addUserGenerator();
         openNIDevices[deviceID].setRegister(true);
         openNIDevices[deviceID].setMirror(true);
+		openNIDevices[deviceID].start();
     }
     
     // NB: Only one device can have a user generator at a time - this is a known bug in NITE due to a singleton issue
@@ -151,13 +152,9 @@ void testApp::keyPressed(int key){
         default:
             break;
     }
-    
-    if (cloudRes != -1){
-        for (int i = 1; i <= openNIDevices[0].getMaxNumUsers(); i++){
-            ofxOpenNIUser & user = openNIDevices[0].getUser(i);
-            user.setPointCloudResolution(cloudRes);
-        }
-    }
+    for (int deviceID = 0; deviceID < numDevices; deviceID++){
+		openNIDevices[deviceID].setPointCloudResolutionAllUsers(cloudRes);
+	}
 }
 
 //--------------------------------------------------------------

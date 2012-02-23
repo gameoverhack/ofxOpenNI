@@ -3,7 +3,7 @@
 class myUser : public ofxOpenNIUser {
 public:
     void test(){
-        cout << "mmmhhmm" << endl;
+        cout << "test" << endl;
     }
 };
 
@@ -20,12 +20,10 @@ void testApp::setup() {
     openNIRecorder.setMirror(true);
     openNIRecorder.addUserGenerator();
     openNIRecorder.setMaxNumUsers(2);
-    
+    openNIRecorder.start();
+
     openNIPlayer.setup();
-    
-    // uncomment these if you want to ensure a clean exit from the application!
-    //openNIRecorder.setSafeThreading(true);
-    //openNIPlayer.setSafeThreading(true);
+	openNIPlayer.start();
     
     verdana.loadFont(ofToDataPath("verdana.ttf"), 24);
 }
