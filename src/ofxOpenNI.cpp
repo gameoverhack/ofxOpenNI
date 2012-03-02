@@ -1644,7 +1644,7 @@ void ofxOpenNI::updateDepthThresholds(const unsigned short& depth, ofColor& dept
             depthThreshold.bNewPixels = true;
         }
         if(depthThreshold.getUsePointCloud()){
-            if(nX % depthThreshold.getPointCloudResolution() == 0 &&
+            if(nX % depthThreshold.getPointCloudResolution() == 0 && 
                nY % depthThreshold.getPointCloudResolution() == 0){
                 if(nIndex == 0){
                     depthThreshold.pointCloud[0].getVertices().clear();
