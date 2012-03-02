@@ -57,7 +57,7 @@ ofxOpenNI::ofxOpenNI(){
     bIsLooped = true;
 
     bInitGrabBackgroundPixels = false;
-
+	bUseBackgroundSubtraction = false;
     bGrabBackgroundPixels = false;
 
 	depthColoring = COLORING_RAINBOW;
@@ -100,7 +100,7 @@ ofxOpenNI::ofxOpenNI(){
 
     prevMillis = ofGetElapsedTimeMillis();
     lastFrameTime = timeNow = timeThen = tFps = frameRate = 0;
-    
+
     logLevel = OF_LOG_SILENT;
 }
 
@@ -1243,7 +1243,7 @@ void ofxOpenNI::updateGenerators(){
 
     if(!bIsContextReady) return;
 
-    g_Context.WaitNoneUpdateAll();
+    g_Context.WaitAnyUpdateAll();
 
 	if(g_bIsDepthOn && g_Depth.IsDataNew()) g_Depth.GetMetaData(g_DepthMD);
 	if(g_bIsImageOn && g_Image.IsDataNew()) g_Image.GetMetaData(g_ImageMD);
@@ -1284,7 +1284,7 @@ void ofxOpenNI::updateGenerators(){
     }
     lastFrameTime	= diff;
     timeThen		= timeNow;
-    
+
 	if(bIsThreaded) unlock();
 
 }
@@ -1300,11 +1300,11 @@ void ofxOpenNI::updateDepthPixels(){
     if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
 	// get the pixels
 	const XnDepthPixel* depth = g_DepthMD.Data();
-    
+
 	if(g_DepthMD.FrameID() == 0) return;
-    
+
     if(bGrabBackgroundPixels){
-        
+
         if(bInitGrabBackgroundPixels){
             ofLogNotice(LOG_NAME) << "Capturing background frames...";
             bInitGrabBackgroundPixels = false;
@@ -1324,39 +1324,39 @@ void ofxOpenNI::updateDepthPixels(){
             bGrabBackgroundPixels = false;
         }
     }
-    
+
 	// copy raw values
 	if(g_bIsDepthRawOn){
 		backDepthRawPixels->setFromPixels(depth, getWidth(), getHeight(), OF_IMAGE_COLOR_ALPHA);
 	}
-	
+
 	// copy depth into texture-map
 	for (XnUInt16 y = g_DepthMD.YOffset(); y < g_DepthMD.YRes() + g_DepthMD.YOffset(); y++){
 		unsigned char * texture = backDepthPixels->getPixels() + y * g_DepthMD.XRes() * 4 + g_DepthMD.XOffset() * 4;
 		for (XnUInt16 x = 0; x < g_DepthMD.XRes(); x++, depth++, texture += 4){
-            
+
             ofColor depthColor;
-            
+
             bool bUseSubtraction = false;
-            if(bUseBackgroundSubtraction && !bGrabBackgroundPixels && 
+            if(bUseBackgroundSubtraction && !bGrabBackgroundPixels &&
                *depth - backgroundPixels[y*getWidth()+x] <= 500){
                 bUseSubtraction = true;
             }
-            
+
             if(getNumDepthThresholds() > 0) updateDepthThresholds((bUseSubtraction ? 11000 : *depth), depthColor, x, y);
-            
+
             getDepthColor(depthColoring, *depth, depthColor, maxDepth);
-            
+
 			texture[0] = depthColor.r;
 			texture[1] = depthColor.g;
 			texture[2] = depthColor.b;
-			
+
 			if(*depth == 0){
 				texture[3] = 0;
 			}else{
 				texture[3] = depthColor.a;
             }
-            
+
 		}
 	}
 }
@@ -1659,7 +1659,7 @@ void ofxOpenNI::updateDepthThresholds(const unsigned short& depth, ofColor& dept
             depthThreshold.bNewPixels = true;
         }
         if(depthThreshold.getUsePointCloud()){
-            if(nX % depthThreshold.getPointCloudResolution() == 0 && 
+            if(nX % depthThreshold.getPointCloudResolution() == 0 &&
                nY % depthThreshold.getPointCloudResolution() == 0){
                 if(nIndex == 0){
                     depthThreshold.pointCloud[0].getVertices().clear();
@@ -2594,6 +2594,7 @@ float ofxOpenNI::getHeight(){
 }
 
 float ofxOpenNI::getFrameRate(){
+	if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     // this returns a calcualted frame rate based on threaded/normal updates NOT the device target frame rate
     return frameRate;
 }
