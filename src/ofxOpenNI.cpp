@@ -1285,7 +1285,7 @@ void ofxOpenNI::updateDepthPixels(){
     if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
 	// get the pixels
 	const XnDepthPixel* depth = g_DepthMD.Data();
-
+    
 	if(g_DepthMD.FrameID() == 0) return;
     
     if(bGrabBackgroundPixels){
@@ -1296,37 +1296,30 @@ void ofxOpenNI::updateDepthPixels(){
             backgroundPixels.setFromPixels(depth, getWidth(), getHeight(), OF_IMAGE_COLOR_ALPHA);
             //numBackgroundFrames = 0;
         }
-        //if(numBackgroundFrames < 5*25) {
-            //numBackgroundFrames++;
+        if(numBackgroundFrames < 5*25) {
+            numBackgroundFrames++;
             const XnDepthPixel* depthPixels = g_DepthMD.Data();
             for(int y = 0; y < getHeight(); y++){
                 for(int x = 0; x < getWidth(); x++, depthPixels++){
                     backgroundPixels[y * getWidth() + x] += *depthPixels;
                 }
             }
-//        }else{
-//            ofLogNotice(LOG_NAME) << "...finished capturing" << numBackgroundFrames << "background frames";
-//            bGrabBackgroundPixels = false;
-//    }
+        }else{
+            ofLogNotice(LOG_NAME) << "...finished capturing" << numBackgroundFrames << "background frames";
+            bGrabBackgroundPixels = false;
+        }
     }
-
-
-    const XnDepthPixel* backgroundDepth;
-    if(bGrabBackgroundPixels){
-        bGrabBackgroundPixels = false;
-        g_BackgroundMD.InitFrom(g_DepthMD);
-    }
-
+    
 	// copy raw values
 	if(g_bIsDepthRawOn){
 		backDepthRawPixels->setFromPixels(depth, getWidth(), getHeight(), OF_IMAGE_COLOR_ALPHA);
 	}
-
+	
 	// copy depth into texture-map
 	for (XnUInt16 y = g_DepthMD.YOffset(); y < g_DepthMD.YRes() + g_DepthMD.YOffset(); y++){
 		unsigned char * texture = backDepthPixels->getPixels() + y * g_DepthMD.XRes() * 4 + g_DepthMD.XOffset() * 4;
 		for (XnUInt16 x = 0; x < g_DepthMD.XRes(); x++, depth++, texture += 4){
-
+            
             ofColor depthColor;
             
             bool bUseSubtraction = false;
@@ -1338,17 +1331,17 @@ void ofxOpenNI::updateDepthPixels(){
             if(getNumDepthThresholds() > 0) updateDepthThresholds((bUseSubtraction ? 11000 : *depth), depthColor, x, y);
             
             getDepthColor(depthColoring, *depth, depthColor, maxDepth);
-
+            
 			texture[0] = depthColor.r;
 			texture[1] = depthColor.g;
 			texture[2] = depthColor.b;
-
+			
 			if(*depth == 0){
 				texture[3] = 0;
 			}else{
 				texture[3] = depthColor.a;
             }
-
+            
 		}
 	}
 }
