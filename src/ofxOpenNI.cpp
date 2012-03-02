@@ -1245,15 +1245,21 @@ void ofxOpenNI::updateGenerators(){
 
     g_Context.WaitAnyUpdateAll();
 
-	if(g_bIsDepthOn && g_Depth.IsDataNew()) g_Depth.GetMetaData(g_DepthMD);
-	if(g_bIsImageOn && g_Image.IsDataNew()) g_Image.GetMetaData(g_ImageMD);
-	if(g_bIsInfraOn && g_Infra.IsDataNew()) g_Infra.GetMetaData(g_InfraMD);
-
     if(bIsThreaded && !bUseSafeThreading) lock(); // with this her I get ~400-500+ fps with 2 Kinects!
+    
+	if(g_bIsDepthOn && g_Depth.IsDataNew()){
+        g_Depth.GetMetaData(g_DepthMD);
+        updateDepthPixels();
+    }
+	if(g_bIsImageOn && g_Image.IsDataNew()) {
+        g_Image.GetMetaData(g_ImageMD);
+        updateImagePixels();
+    }
+	if(g_bIsInfraOn && g_Infra.IsDataNew()){
+        g_Infra.GetMetaData(g_InfraMD);
+        updateIRPixels();
+    }
 
-    if(g_bIsDepthOn) updateDepthPixels();
-	if(g_bIsImageOn) updateImagePixels();
-	if(g_bIsInfraOn) updateIRPixels();
     if(g_bIsUserOn) updateUserTracker();
     if(g_bIsHandsOn) updateHandTracker();
 
