@@ -68,7 +68,9 @@
 #ifdef __INTEL_COMPILER
 #include <ia32intrin.h>
 #else
+#ifdef _MSC_VER
 #include <intrin.h>
+#endif
 #endif
 #endif
 
@@ -136,63 +138,63 @@ enum HandStatusType {
 };
 
 enum Joint {
-    
+
     // start at root joint
     JOINT_TORSO = 0,
     JOINT_NECK,
     JOINT_HEAD,
-    
+
     // left arm + shoulder
     JOINT_LEFT_SHOULDER,
     JOINT_LEFT_ELBOW,
     JOINT_LEFT_HAND,
-    
+
     // right arm + shoulder
     JOINT_RIGHT_SHOULDER,
     JOINT_RIGHT_ELBOW,
     JOINT_RIGHT_HAND,
-    
+
     // left leg
     JOINT_LEFT_HIP,
     JOINT_LEFT_KNEE,
     JOINT_LEFT_FOOT,
-    
+
     // right leg
     JOINT_RIGHT_HIP,
     JOINT_RIGHT_KNEE,
     JOINT_RIGHT_FOOT,
-    
+
     JOINT_COUNT,
     JOINT_UNKOWN
 };
 
 enum Limb {
-    
+
     // left upper torso + arm
     LIMB_LEFT_UPPER_TORSO = 0,
     LIMB_LEFT_SHOULDER,
     LIMB_LEFT_UPPER_ARM,
     LIMB_LEFT_LOWER_ARM,
-    
+
     // left lower torso + leg
     LIMB_LEFT_LOWER_TORSO,
     LIMB_LEFT_UPPER_LEG,
     LIMB_LEFT_LOWER_LEG,
-    
+
     // right upper torso + arm
     LIMB_RIGHT_UPPER_TORSO,
     LIMB_RIGHT_SHOULDER,
     LIMB_RIGHT_UPPER_ARM,
     LIMB_RIGHT_LOWER_ARM,
-    
+
     // right lower torso + leg
     LIMB_RIGHT_LOWER_TORSO,
     LIMB_RIGHT_UPPER_LEG,
     LIMB_RIGHT_LOWER_LEG,
-    
+
     LIMB_NECK,
     LIMB_PELVIS,
-    
+
     LIMB_COUNT,
     LIMB_UNKOWN
 };
@@ -200,19 +202,19 @@ enum Limb {
 //-----------------------------------------------------------------------
 static inline void rotationMatrixToQuaternian(ofMatrix3x3 & kRot, ofQuaternion & q){
     // Converted from Ogre's Quaternion::FromRotationMatrix (const Matrix3& kRot)
-    
+
     // Algorithm in Ken Shoemake's article in 1987 SIGGRAPH course notes
     // article "Quaternion Calculus and Fast Animation".
-    
+
     // Ogre matrix to of matrix elements
     //[0][0]a [0][1]b [0][2]c
     //[1][0]d [1][1]e [1][2]f
     //[2][0]g [2][1]h [2][2]i
     //kRot.transpose(); // not necessary?
-    
+
     float fTrace = kRot[0 * 3 + 0] + kRot[1 * 3 + 1] + kRot[2 * 3 + 2];
     float fRoot;
-    
+
     if(fTrace > 0.0){
         // |w| > 1/2, may as well choose w > 1/2
         fRoot = sqrt(fTrace + 1.0f);  // 2w
@@ -231,7 +233,7 @@ static inline void rotationMatrixToQuaternian(ofMatrix3x3 & kRot, ofQuaternion &
             i = 2;
         size_t j = s_iNext[i];
         size_t k = s_iNext[j];
-        
+
         fRoot = sqrt(kRot[i * 3 + i] - kRot[j * 3 + j] - kRot[k * 3 + k] + 1.0f);
         float* apkQuat[3] = { &q.x(), &q.y(), &q.z() };
         *apkQuat[i] = 0.5f * fRoot;
@@ -239,7 +241,7 @@ static inline void rotationMatrixToQuaternian(ofMatrix3x3 & kRot, ofQuaternion &
         q.w() = (kRot[k * 3 + j] - kRot[j * 3 + k]) * fRoot;
         *apkQuat[j] = (kRot[j * 3 + i] + kRot[i * 3 + j]) * fRoot;
         *apkQuat[k] = (kRot[k * 3 + i] + kRot[i * 3 + k]) * fRoot;
-        
+
     }
 };
 
@@ -257,7 +259,7 @@ static inline void quaternianToRotationMatrix(ofQuaternion & q, ofMatrix3x3 & kR
     float fTyy = fTy * q.y();
     float fTyz = fTz * q.y();
     float fTzz = fTz * q.z();
-    
+
     kRot[0 * 3 + 0] = 1.0f-(fTyy+fTzz);
     kRot[0 * 3 + 1] = fTxy-fTwz;
     kRot[0 * 3 + 2] = fTxz+fTwy;
@@ -276,7 +278,7 @@ static inline void quaternianFromAngleAxis(ofQuaternion & q, float rfAngle, ofVe
     //
     // The quaternion representing the rotation is
     //   q = cos(A/2)+sin(A/2)*(x*i+y*j+z*k)
-    
+
     float fHalfAngle(0.5 * rfAngle);
     float fSin = sin(fHalfAngle);
     q.w() = cos(fHalfAngle);
@@ -288,17 +290,17 @@ static inline void quaternianFromAngleAxis(ofQuaternion & q, float rfAngle, ofVe
 //-----------------------------------------------------------------------
 static inline void quaternionToAxes(ofQuaternion & q, ofVec3f & xaxis, ofVec3f & yaxis, ofVec3f & zaxis){
     ofMatrix3x3 kRot;
-    
+
     quaternianToRotationMatrix(q, kRot);
-    
+
     xaxis.x = kRot[0 * 3 + 0];
     xaxis.y = kRot[1 * 3 + 0];
     xaxis.z = kRot[2 * 3 + 0];
-    
+
     yaxis.x = kRot[0 * 3 + 1];
     yaxis.y = kRot[1 * 3 + 1];
     yaxis.z = kRot[2 * 3 + 1];
-    
+
     zaxis.x = kRot[0 * 3 + 2];
     zaxis.y = kRot[1 * 3 + 2];
     zaxis.z = kRot[2 * 3 + 2];
@@ -313,7 +315,7 @@ static inline void normalizeQuaternion(ofQuaternion & q){
 //--------------------------------------------------------------
 static void CreateRainbowPallet(){
 	if (rainbowPalletInit) return;
-	
+
 	unsigned char r, g, b;
 	for (int i=1; i<255; i++){
 		if (i<=29){
@@ -350,10 +352,10 @@ static void CreateRainbowPallet(){
 
 //--------------------------------------------------------------
 inline void getDepthColor(DepthColoring depthColoring, const unsigned short & depth, ofColor & color, int maxDepth){
-    
+
     float max;
     XnUInt16 col_index;
-    
+
     switch(depthColoring){
         case COLORING_PSYCHEDELIC_SHADES:
             color.a *= (((XnFloat)(depth % 10) / 20) + 0.5);
@@ -1005,12 +1007,12 @@ inline string getNodeTypeAsString(XnProductionNodeType type){
 }
 
 #ifdef TARGET_WIN32
-
+#ifdef _MSC_VER
 //--------------------------------------------------------------
 inline void YUV422ToRGB888(const XnUInt8* pYUVImage, XnUInt8* pRGBAImage, XnUInt32 nYUVSize, XnUInt32 nRGBSize){
 	const XnUInt8* pYUVLast = pYUVImage + nYUVSize - 8;
 	XnUInt8* pRGBLast = pRGBAImage + nRGBSize - 16;
-	
+
 	const __m128 minus16 = _mm_set_ps1(-16);
 	const __m128 minus128 = _mm_set_ps1(-128);
 	const __m128 plus113983 = _mm_set_ps1(1.13983F);
@@ -1019,75 +1021,75 @@ inline void YUV422ToRGB888(const XnUInt8* pYUVImage, XnUInt8* pRGBAImage, XnUInt
 	const __m128 plus203211 = _mm_set_ps1(2.03211F);
 	const __m128 zero = _mm_set_ps1(0);
 	const __m128 plus255 = _mm_set_ps1(255);
-	
+
 	// define YUV floats
 	__m128 y;
 	__m128 u;
 	__m128 v;
-	
+
 	__m128 temp;
-	
+
 	// define RGB floats
 	__m128 r;
 	__m128 g;
 	__m128 b;
-	
+
 	// define RGB integers
 	__m128i iR;
 	__m128i iG;
 	__m128i iB;
-	
+
 	XnUInt32* piR = (XnUInt32*)&iR;
 	XnUInt32* piG = (XnUInt32*)&iG;
 	XnUInt32* piB = (XnUInt32*)&iB;
-	
+
 	while (pYUVImage <= pYUVLast && pRGBAImage <= pRGBLast)
 	{
 		// process 4 pixels at once (values should be ordered backwards)
 		y = _mm_set_ps(pYUVImage[YUV422_Y2 + YUV422_BPP], pYUVImage[YUV422_Y1 + YUV422_BPP], pYUVImage[YUV422_Y2], pYUVImage[YUV422_Y1]);
 		u = _mm_set_ps(pYUVImage[YUV422_U + YUV422_BPP],  pYUVImage[YUV422_U + YUV422_BPP],  pYUVImage[YUV422_U],  pYUVImage[YUV422_U]);
 		v = _mm_set_ps(pYUVImage[YUV422_V + YUV422_BPP],  pYUVImage[YUV422_V + YUV422_BPP],  pYUVImage[YUV422_V],  pYUVImage[YUV422_V]);
-		
+
 		u = _mm_add_ps(u, minus128); // u -= 128
 		v = _mm_add_ps(v, minus128); // v -= 128
-		
+
 		/*
-		 
+
 		 http://en.wikipedia.org/wiki/YUV
-		 
+
 		 From YUV to RGB:
 		 R =     Y + 1.13983 V
 		 G =     Y - 0.39466 U - 0.58060 V
 		 B =     Y + 2.03211 U
-		 
+
 		 */
-		
+
 		temp = _mm_mul_ps(plus113983, v);
 		r = _mm_add_ps(y, temp);
-		
+
 		temp = _mm_mul_ps(minus039466, u);
 		g = _mm_add_ps(y, temp);
 		temp = _mm_mul_ps(minus058060, v);
 		g = _mm_add_ps(g, temp);
-		
+
 		temp = _mm_mul_ps(plus203211, u);
 		b = _mm_add_ps(y, temp);
-		
+
 		// make sure no value is smaller than 0
 		r = _mm_max_ps(r, zero);
 		g = _mm_max_ps(g, zero);
 		b = _mm_max_ps(b, zero);
-		
+
 		// make sure no value is bigger than 255
 		r = _mm_min_ps(r, plus255);
 		g = _mm_min_ps(g, plus255);
 		b = _mm_min_ps(b, plus255);
-		
+
 		// convert floats to int16 (there is no conversion to uint8, just to int8).
 		iR = _mm_cvtps_epi32(r);
 		iG = _mm_cvtps_epi32(g);
 		iB = _mm_cvtps_epi32(b);
-		
+
 		// extract the 4 pixels RGB values.
 		// because we made sure values are between 0 and 255, we can just take the lower byte
 		// of each INT16
@@ -1095,28 +1097,28 @@ inline void YUV422ToRGB888(const XnUInt8* pYUVImage, XnUInt8* pRGBAImage, XnUInt
 		pRGBAImage[1] = piG[0];
 		pRGBAImage[2] = piB[0];
 		pRGBAImage[3] = 255;
-		
+
 		pRGBAImage[4] = piR[1];
 		pRGBAImage[5] = piG[1];
 		pRGBAImage[6] = piB[1];
 		pRGBAImage[7] = 255;
-		
+
 		pRGBAImage[8] = piR[2];
 		pRGBAImage[9] = piG[2];
 		pRGBAImage[10] = piB[2];
 		pRGBAImage[11] = 255;
-		
+
 		pRGBAImage[12] = piR[3];
 		pRGBAImage[13] = piG[3];
 		pRGBAImage[14] = piB[3];
 		pRGBAImage[15] = 255;
-		
+
 		// advance the streams
 		pYUVImage += 8;
 		pRGBAImage += 16;
 	}
 }
-
+#endif
 #else // not Win32
 
 //--------------------------------------------------------------
@@ -1124,9 +1126,9 @@ inline void YUV444ToRGBA(XnUInt8 cY, XnUInt8 cU, XnUInt8 cV, XnUInt8& cR, XnUInt
 	XnInt32 nC = cY - 16;
 	XnInt16 nD = cU - 128;
 	XnInt16 nE = cV - 128;
-	
+
 	nC = nC * 298 + 128;
-	
+
 	cR = MIN(MAX((nC            + 409 * nE) >> 8, 0), 255);
 	cG = MIN(MAX((nC - 100 * nD - 208 * nE) >> 8, 0), 255);
 	cB = MIN(MAX((nC + 516 * nD           ) >> 8, 0), 255);
@@ -1139,7 +1141,7 @@ inline void YUV422ToRGB888(const XnUInt8* pYUVImage, XnUInt8* pRGBImage, XnUInt3
 	XnUInt8* pCurrRGB = pRGBImage;
 	const XnUInt8* pLastYUV = pYUVImage + nYUVSize - YUV422_BPP;
 	XnUInt8* pLastRGB = pRGBImage + nRGBSize - YUV_RGBA_BPP;
-	
+
 	while (pCurrYUV <= pLastYUV && pCurrRGB <= pLastRGB)
 	{
 		YUV444ToRGBA(pCurrYUV[YUV422_Y1], pCurrYUV[YUV422_U], pCurrYUV[YUV422_V],

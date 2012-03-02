@@ -686,7 +686,7 @@ public:
         }
     }
     
-    inline float max(){
+    inline float getMaxDistance(){
         return maxDistance;
     }
     

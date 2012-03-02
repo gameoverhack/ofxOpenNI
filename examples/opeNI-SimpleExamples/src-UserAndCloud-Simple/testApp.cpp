@@ -20,6 +20,8 @@ void testApp::setup() {
     openNIDevice.setPointCloudDrawSizeAllUsers(3); // sets the size the points are drawn on screen (in pixels)
     openNIDevice.setPointCloudResolutionAllUsers(2); // sets the step between pixels and point cloud eg., 1 is every pixel, 2 is every second pixel etc
 
+	openNIDevice.start();
+
     verdana.loadFont(ofToDataPath("verdana.ttf"), 24);
 }
 

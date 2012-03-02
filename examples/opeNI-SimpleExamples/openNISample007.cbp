@@ -6,7 +6,7 @@
 		<Option makefile="makefile" />
 		<Option pch_mode="2" />
 		<Option compiler="gcc" />
-		<Option virtualFolders="addons\;src\;addons\ofxOpenNI\;addons\ofxOpenNI\src\;addons\ofxOpenNI\include\;addons\ofxOpenNI\include\openni\;addons\ofxOpenNI\include\nite\;" />
+		<Option virtualFolders="addons\;src\;addons\ofxOpenNI\;addons\ofxOpenNI\include\;addons\ofxOpenNI\include\openni\;addons\ofxOpenNI\include\nite\;addons\ofxOpenNI\src\;" />
 		<Build>
 			<Target title="release">
 				<Option output="bin\$(PROJECT_NAME)" prefix_auto="1" extension_auto="1" />
@@ -463,76 +463,19 @@
 		<Unit filename="..\..\..\addons\ofxOpenNI\include\openni\XnVersion.h">
 			<Option virtualFolder="addons\ofxOpenNI\include\openni\" />
 		</Unit>
-		<Unit filename="..\..\..\addons\ofxOpenNI\src\ofxDepthGenerator.cpp">
-			<Option virtualFolder="addons\ofxOpenNI\src\" />
-		</Unit>
-		<Unit filename="..\..\..\addons\ofxOpenNI\src\ofxDepthGenerator.h">
-			<Option virtualFolder="addons\ofxOpenNI\src\" />
-		</Unit>
-		<Unit filename="..\..\..\addons\ofxOpenNI\src\ofxGestureGenerator.cpp">
-			<Option virtualFolder="addons\ofxOpenNI\src\" />
-		</Unit>
-		<Unit filename="..\..\..\addons\ofxOpenNI\src\ofxGestureGenerator.h">
-			<Option virtualFolder="addons\ofxOpenNI\src\" />
-		</Unit>
-		<Unit filename="..\..\..\addons\ofxOpenNI\src\ofxHandGenerator.cpp">
-			<Option virtualFolder="addons\ofxOpenNI\src\" />
-		</Unit>
-		<Unit filename="..\..\..\addons\ofxOpenNI\src\ofxHandGenerator.h">
-			<Option virtualFolder="addons\ofxOpenNI\src\" />
-		</Unit>
-		<Unit filename="..\..\..\addons\ofxOpenNI\src\ofxHardwareDriver.cpp">
-			<Option virtualFolder="addons\ofxOpenNI\src\" />
-		</Unit>
-		<Unit filename="..\..\..\addons\ofxOpenNI\src\ofxHardwareDriver.h">
-			<Option virtualFolder="addons\ofxOpenNI\src\" />
-		</Unit>
-		<Unit filename="..\..\..\addons\ofxOpenNI\src\ofxIRGenerator.cpp">
-			<Option virtualFolder="addons\ofxOpenNI\src\" />
-		</Unit>
-		<Unit filename="..\..\..\addons\ofxOpenNI\src\ofxIRGenerator.h">
-			<Option virtualFolder="addons\ofxOpenNI\src\" />
-		</Unit>
-		<Unit filename="..\..\..\addons\ofxOpenNI\src\ofxImageGenerator.cpp">
-			<Option virtualFolder="addons\ofxOpenNI\src\" />
-		</Unit>
-		<Unit filename="..\..\..\addons\ofxOpenNI\src\ofxImageGenerator.h">
+		<Unit filename="..\..\..\addons\ofxOpenNI\src\ofxOpenNI.cpp">
 			<Option virtualFolder="addons\ofxOpenNI\src\" />
 		</Unit>
 		<Unit filename="..\..\..\addons\ofxOpenNI\src\ofxOpenNI.h">
 			<Option virtualFolder="addons\ofxOpenNI\src\" />
 		</Unit>
-		<Unit filename="..\..\..\addons\ofxOpenNI\src\ofxOpenNIContext.cpp">
+		<Unit filename="..\..\..\addons\ofxOpenNI\src\ofxOpenNITypes.cpp">
 			<Option virtualFolder="addons\ofxOpenNI\src\" />
 		</Unit>
-		<Unit filename="..\..\..\addons\ofxOpenNI\src\ofxOpenNIContext.h">
+		<Unit filename="..\..\..\addons\ofxOpenNI\src\ofxOpenNITypes.h">
 			<Option virtualFolder="addons\ofxOpenNI\src\" />
 		</Unit>
-		<Unit filename="..\..\..\addons\ofxOpenNI\src\ofxOpenNIMacros.h">
-			<Option virtualFolder="addons\ofxOpenNI\src\" />
-		</Unit>
-		<Unit filename="..\..\..\addons\ofxOpenNI\src\ofxOpenNIRecorder.cpp">
-			<Option virtualFolder="addons\ofxOpenNI\src\" />
-		</Unit>
-		<Unit filename="..\..\..\addons\ofxOpenNI\src\ofxOpenNIRecorder.h">
-			<Option virtualFolder="addons\ofxOpenNI\src\" />
-		</Unit>
-		<Unit filename="..\..\..\addons\ofxOpenNI\src\ofxTrackedHand.cpp">
-			<Option virtualFolder="addons\ofxOpenNI\src\" />
-		</Unit>
-		<Unit filename="..\..\..\addons\ofxOpenNI\src\ofxTrackedHand.h">
-			<Option virtualFolder="addons\ofxOpenNI\src\" />
-		</Unit>
-		<Unit filename="..\..\..\addons\ofxOpenNI\src\ofxTrackedUser.cpp">
-			<Option virtualFolder="addons\ofxOpenNI\src\" />
-		</Unit>
-		<Unit filename="..\..\..\addons\ofxOpenNI\src\ofxTrackedUser.h">
-			<Option virtualFolder="addons\ofxOpenNI\src\" />
-		</Unit>
-		<Unit filename="..\..\..\addons\ofxOpenNI\src\ofxUserGenerator.cpp">
-			<Option virtualFolder="addons\ofxOpenNI\src\" />
-		</Unit>
-		<Unit filename="..\..\..\addons\ofxOpenNI\src\ofxUserGenerator.h">
+		<Unit filename="..\..\..\addons\ofxOpenNI\src\ofxOpenNIUtils.h">
 			<Option virtualFolder="addons\ofxOpenNI\src\" />
 		</Unit>
 		<Unit filename="src\main.cpp">
