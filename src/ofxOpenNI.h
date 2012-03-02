@@ -108,7 +108,9 @@ public:
 
 	float getWidth();
 	float getHeight();
-
+    
+    float getFrameRate();
+    
     void setLogLevel(XnLogSeverity logLevel);
     void setLogLevel(ofLogLevel logLevel);
 
@@ -514,6 +516,9 @@ private:
     int instanceID;
     ofLogLevel logLevel;
 
+    // frame rate storage
+    double prevMillis, lastFrameTime, timeNow, timeThen, tFps, frameRate;
+    
     // block copy ctor and assignment operator
     ofxOpenNI(const ofxOpenNI& other);
     ofxOpenNI& operator=(const ofxOpenNI&);

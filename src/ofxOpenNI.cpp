@@ -98,6 +98,9 @@ ofxOpenNI::ofxOpenNI(){
 
 	CreateRainbowPallet();
 
+    prevMillis = ofGetElapsedTimeMillis();
+    lastFrameTime = timeNow = timeThen = tFps = frameRate = 0;
+    
     logLevel = OF_LOG_SILENT;
 }
 
@@ -1270,6 +1273,18 @@ void ofxOpenNI::updateGenerators(){
 
     if(g_bIsRecordOn) updateRecorder();
 
+    // calculate frameRate -> taken from ofAppRunner
+    prevMillis = ofGetElapsedTimeMillis();
+    timeNow = ofGetElapsedTimef();
+    double diff = timeNow-timeThen;
+    if( diff  > 0.00001 ){
+        tFps		= 1.0 / diff;
+        frameRate	*= 0.9f;
+        frameRate	+= 0.1f*tFps;
+    }
+    lastFrameTime	= diff;
+    timeThen		= timeNow;
+    
 	if(bIsThreaded) unlock();
 
 }
@@ -1294,7 +1309,6 @@ void ofxOpenNI::updateDepthPixels(){
             ofLogNotice(LOG_NAME) << "Capturing background frames...";
             bInitGrabBackgroundPixels = false;
             backgroundPixels.setFromPixels(depth, getWidth(), getHeight(), OF_IMAGE_COLOR_ALPHA);
-            //numBackgroundFrames = 0;
         }
         if(numBackgroundFrames < 5*25) {
             numBackgroundFrames++;
@@ -1306,6 +1320,7 @@ void ofxOpenNI::updateDepthPixels(){
             }
         }else{
             ofLogNotice(LOG_NAME) << "...finished capturing" << numBackgroundFrames << "background frames";
+            numBackgroundFrames = 0;
             bGrabBackgroundPixels = false;
         }
     }
@@ -2576,6 +2591,11 @@ float ofxOpenNI::getHeight(){
 		//ofLogWarning(LOG_NAME) << "getHeight() : We haven't yet initialised any generators, so this value returned is returned as 0";
 		return 0;
 	}
+}
+
+float ofxOpenNI::getFrameRate(){
+    // this returns a calcualted frame rate based on threaded/normal updates NOT the device target frame rate
+    return frameRate;
 }
 
 /**************************************************************
