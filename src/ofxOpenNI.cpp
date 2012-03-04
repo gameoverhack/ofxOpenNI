@@ -1243,19 +1243,37 @@ void ofxOpenNI::updateGenerators(){
 
     if(!bIsContextReady) return;
 
-    g_Context.WaitAnyUpdateAll();
-
+    //g_Context.WaitAnyUpdateAll();
+    if(g_bIsDepthOn && g_Depth.IsNewDataAvailable()){
+        g_Depth.WaitAndUpdateData();
+    }
+    if(g_bIsImageOn && g_Image.IsNewDataAvailable()){
+        g_Image.WaitAndUpdateData();
+    }
+    if(g_bIsInfraOn && g_Infra.IsNewDataAvailable()){
+        g_Infra.WaitAndUpdateData();
+    }
+    if(g_bIsUserOn && g_User.IsNewDataAvailable()){
+        g_User.WaitAndUpdateData();
+    }
+    if(g_bIsHandsOn && g_Hands.IsNewDataAvailable()){
+        g_Hands.WaitAndUpdateData();
+    }
+    if(g_bIsGestureOn && g_Gesture.IsNewDataAvailable()){
+        g_Gesture.WaitAndUpdateData();
+    }
+    
     if(bIsThreaded && !bUseSafeThreading) lock(); // with this her I get ~400-500+ fps with 2 Kinects!
     
-	if(g_bIsDepthOn && g_Depth.IsDataNew()){
+	if(g_bIsDepthOn){
         g_Depth.GetMetaData(g_DepthMD);
         updateDepthPixels();
     }
-	if(g_bIsImageOn && g_Image.IsDataNew()) {
+	if(g_bIsImageOn){
         g_Image.GetMetaData(g_ImageMD);
         updateImagePixels();
     }
-	if(g_bIsInfraOn && g_Infra.IsDataNew()){
+	if(g_bIsInfraOn){
         g_Infra.GetMetaData(g_InfraMD);
         updateIRPixels();
     }
@@ -1263,6 +1281,11 @@ void ofxOpenNI::updateGenerators(){
     if(g_bIsUserOn) updateUserTracker();
     if(g_bIsHandsOn) updateHandTracker();
 
+    if(g_bIsRecordOn){
+        g_Recorder.Record();
+        updateRecorder();
+    }
+    
     if(bUseBackBuffer){
         if(g_bIsDepthOn && g_Depth.IsDataNew()){
             swap(backDepthPixels, currentDepthPixels);
@@ -1276,8 +1299,6 @@ void ofxOpenNI::updateGenerators(){
     }
 
 	bNewPixels = true;
-
-    if(g_bIsRecordOn) updateRecorder();
 
     // calculate frameRate -> taken from ofAppRunner
     prevMillis = ofGetElapsedTimeMillis();
