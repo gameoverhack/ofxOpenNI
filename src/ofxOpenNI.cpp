@@ -370,6 +370,7 @@ void ofxOpenNI::stop(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::stopCommon(){
+	if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
 
     if(g_bIsRecordOn){
         cout << LOG_NAME << ": releasing recorder" << endl;
@@ -526,11 +527,13 @@ bool ofxOpenNI::isRecording(){
 
 //--------------------------------------------------------------
 bool ofxOpenNI::startPlayer(string oniFileName){
+
     XnStatus nRetVal = XN_STATUS_OK;
     if(g_bIsPlayerOn){
         stop();
         initContext();
     }else{
+		if(bIsThreaded) waitForThread(true);
         stopCommon();
     }
     oniFilePath = ofToDataPath(oniFileName);
@@ -1244,25 +1247,24 @@ void ofxOpenNI::updateGenerators(){
     if(!bIsContextReady) return;
 
     //g_Context.WaitAnyUpdateAll();
-    if(g_bIsDepthOn && g_Depth.IsNewDataAvailable()){
+    if(g_bIsDepthOn && (g_Depth.IsNewDataAvailable() || g_bIsPlayerOn)){
         g_Depth.WaitAndUpdateData();
     }
-    if(g_bIsImageOn && g_Image.IsNewDataAvailable()){
+    if(g_bIsImageOn && (g_Image.IsNewDataAvailable() || g_bIsPlayerOn)){
         g_Image.WaitAndUpdateData();
     }
-    if(g_bIsInfraOn && g_Infra.IsNewDataAvailable()){
+    if(g_bIsInfraOn && (g_Infra.IsNewDataAvailable() || g_bIsPlayerOn)){
         g_Infra.WaitAndUpdateData();
     }
-    if(g_bIsUserOn && g_User.IsNewDataAvailable()){
+    if(g_bIsUserOn && (g_User.IsNewDataAvailable() || g_bIsPlayerOn)){
         g_User.WaitAndUpdateData();
     }
-    if(g_bIsHandsOn && g_Hands.IsNewDataAvailable()){
+    if(g_bIsHandsOn && (g_Hands.IsNewDataAvailable() || g_bIsPlayerOn)){
         g_Hands.WaitAndUpdateData();
     }
-    if(g_bIsGestureOn && g_Gesture.IsNewDataAvailable()){
+    if(g_bIsGestureOn && (g_Gesture.IsNewDataAvailable() || g_bIsPlayerOn)){
         g_Gesture.WaitAndUpdateData();
     }
-    
     if(bIsThreaded && !bUseSafeThreading) lock(); // with this her I get ~400-500+ fps with 2 Kinects!
     
 	if(g_bIsDepthOn){
