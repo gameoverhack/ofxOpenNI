@@ -1011,8 +1011,8 @@ void ofxOpenNI::allocateDepthRawBuffers(){
     if(depthRawPixels[0].getWidth() != width || depthRawPixels[0].getHeight() != height){
         ofLogVerbose(LOG_NAME) << "Allocating depth raw";
         maxDepth = g_Depth.GetDeviceMaxDepth();
-        depthRawPixels[0].allocate(width, height, OF_IMAGE_COLOR_ALPHA);
-        depthRawPixels[1].allocate(width, height, OF_IMAGE_COLOR_ALPHA);
+        depthRawPixels[0].allocate(width, height, OF_IMAGE_GRAYSCALE);
+        depthRawPixels[1].allocate(width, height, OF_IMAGE_GRAYSCALE);
         currentDepthRawPixels = &depthRawPixels[0];
         backDepthRawPixels = &depthRawPixels[1];
     }
@@ -1365,7 +1365,7 @@ void ofxOpenNI::updateDepthPixels(){
 
 	// copy raw values
 	if(g_bIsDepthRawOn){
-		backDepthRawPixels->setFromPixels(depth, getWidth(), getHeight(), OF_IMAGE_COLOR_ALPHA);
+		backDepthRawPixels->setFromPixels(depth, getWidth(), getHeight(), OF_IMAGE_GRAYSCALE);
 	}
 
 	// copy depth into texture-map
