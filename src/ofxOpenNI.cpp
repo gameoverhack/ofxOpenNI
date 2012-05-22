@@ -190,7 +190,16 @@ bool ofxOpenNI::initContext(string xmlFilePath){
         SHOW_RC(nRetVal, "Context initilized from XML: " + ofXmlFilePath);
     }
     bIsContextReady = (nRetVal == XN_STATUS_OK);
-    if(bIsContextReady) addLicence("PrimeSense", "0KOIk2JeIBYClPWVnMoRKn5cdY4=");
+    if(bIsContextReady){
+        XnVersion pVersion;
+        GetVersion(pVersion);
+        ofLogNotice(LOG_NAME)   << "openni driver version: " 
+                                << (int)pVersion.nMajor << "." 
+                                << (int)pVersion.nMinor << "." 
+                                << (int)pVersion.nMaintenance << "."
+                                << (int)pVersion.nBuild;
+        addLicence("PrimeSense", "0KOIk2JeIBYClPWVnMoRKn5cdY4=");
+    }
     return bIsContextReady;
 }
 
