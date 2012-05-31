@@ -1247,13 +1247,9 @@ void ofxOpenNI::update(){
 //--------------------------------------------------------------
 void ofxOpenNI::updateGenerators(){
 
-	if(bIsThreaded && bUseSafeThreading) lock(); // with this here I get ~30 fps with 2 Kinects/60 fps with 1 kinect -> BUT no crash on exit!
-	if(bIsShuttingDown || bPaused){
-        if(bIsThreaded) unlock();
-        return;
-    }
+    if(bIsShuttingDown || bPaused || !bIsContextReady) return;
 
-    if(!bIsContextReady) return;
+	if(bIsThreaded && bUseSafeThreading) lock(); // with this here I get ~30 fps with 2 Kinects/60 fps with 1 kinect -> BUT no crash on exit!
 
     //g_Context.WaitAnyUpdateAll();
     if(g_bIsDepthOn && (g_Depth.IsNewDataAvailable() || g_bIsPlayerOn)){
