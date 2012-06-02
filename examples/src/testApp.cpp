@@ -12,7 +12,7 @@ void testApp::setup() {
 	isCPBkgnd		= true;
 	isMasking		= true;
 
-	nearThreshold = 500;
+	nearThreshold = 400;
 	farThreshold  = 1000;
 
 	filterFactor = 0.1f;
