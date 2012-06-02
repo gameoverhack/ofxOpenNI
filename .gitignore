@@ -14,3 +14,13 @@ build/
 /example/obj/
 /example/build/
 example/*.layout
+
+examples/bin
+examples/ipch
+examples/obj
+
+*.opensdf
+*.sdf
+
+*.sdf
+*.suo
