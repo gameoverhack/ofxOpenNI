@@ -1265,6 +1265,7 @@ void ofxOpenNI::updateGenerators(){
         g_User.WaitAndUpdateData();
     }
     if(g_bIsHandsOn && (g_Hands.IsNewDataAvailable() || g_bIsPlayerOn)){
+        g_HandsFocusGesture.WaitAndUpdateData();
         g_Hands.WaitAndUpdateData();
     }
     if(g_bIsGestureOn && (g_Gesture.IsNewDataAvailable() || g_bIsPlayerOn)){
@@ -2061,7 +2062,7 @@ bool ofxOpenNI::addAllHandFocusGestures(){
         return false;
     }
     for (int i = 0; i < availableGestures.size(); i++) {
-        addGesture(availableGestures[i]);
+        addHandFocusGesture(availableGestures[i]);
     }
 	return true;
 }
