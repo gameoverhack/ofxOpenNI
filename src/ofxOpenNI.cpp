@@ -1248,7 +1248,7 @@ void ofxOpenNI::update(){
 void ofxOpenNI::updateGenerators(){
 
     if(bIsShuttingDown || bPaused || !bIsContextReady) return;
-
+ 
 	if(bIsThreaded && bUseSafeThreading) lock(); // with this here I get ~30 fps with 2 Kinects/60 fps with 1 kinect -> BUT no crash on exit!
 
     //g_Context.WaitAnyUpdateAll();
@@ -2003,7 +2003,7 @@ bool ofxOpenNI::addGesture(string niteGestureName, ofPoint LeftBottomNear, ofPoi
 
     // TODO: add id's to area so we can fire events specifically for these bounding areas
     XnBoundingBox3D * boundingBox3D = NULL;
-    if(LeftBottomNear != NULL && RightTopFar != NULL) {
+    if(LeftBottomNear != ofPoint(0,0,0) && RightTopFar != ofPoint(0,0,0)) {
         ofLogWarning(LOG_NAME) << "LeftBottomNear and RightTopFar should be in world co-ordinates ie., they are in mm's and left.x/bottom.y from the centre of the sensor is negative, whilst right.x/top.y is positive; depth.z is always positive starting at 0 to maxDepth (10000) mm";
         boundingBox3D = new XnBoundingBox3D;
         boundingBox3D->LeftBottomNear = toXn(LeftBottomNear);
@@ -2095,7 +2095,7 @@ bool ofxOpenNI::addHandFocusGesture(string niteGestureName, ofPoint LeftBottomNe
 
     // TODO: add id's to area so we can fire events specifically for these bounding areas
     XnBoundingBox3D * boundingBox3D = NULL;
-    if(LeftBottomNear != NULL && RightTopFar != NULL) {
+    if(LeftBottomNear != ofPoint(0,0,0) && RightTopFar != ofPoint(0,0,0)) {
         ofLogWarning(LOG_NAME) << "LeftBottomNear and RightTopFar should be in world co-ordinates ie., they are in mm's and left.x/bottom.y from the centre of the sensor is negative, whilst right.x/top.y is positive; depth.z is always positive starting at 0 to maxDepth (10000) mm";
         boundingBox3D = new XnBoundingBox3D;
         boundingBox3D->LeftBottomNear = toXn(LeftBottomNear);

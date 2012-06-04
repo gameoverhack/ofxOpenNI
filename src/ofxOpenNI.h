@@ -211,7 +211,7 @@ public:
     // gesture methods
     bool addAllGestures();
     bool removeAllGestures();
-    bool addGesture(string niteGestureName, ofPoint LeftBottomNear = NULL, ofPoint RightTopFar = NULL);
+    bool addGesture(string niteGestureName, ofPoint LeftBottomNear = ofPoint(0,0,0), ofPoint RightTopFar = ofPoint(0,0,0));
     bool removeGesture(string niteGestureName);
 
     vector<string> & getAvailableGestures();
@@ -223,7 +223,7 @@ public:
     // hands methods
     bool addAllHandFocusGestures();
     bool removeAllHandFocusGestures();
-    bool addHandFocusGesture(string niteGestureName, ofPoint LeftBottomNear = NULL, ofPoint RightTopFar = NULL);
+    bool addHandFocusGesture(string niteGestureName, ofPoint LeftBottomNear = ofPoint(0,0,0), ofPoint RightTopFar = ofPoint(0,0,0));
     bool removeHandFocusGesture(string niteGestureName);
 
     ofxOpenNIHand& getTrackedHand(int index); // only returns tracked hands upto getNumTrackedHands()
