@@ -522,14 +522,7 @@ void ofxOpenNIDepthThreshold::set(ofxOpenNIROI & _roi,
                                   bool _bUseDepthTexture,
                                   int _pointCloudDrawSize,
                                   int _pointCloudResolution){
-    roi = _roi;
-    ofPoint & lbn = roi.getLeftBottomNearWorld();
-    ofPoint & rtf = roi.getRightTopFarWorld();
-    if(lbn.x == 0 && lbn.y == 0 && rtf.x == 0 && rtf.y == 0){
-        bUseXY = false;
-    }else{
-        bUseXY = true;
-    }
+    setROI(_roi);
     pointCloudDrawSize = _pointCloudDrawSize;
     pointCloudResolution = _pointCloudResolution;
     bUsePointCloud = _bUsePointCloud;
@@ -572,6 +565,23 @@ void ofxOpenNIDepthThreshold::drawDepth(){
 //--------------------------------------------------------------
 void ofxOpenNIDepthThreshold::drawROI(){
     roi.drawROI();
+}
+
+//--------------------------------------------------------------
+void ofxOpenNIDepthThreshold::setROI(ofxOpenNIROI & _roi){
+    roi = _roi;
+    ofPoint & lbn = roi.getLeftBottomNearWorld();
+    ofPoint & rtf = roi.getRightTopFarWorld();
+    if(lbn.x == 0 && lbn.y == 0 && rtf.x == 0 && rtf.y == 0){
+        bUseXY = false;
+    }else{
+        bUseXY = true;
+    }
+}
+
+//--------------------------------------------------------------
+ofxOpenNIROI & ofxOpenNIDepthThreshold::getROI(){
+    return roi;
 }
 
 //--------------------------------------------------------------
@@ -697,9 +707,4 @@ ofPixels & ofxOpenNIDepthThreshold::getDepthPixels(){
 //--------------------------------------------------------------
 ofTexture & ofxOpenNIDepthThreshold::getDepthTextureReference(){
     return depthTexture;
-}
-
-//--------------------------------------------------------------
-ofxOpenNIROI & ofxOpenNIDepthThreshold::getROI(){
-    return roi;
 }

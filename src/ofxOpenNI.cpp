@@ -1378,8 +1378,6 @@ void ofxOpenNI::updateDepthPixels(){
                 bUseSubtraction = true;
             }
 
-            if(getNumDepthThresholds() > 0) updateDepthThresholds((bUseSubtraction ? 11000 : *depth), depthColor, x, y);
-
             getDepthColor(depthColoring, *depth, depthColor, maxDepth);
 
 			texture[0] = depthColor.r;
@@ -1391,6 +1389,8 @@ void ofxOpenNI::updateDepthPixels(){
 			}else{
 				texture[3] = depthColor.a;
             }
+
+            if(getNumDepthThresholds() > 0) updateDepthThresholds((bUseSubtraction ? 11000 : *depth), depthColor, x, y);
 
 		}
 	}
@@ -1652,11 +1652,11 @@ void ofxOpenNI::updateDepthThresholds(const unsigned short& depth, ofColor& dept
     if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     int nIndex = nY * getWidth() + nX;
     ofPoint p = ofPoint(nX, nY, depth);
-    bool anyDepthThresholdInside = false;
     for(int i = 0; i < currentDepthThresholds.size(); i++){
         ofxOpenNIDepthThreshold & depthThreshold = currentDepthThresholds[i];
-        bool inside = depthThreshold.inside(p);
-        if(inside) anyDepthThresholdInside = true;
+        ofxOpenNIROI & roi = depthThreshold.getROI();
+        if(roi.getLeftBottomNearWorld() == roi.getRightTopFarWorld()) continue; // skip bogus roi's
+        bool inside = depthThreshold.inside(p); // remember to convert to world perspective if doing ROI's
         if(depthThreshold.getUseMaskPixels()){
             if(depthThreshold.maskPixels.getWidth() != getWidth() || depthThreshold.maskPixels.getHeight() != getHeight()){
                 ofLogVerbose(LOG_NAME) << "Allocating mask pixels for depthThreshold";

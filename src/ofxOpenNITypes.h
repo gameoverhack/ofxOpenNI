@@ -736,7 +736,8 @@ public:
     
     inline bool inside(ofPoint& p){
         if(bUseXY){
-            return roi.inside(p);
+            ofPoint worldPosition = g_projectiveToWorld(p);
+            return roi.inside(worldPosition); // have to convert to world - use my fast method that assumes 640 x 480
         }else{
             return p.z > getNearThreshold() && p.z < getFarThreshold();
         }
@@ -746,6 +747,9 @@ public:
     void drawMask();
     void drawDepth();
     void drawROI();
+    
+    void setROI(ofxOpenNIROI & roi);
+    ofxOpenNIROI & getROI();
     
     void setNearThreshold(int _nearThreshold);
     int getNearThreshold();
@@ -779,7 +783,6 @@ public:
     ofTexture & getMaskTextureReference();
     ofPixels & getDepthPixels();
     ofTexture & getDepthTextureReference();
-    ofxOpenNIROI & getROI();
     
 private:
     
