@@ -369,6 +369,9 @@ public:
     void setUseMaskPixels(bool b);
     bool getUseMaskPixels();
     
+    void setMaskPixelFormat(ofPixelFormat format);
+    ofPixelFormat getMaskPixelFormat();
+    
     void setUsePointCloud(bool b);
     bool getUsePointCloud();
     
@@ -458,6 +461,8 @@ private:
 	ofMesh* currentPointCloud;
 	ofPixels maskPixels;
     ofTexture maskTexture;
+    
+    ofPixelFormat maskPixelFormat;
     
     int XnID;
     
@@ -769,6 +774,9 @@ public:
     void setUseMaskPixels(bool b);
     bool getUseMaskPixels();
     
+    void setMaskPixelFormat(ofPixelFormat format);
+    ofPixelFormat getMaskPixelFormat();
+    
     void setUseDepthTexture(bool b);
     bool getUseDepthTexture();
     
@@ -796,6 +804,8 @@ private:
     ofTexture depthTexture;
 	ofPixels maskPixels;
     ofTexture maskTexture;
+    
+    ofPixelFormat maskPixelFormat;
     
     int pointCloudDrawSize;
     int pointCloudResolution;

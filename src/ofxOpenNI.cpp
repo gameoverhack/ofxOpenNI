@@ -77,7 +77,7 @@ ofxOpenNI::ofxOpenNI(){
     bUseSafeThreading = false;
 	bNewPixels = false;
 	bNewFrame = false;
-
+    
     width = XN_VGA_X_RES;
     height = XN_VGA_Y_RES;
     fps = 30;
@@ -1186,9 +1186,9 @@ void ofxOpenNI::update(){
                     if(user.getUseMaskTexture() && user.bNewPixels){
                         if(user.maskTexture.getWidth() != getWidth() || user.maskTexture.getHeight() != getHeight()){
                             ofLogVerbose(LOG_NAME) << "Allocating mask texture " << user.getXnID();
-                            user.maskTexture.allocate(getWidth(), getHeight(), GL_RGBA);
+                            user.maskTexture.allocate(getWidth(), getHeight(), ofGetGLTypeFromPixelFormat(user.getMaskPixelFormat()));
                         }
-                        if(user.maskPixels.getPixels() != NULL) user.maskTexture.loadData(user.maskPixels.getPixels(), getWidth(), getHeight(), GL_RGBA);
+                        if(user.maskPixels.getPixels() != NULL) user.maskTexture.loadData(user.maskPixels.getPixels(), getWidth(), getHeight(), ofGetGLTypeFromPixelFormat(user.getMaskPixelFormat()));
                     }
                     user.bNewPixels = false;
                     user.bNewPointCloud = false;
@@ -1216,9 +1216,9 @@ void ofxOpenNI::update(){
                 if(depthThreshold.getUseMaskPixels()){
                     if(depthThreshold.maskTexture.getWidth() != getWidth() || depthThreshold.maskTexture.getHeight() != getHeight()){
                         ofLogVerbose(LOG_NAME) << "Allocating mask texture for depthThreshold";
-                        depthThreshold.maskTexture.allocate(getWidth(), getHeight(), GL_RGBA);
+                        depthThreshold.maskTexture.allocate(getWidth(), getHeight(), ofGetGLTypeFromPixelFormat(depthThreshold.getMaskPixelFormat()));
                     }
-                    depthThreshold.maskTexture.loadData(depthThreshold.maskPixels.getPixels(), getWidth(), getHeight(), GL_RGBA);
+                    depthThreshold.maskTexture.loadData(depthThreshold.maskPixels.getPixels(), getWidth(), getHeight(), ofGetGLTypeFromPixelFormat(depthThreshold.getMaskPixelFormat()));
                 }
                 if(depthThreshold.getUseDepthPixels()){
                     if(depthThreshold.depthTexture.getWidth() != getWidth() || depthThreshold.depthTexture.getHeight() != getHeight()){
@@ -1551,26 +1551,52 @@ void ofxOpenNI::updatePointClouds(ofxOpenNIUser & user){
 void ofxOpenNI::updateUserPixels(ofxOpenNIUser & user){
     if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
     if(user.maskPixels.getWidth() != getWidth() || user.maskPixels.getHeight() != getHeight()){
-        user.maskPixels.allocate(getWidth(), getHeight(), OF_IMAGE_COLOR_ALPHA);
+        user.maskPixels.allocate(getWidth(), getHeight(), user.getMaskPixelFormat());
     }
-
-    int nIndex = 0;
-    for (int nY = 0; nY < getHeight(); nY++) {
-		for (int nX = 0; nX < getWidth(); nX++) {
-            nIndex = nY * getWidth() + nX;
-            if(user.userPixels[nIndex] == user.getXnID()) {
-                user.maskPixels[nIndex * 4 + 0] = 255;
-                user.maskPixels[nIndex * 4 + 1] = 255;
-                user.maskPixels[nIndex * 4 + 2] = 255;
-                user.maskPixels[nIndex * 4 + 3] = 0;
-            } else {
-                user.maskPixels[nIndex * 4 + 0] = 0;
-                user.maskPixels[nIndex * 4 + 1] = 0;
-                user.maskPixels[nIndex * 4 + 2] = 0;
-                user.maskPixels[nIndex * 4 + 3] = 255;
+    switch (user.getMaskPixelFormat()) {
+        case OF_PIXELS_RGBA:
+        {
+            int nIndex = 0;
+            for (int nY = 0; nY < getHeight(); nY++) {
+                for (int nX = 0; nX < getWidth(); nX++) {
+                    nIndex = nY * getWidth() + nX;
+                    if(user.userPixels[nIndex] == user.getXnID()) {
+                        user.maskPixels[nIndex * 4 + 0] = 255;
+                        user.maskPixels[nIndex * 4 + 1] = 255;
+                        user.maskPixels[nIndex * 4 + 2] = 255;
+                        user.maskPixels[nIndex * 4 + 3] = 0;
+                    } else {
+                        user.maskPixels[nIndex * 4 + 0] = 0;
+                        user.maskPixels[nIndex * 4 + 1] = 0;
+                        user.maskPixels[nIndex * 4 + 2] = 0;
+                        user.maskPixels[nIndex * 4 + 3] = 255;
+                    }
+                }
             }
         }
+            break;
+        case OF_PIXELS_MONO:
+        {
+            int nIndex = 0;
+            for (int nY = 0; nY < getHeight(); nY++) {
+                for (int nX = 0; nX < getWidth(); nX++) {
+                    nIndex = nY * getWidth() + nX;
+                    if(user.userPixels[nIndex] == user.getXnID()) {
+                        user.maskPixels[nIndex] = 255;
+                    } else {
+                        user.maskPixels[nIndex] = 0;
+                    }
+                }
+            }
+        }
+            break;
+            
+        default:
+            ofLogError(LOG_NAME) << "Mask pixel type not supported: " << user.getMaskPixelFormat();
+            break;
     }
+    
+    
     user.bNewPixels = true;
 }
 
@@ -1660,18 +1686,37 @@ void ofxOpenNI::updateDepthThresholds(const unsigned short& depth, ofColor& dept
         if(depthThreshold.getUseMaskPixels()){
             if(depthThreshold.maskPixels.getWidth() != getWidth() || depthThreshold.maskPixels.getHeight() != getHeight()){
                 ofLogVerbose(LOG_NAME) << "Allocating mask pixels for depthThreshold";
-                depthThreshold.maskPixels.allocate(getWidth(), getHeight(), OF_PIXELS_RGBA);
+                depthThreshold.maskPixels.allocate(getWidth(), getHeight(), depthThreshold.getMaskPixelFormat());
             }
-            if(inside){
-                depthThreshold.maskPixels[nIndex * 4 + 0] = 255;
-                depthThreshold.maskPixels[nIndex * 4 + 1] = 255;
-                depthThreshold.maskPixels[nIndex * 4 + 2] = 255;
-                depthThreshold.maskPixels[nIndex * 4 + 3] = 0;
-            }else{
-                depthThreshold.maskPixels[nIndex * 4 + 0] = 0;
-                depthThreshold.maskPixels[nIndex * 4 + 1] = 0;
-                depthThreshold.maskPixels[nIndex * 4 + 2] = 0;
-                depthThreshold.maskPixels[nIndex * 4 + 3] = 255;
+            switch (depthThreshold.getMaskPixelFormat()) {
+                case OF_PIXELS_RGBA:
+                {
+                    if(inside){
+                        depthThreshold.maskPixels[nIndex * 4 + 0] = 255;
+                        depthThreshold.maskPixels[nIndex * 4 + 1] = 255;
+                        depthThreshold.maskPixels[nIndex * 4 + 2] = 255;
+                        depthThreshold.maskPixels[nIndex * 4 + 3] = 0;
+                    }else{
+                        depthThreshold.maskPixels[nIndex * 4 + 0] = 0;
+                        depthThreshold.maskPixels[nIndex * 4 + 1] = 0;
+                        depthThreshold.maskPixels[nIndex * 4 + 2] = 0;
+                        depthThreshold.maskPixels[nIndex * 4 + 3] = 255;
+                    }
+                }
+                    break;
+                case OF_PIXELS_MONO:
+                {
+                    if(inside){
+                        depthThreshold.maskPixels[nIndex] = 255;
+                    }else{
+                        depthThreshold.maskPixels[nIndex] = 0;
+                    }
+                }
+                    break;
+                    
+                default:
+                    ofLogError(LOG_NAME) << "Mask pixel type not supported: " << depthThreshold.getMaskPixelFormat();
+                    break;
             }
             depthThreshold.bNewPixels = true;
         }
@@ -1816,6 +1861,24 @@ void ofxOpenNI::setUseMaskPixelsAllUsers(bool b){
 //--------------------------------------------------------------
 bool ofxOpenNI::getUseMaskPixelsAllUsers(){
     return baseUser.getUseMaskPixels();
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setMaskPixelFormatAllUsers(ofPixelFormat format){
+    if(format == OF_PIXELS_MONO || format == OF_PIXELS_RGBA){
+        baseUser.setMaskPixelFormat(format);
+        for (int i = 0; i < getNumTrackedUsers(); i++){
+            currentTrackedUsers[currentTrackedUserIDs[i]].setMaskPixelFormat(format);
+        }
+    }else{
+        ofLogError(LOG_NAME) << "Mask pixel format not supported: " << format;
+    }
+    
+}
+
+//--------------------------------------------------------------
+ofPixelFormat ofxOpenNI::getMaskPixelFormatAllUsers(){
+    return baseUser.getMaskPixelFormat();
 }
 
 //--------------------------------------------------------------
@@ -2207,8 +2270,8 @@ void ofxOpenNI::addDepthThreshold(ofxOpenNIDepthThreshold & depthThreshold){
 
 //--------------------------------------------------------------
 void ofxOpenNI::addDepthThreshold(int _nearThreshold, int _farThreshold, bool _bUseCloudPoint, bool _bUseMaskPixels, bool _bUseMaskTexture, bool _bUseDepthPixels, bool _bUseDepthTexture){
-//    ofxOpenNIDepthThreshold depthThreshold = ofxOpenNIDepthThreshold(_nearThreshold, _farThreshold, _bUseCloudPoint, _bUseMaskPixels, _bUseMaskTexture, _bUseDepthPixels, _bUseDepthTexture);
-    //addDepthThreshold(depthThreshold);
+    ofxOpenNIDepthThreshold depthThreshold = ofxOpenNIDepthThreshold(_nearThreshold, _farThreshold, _bUseCloudPoint, _bUseMaskPixels, _bUseMaskTexture, _bUseDepthPixels, _bUseDepthTexture);
+    addDepthThreshold(depthThreshold);
 }
 
 //--------------------------------------------------------------

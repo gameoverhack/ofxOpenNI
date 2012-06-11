@@ -187,6 +187,8 @@ public:
     bool getUseMaskTextureAllUsers();
     void setUseMaskPixelsAllUsers(bool b);
     bool getUseMaskPixelsAllUsers();
+    void setMaskPixelFormatAllUsers(ofPixelFormat type);
+    ofPixelFormat getMaskPixelFormatAllUsers();
     void setUsePointCloudsAllUsers(bool b);
     bool getUsePointCloudsAllUsers();
     void setPointCloudDrawSizeAllUsers(int size);

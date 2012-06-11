@@ -50,6 +50,8 @@ ofxOpenNIUser::ofxOpenNIUser(){
     bForceRestart = false;
     bUseOrientation = false;
     
+    maskPixelFormat = OF_PIXELS_RGBA;
+    
     userPixels = NULL;
     
     forcedResetTimeout = 1000;
@@ -265,6 +267,20 @@ bool ofxOpenNIUser::getUseMaskPixels(){
 }
 
 //--------------------------------------------------------------
+void ofxOpenNIUser::setMaskPixelFormat(ofPixelFormat format){
+    maskPixelFormat = format;
+    if(maskPixels.getImageType() != ofGetImageTypeFromGLType(maskPixelFormat)){
+        maskPixels.allocate(maskPixels.getWidth(), maskPixels.getHeight(), maskPixelFormat);
+        if(bUseMaskTexture) maskTexture.allocate(maskPixels.getWidth(), maskPixels.getHeight(), ofGetGLTypeFromPixelFormat(maskPixelFormat));
+    }
+}
+
+//--------------------------------------------------------------
+ofPixelFormat ofxOpenNIUser::getMaskPixelFormat(){
+    return maskPixelFormat;
+}
+
+//--------------------------------------------------------------
 void ofxOpenNIUser::setUseSkeleton(bool b){
     bUseSkeleton = b;
 }
@@ -463,6 +479,7 @@ ofxOpenNIDepthThreshold::ofxOpenNIDepthThreshold(){
     bUseDepthTexture = false;
     bNewPixels = false;
     bNewPointCloud = false;
+    maskPixelFormat = OF_PIXELS_RGBA;
 }
 
 //--------------------------------------------------------------
@@ -510,6 +527,7 @@ void ofxOpenNIDepthThreshold::set(int _nearThreshold,
     bUseMaskTexture = _bUseMaskTexture;
     bUseDepthPixels = _bUseDepthPixels;
     bUseDepthTexture = _bUseDepthTexture;
+    maskPixelFormat = OF_PIXELS_RGBA;
     bNewPixels = false;
     bNewPointCloud = false;
 }
@@ -530,6 +548,7 @@ void ofxOpenNIDepthThreshold::set(ofxOpenNIROI & _roi,
     bUseMaskTexture = _bUseMaskTexture;
     bUseDepthPixels = _bUseDepthPixels;
     bUseDepthTexture = _bUseDepthTexture;
+    maskPixelFormat = OF_PIXELS_RGBA;
     bNewPixels = false;
     bNewPointCloud = false;
 }
@@ -651,6 +670,20 @@ void ofxOpenNIDepthThreshold::setUseMaskPixels(bool b){
 //--------------------------------------------------------------
 bool ofxOpenNIDepthThreshold::getUseMaskPixels(){
     return bUseMaskPixels;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNIDepthThreshold::setMaskPixelFormat(ofPixelFormat format){
+    maskPixelFormat = format;
+    if(maskPixels.getImageType() != ofGetImageTypeFromGLType(maskPixelFormat)){
+        maskPixels.allocate(maskPixels.getWidth(), maskPixels.getHeight(), maskPixelFormat);
+        if(bUseMaskTexture) maskTexture.allocate(maskPixels.getWidth(), maskPixels.getHeight(), ofGetGLTypeFromPixelFormat(maskPixelFormat));
+    }
+}
+
+//--------------------------------------------------------------
+ofPixelFormat ofxOpenNIDepthThreshold::getMaskPixelFormat(){
+    return maskPixelFormat;
 }
 
 //--------------------------------------------------------------
