@@ -390,7 +390,7 @@ float ofxOpenNIUser::getConfidenceThreshold(){
     return confidenceThreshold;
 }
 
-////--------------------------------------------------------------
+//--------------------------------------------------------------
 void ofxOpenNIUser::setForceResetTimeout(int millis){
     forcedResetTimeout = millis;
 }

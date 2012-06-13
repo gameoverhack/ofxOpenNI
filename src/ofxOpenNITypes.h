@@ -855,14 +855,45 @@ class ofxOpenNIHand {
     
 public:
     
-    ofxOpenNIHand(){};
+    ofxOpenNIHand(){
+		bIsTracking = false;
+		bForceReset = false;
+		bForceRestart = false;
+		forcedResetTimeout = 1000;
+		resetCount = 0;
+	};
     
     XnUserID getID(){return id;};
     ofPoint & getPosition(){return position;};
     ofPoint & getWorldPosition(){return worldPosition;};
     
     bool isTracking(){return bIsTracking;};
-    
+
+	void setForceResetTimeout(int millis){
+		forcedResetTimeout = millis;
+	}
+
+	int getForceResetTimeout(){
+		return forcedResetTimeout;
+	}
+
+	void setForceReset(bool useTimeout = false, bool forceImmediateRestart = true){
+		bForceRestart = forceImmediateRestart;
+		if(!useTimeout){
+			bForceReset = true;
+		}else{
+			resetCount++;
+			if(resetCount > forcedResetTimeout/25){
+				resetCount = 0;
+				bForceReset = true;
+			}
+		}
+	}
+
+	bool getForceReset(){
+		return bForceReset;
+	}
+
 private:
     
     friend class ofxOpenNI;
@@ -870,7 +901,12 @@ private:
 	XnUserID id;
     ofPoint	position;
 	ofPoint worldPosition;
-    
+
+    bool bForceReset;
+    bool bForceRestart;
+    int forcedResetTimeout;
+    int resetCount;
+
     bool bIsTracking;
     
     //    // block copy ctor and assignment operator

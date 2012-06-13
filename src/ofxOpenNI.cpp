@@ -1423,18 +1423,29 @@ void ofxOpenNI::updateIRPixels(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::updateHandTracker(){
-    if(bIsThreaded) Poco::ScopedLock<ofMutex> lock(mutex);
-    map<XnUserID, ofxOpenNIHand>::iterator it;
-    int index = 0;
+    
+	if(bIsThreaded) Poco::ScopedLock<ofMutex> lock(mutex);
+    
+	int index = 0;
+	map<XnUserID, ofxOpenNIHand>::iterator it;
+
     currentTrackedHandIDs.clear();
+	set<XnUserID> handsToDelete;
+
     for (it = currentTrackedHands.begin(); it != currentTrackedHands.end(); it++, index++){
         ofxOpenNIHand & hand = it->second;
         if(hand.isTracking()) {
             currentTrackedHandIDs.push_back(hand.getID());
         }else{
-            currentTrackedHands.erase(it);
+           handsToDelete.insert(hand.getID());
         }
     }
+
+	set<XnUserID>::iterator its;
+    for(its = handsToDelete.begin(); its!=handsToDelete.end(); its++){
+		ofLogVerbose(LOG_NAME) << "Deleting hand" << *its;
+		currentTrackedHands.erase(*its);
+	}
 }
 
 /**************************************************************
