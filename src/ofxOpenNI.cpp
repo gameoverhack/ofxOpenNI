@@ -1227,10 +1227,12 @@ void ofxOpenNI::update(){
                     }
                     depthThreshold.depthTexture.loadData(depthThreshold.depthPixels.getPixels(), getWidth(), getHeight(), GL_RGBA);
                 }
-                if(depthThreshold.getUsePointCloud() && depthThreshold.bNewPointCloud){
-                    swap(depthThreshold.pointCloud[0], depthThreshold.pointCloud[1]);
-                }
+
                 depthThreshold.bNewPixels = false;
+
+            }
+            if(depthThreshold.getUsePointCloud() && depthThreshold.bNewPointCloud){
+                swap(depthThreshold.pointCloud[0], depthThreshold.pointCloud[1]);
                 depthThreshold.bNewPointCloud = false;
             }
 
