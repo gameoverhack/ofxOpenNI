@@ -1948,7 +1948,11 @@ XnSkeletonProfile ofxOpenNI::getSkeletonProfile(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::resetUserTracking(XnUserID nID, bool forceImmediateRestart){
-    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(mutex);
+#if TARGET_OS_WIN32
+    if(bIsThreaded) Poco::ScopedLock<ofMutex> lock(mutex);
+#else
+    if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+#endif
     if(currentTrackedUsers.find(nID) == currentTrackedUsers.end()) return;
     stopTrackingUser(nID);
     if(forceImmediateRestart) startTrackingUser(nID);
@@ -1961,7 +1965,11 @@ bool ofxOpenNI::getAutoUserCalibrationPossible(){
 
 //--------------------------------------------------------------
 int	ofxOpenNI::getNumTrackedUsers(){
-    if (bIsThreaded) Poco::ScopedLock<ofMutex> lock(mutex);
+#if TARGET_OS_WIN32
+    if(bIsThreaded) Poco::ScopedLock<ofMutex> lock(mutex);
+#else
+    if(bIsThreaded) Poco::ScopedLock<ofMutex> lock();
+#endif
     return currentTrackedUserIDs.size();
 }
 
