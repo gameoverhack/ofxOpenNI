@@ -1622,7 +1622,7 @@ void ofxOpenNI::updateUserTracker(){
 
                 }
 
-                if(!confident && !user.isCalibrating()) user.setForceReset();
+                if(!confident && !user.isCalibrating()) user.setForceReset(true,true);
                 if(confident || user.isCalibrating()) user.resetCount = 0;
 
             }
