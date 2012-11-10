@@ -345,7 +345,7 @@ void ofxOpenNI::stop(){
         mutex.lock();
         cout << LOG_NAME << ": trying to stop thread" << endl;
         stopThread();
-        waitForThread(true);
+        //waitForThread(true);
         bIsThreaded = false;
     }
 
