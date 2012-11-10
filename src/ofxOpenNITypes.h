@@ -32,6 +32,18 @@
 #include "ofxOpenNIUtils.h"
 #include "ofNode.h"
 
+class ofxOpenNIScopedLock {
+public:
+    ofxOpenNIScopedLock(bool _bIsThreaded):bIsThreaded(_bIsThreaded){
+        if(bIsThreaded) mutex.lock();
+    };
+    ~ofxOpenNIScopedLock(){
+        if(bIsThreaded) mutex.unlock();
+    };
+    bool bIsThreaded;
+    Poco::Mutex mutex;
+};
+
 class ofxOpenNIJoint {
     
 public:
