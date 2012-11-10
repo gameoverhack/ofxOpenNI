@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_layout_file>
+	<ActiveTarget name="release" />
+	<File name="..\..\..\addons\ofxOpenNI\include\openni\XnCppWrapper.h" open="0" top="0" tabpos="4">
+		<Cursor position="214896" topLine="180" />
+	</File>
+	<File name="..\..\..\addons\ofxOpenNI\include\openni\XnLog.h" open="0" top="0" tabpos="0">
+		<Cursor position="22108" topLine="501" />
+	</File>
+	<File name="..\..\..\addons\ofxOpenNI\include\openni\XnOS.h" open="0" top="0" tabpos="5">
+		<Cursor position="7183" topLine="0" />
+	</File>
+	<File name="..\..\..\addons\ofxOpenNI\include\openni\XnPlatform.h" open="1" top="0" tabpos="1">
+		<Cursor position="2748" topLine="45" />
+	</File>
+	<File name="..\..\..\addons\ofxOpenNI\include\openni\XnTypes.h" open="1" top="0" tabpos="3">
+		<Cursor position="1821" topLine="72" />
+	</File>
+	<File name="..\..\..\addons\ofxOpenNI\src\ofxOpenNI.cpp" open="1" top="0" tabpos="5">
+		<Cursor position="46034" topLine="1227" />
+	</File>
+	<File name="..\..\..\addons\ofxOpenNI\src\ofxOpenNI.h" open="1" top="0" tabpos="7">
+		<Cursor position="1947" topLine="40" />
+	</File>
+	<File name="..\..\..\addons\ofxOpenNI\src\ofxOpenNITypes.h" open="0" top="0" tabpos="0">
+		<Cursor position="1212" topLine="18" />
+	</File>
+	<File name="..\..\..\addons\ofxOpenNI\src\ofxOpenNIUtils.h" open="1" top="0" tabpos="2">
+		<Cursor position="30790" topLine="1115" />
+	</File>
+	<File name="src\testApp.cpp" open="1" top="1" tabpos="4">
+		<Cursor position="471" topLine="0" />
+	</File>
+	<File name="src\testApp.h" open="1" top="0" tabpos="6">
+		<Cursor position="0" topLine="0" />
+	</File>
+</CodeBlocks_layout_file>

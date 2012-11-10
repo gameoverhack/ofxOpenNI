@@ -1,3 +1,5 @@
+THIS IS THE EXPERIMENTAL NEW APIÉsome or most of below may not apply!!!
+
 OFXOPENNI FOR MAC & WIN
 =======================
 The ofxOpenNI module is a wrapper for the openNI + NITE + SensorKinect libraries/middleware for openFrameworks. 
