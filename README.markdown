@@ -1,7 +1,7 @@
 Version 1.0 of ofxOpenNI has been deprecated (originally the master and develop branches)
 
-You can get a copy by downloading a zip from here:
-Or by browsing the tag v1.0 here:
+You can get a copy by downloading a zip from here: https://github.com/gameoverhack/ofxOpenNI/tree/v1.0
+Or by browsing the tag v1.0 here: https://github.com/gameoverhack/ofxOpenNI/tags
 
 Version 2.0beta is now being actively developed using experimental, develop and master branches.
 
