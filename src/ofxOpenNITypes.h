@@ -423,6 +423,7 @@ public:
             maskPixels = other.maskPixels;
             maskTexture = other.maskTexture;
             userPixels = other.userPixels;
+            maskPixelFormat = other.maskPixelFormat;
             
             pointCloudDrawSize = other.pointCloudDrawSize;
             pointCloudResolution = other.pointCloudResolution;
