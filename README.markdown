@@ -1,4 +1,11 @@
-THIS IS THE EXPERIMENTAL NEW APIÉsome or most of below may not apply!!!
+Version 1.0 of ofxOpenNI has been deprecated (originally the master and develop branches)
+
+You can get a copy by downloading a zip from here:
+Or by browsing the tag v1.0 here:
+
+Version 2.0beta is now being actively developed using experimental, develop and master branches.
+
+The general idea is that Master should be stable, Develop should be where changes are happening but mostly should be working and Experimental is pretty much, well back to be experimental!!
 
 OFXOPENNI FOR MAC & WIN
 =======================
@@ -6,7 +13,13 @@ The ofxOpenNI module is a wrapper for the openNI + NITE + SensorKinect libraries
 
 Tested and working on Mac OSX (10.6.8), Linux (Ubuntu 10.10 64 & 32), Windows 7 (VS2010 and Codeblocks)
 
-Latest changes (09/01/20112):
+Latest changes (11/11/12)
+* Deprecated version 1.0
+* Updating read me
+* Corrected scoped lock issues for threading
+* Fixed copy constructer for Users (was breaking mask textures)
+
+Latest changes (09/01/2012):
 * Updated to latest drivers (OpenNI 1.5.2.7 unstable, NITE 1.5.2.7 , SensorKinect (Avin) 5.1.0.25) for Mac portable dylibs.
 * Tested with Win32 latest unstable and linux 64 latest unstable drivers and is working (NOTE: Win 7 64 bit users I may need to add a 64 bit version of the lib)...will test soon
 * Added a weird hack to make sure the ofRootPath is set before calling an init on the Context - for some reason on of007 I need to do this?!?
@@ -42,17 +55,6 @@ git checkout experimental
 
 Please make your pull requests on the Develop or Experimental branches!!!
 
-NOTES ON THE EXAMPLE(S)
-=======================
-
-I've tried to include a bit of every feature in the example. As a consequence it's become a bit of a beast. Some things to note:
-
-* Multiple hand tracking is not supported natively in openNI. The way it works is that a GestureGenerator works out when your waving, raising or clicking (pushing your hand forward). Based on the coordinates of the detected gesture, hand tracking is instantiated for that hand. In openNI examples you would then turn off gesture recognition and just track the hand. When the hand is lost you turn on gesture recognition again. But in order to get multiple hands it is necessary to continue looking for gestures. This means it is necessary to filter gesture recognition for the hand(s) that are already recognised. I'm doing that two ways: 1) Gestures recognised within a set distance from already recognised hands are ignored; 2) Gestures recognised within a set time from the last recognised gesture are ignored. Both of these vars, distance and time can be adjusted with setMinDistBetweenHands and setMinTimeBetweenHands respectively. Play with these to tweak tracking. Or modify them if they aren't working great ;-)
-
-* Running masks AND point clouds simultaneously chugs. Try running one or the other. Try lowering the max number of tracked usersÉ
-
-* Best performance seems to be on Mac and Windows (Codeblocks)
-
 NOTE ABOUT PORTABILITY
 ======================
 
@@ -70,23 +72,33 @@ You don't need to do any install of drivers if you don't want, just:
 - Do the git magic above or somehow else get a copy of ofxOpenNI into your addons directory
 - Copy 'example' folder to yourofdir/apps/yourworkingdir
 - Copy the folder called 'lib' from 'ofxOpenNI/mac/copy_to_data_openni_path' to your 'bin/data/openni' directory of your example.
+- Rename or copy one of the src-SomeExample-Level (eg., src-UserAndCloud-Medium) to just 'src'
+- You might need to clean before building each time you change the src folder
 
 Windows & Linux:
 
 - Install openNI (http://www.openni.org/Downloads/OpenNIModules.aspx OR http://github.com/openni)
 - Install NITE (http://www.openni.org/Downloads/OpenNIModules.aspx)
 - Install SensorKinect drivers (make sure you use https://github.com/avin2/SensorKinect modified drivers, not the standard Prime Sense drivers if you're using a Kinect...might be able to use their openNI install too, but I haven't checked)
+- Rename or copy one of the src-SomeExample-Level (eg., src-UserAndCloud-Medium) to just 'src'
+- You might need to clean before building each time you change the src folder
 
 then on Windows: 
 
 - Copy 'example' folder to yourofdir/apps/yourworkingdir
 - Copy the 'ofxOpenNI/win/copy_to_data_openni_path' to your bin/data/openni directory of your example or link as per above PORTABILITY notes.
+- Rename or copy one of the src-SomeExample-Level (eg., src-UserAndCloud-Medium) to just 'src'
+- You might need to clean before building each time you change the src folder
 
 or on Linux:
 - Just copy 'example' folder to yourofdir/apps/yourworkingdir
+- Rename or copy one of the src-SomeExample-Level (eg., src-UserAndCloud-Medium) to just 'src'
+- You might need to clean before building each time you change the src folder
 
 DRIVERS & SETTING UP YOUR OWN PROJECTS
 ======================================
+
+PLEASE NOTE I AM WORKING ON CHANGING HOW ALL THIS WORKS SO THAT YOU CAN JUST USE THE PROJECT GENERATOR - HOWEVER THAT WILL BREAK PORTABILITY - BUT I THINK IT'S WORTH IT!!
 
 * The easiest thing to do is to make a copy of the included examples and then gut the testApp.h and testApp.cpp for making a new project, but below are some pointers on making your own projects. Forgive me (and remind me) if I forget some steps.
 
@@ -95,7 +107,8 @@ Mac OS X:
 You don't need to do any install of drivers if you don't want, just:
 
 - Do the git magic above or somehow else get a copy of ofxOpenNI into your addons directory
-- Make a new project (in 062 by copying emptyExample folder from the apps/examples/ directory into your working path -> something like ofFolder/apps/dev/)
+- Make a new project (in 072 by copying emptyExample folder from the examples/emptyExamples directory into your working path -> something like ofFolder/apps/dev/)
+- Copy the 'bin' folder from 'examples/opeNI-SimpleExamples/' and replace the 'bin' folder in your emptyExample (this is largely so you get the right folder structure and config files)
 - Copy the folder called 'lib' from 'ofxOpenNI/mac/copy_to_data_openni_path' to your 'bin/data/openni' directory of your emptyExample
 - In Xcode make a new Group called 'ofxOpenNI' under 'Addons' (right or control click the 'Addons' Group, select Add->New Group)
 - Drag the 'src' and 'include' folders from inside the ofxOpenNI folder (in your addons directory) into the Group 'ofxOpenNI' you just made.
@@ -104,32 +117,6 @@ You don't need to do any install of drivers if you don't want, just:
 
 Windows (VS2010):
 
-- Sorry will put these up shortly!!
-
 Windows (Codeblocks):
 
-- Install the drivers as per above
-- Do the git magic above or somehow else get a copy of ofxOpenNI into your addons directory
-- Make a new project
-- Copy the 'ofxOpenNI/win/copy_to_data_openni_path' to your bin/data/openni directory (OPTIONAL)
-- Right-click the 'emptyExample' project folder on the left hand side of the interface and select Add Files
-- Add all the files from 'src', 'include/openni', 'include/nite'
-- If you're on windows, DO NOT add the libusb files in the include folder
-- Go to Project->Properties->Link and add OpenNI to the libraries
-- Go to Project->Properties->Search Paths and add ../../../addons/ofxOpenNI/include/openni, ../../../addons/ofxOpenNI/include/nite, ../../../addons/ofxOpenNI/src
-- add the path 'bin/data/openni/lib' (if you did the OPTIONAL step above) or navigate to the lib folder of your openNI install; something like c:/Programs(x86)/openNI/lib/
-- Add #include "ofxOpenNI.h" at the top of your testApp.h (or in whatever class you're using ofxOpenNI)
-
 Linux (Codeblocks):
-
-- Install the drivers as per above
-- Do the git magic above or somehow else get a copy of ofxOpenNI into your addons directory
-- Make a new project
-- Right-click the 'emptyExample' project folder on the left hand side of the interface and select Add Files
-- Add all the files from 'src'
-- If you're on windows, DO NOT add the libusb files in the include folder
-- Go to Project->Properties->Link and add OpenNI to the libraries
-- Go to Project->Properties->Search Paths and add ../../../addons/ofxOpenNI/include/openni, ../../../addons/ofxOpenNI/include/nite, ../../../addons/ofxOpenNI/src
-- Add #include "ofxOpenNI.h" at the top of your testApp.h (or in whatever class you're using ofxOpenNI)
-
-
