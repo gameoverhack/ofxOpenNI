@@ -286,6 +286,8 @@ public:
 	ofPoint cameraToWorld(const ofVec2f& c);
 	void cameraToWorld(const vector<ofVec2f>& c, vector<ofVec3f>& w);
 
+	
+	void setDeviceID(int deviceID);
     int getDeviceID();
 
     xn::Context& getContext();
