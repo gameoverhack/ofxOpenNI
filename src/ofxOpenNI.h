@@ -108,9 +108,9 @@ public:
 
 	float getWidth();
 	float getHeight();
-    
+
     float getFrameRate();
-    
+
     void setLogLevel(XnLogSeverity logLevel);
     void setLogLevel(ofLogLevel logLevel);
 
@@ -143,7 +143,7 @@ public:
     bool getUseBackgroundDepthSubtraction();
 	void setCaptureBackgroundDepthPixels(bool b);
     bool getCaptureBackgroundDepthPixels();
-    
+
     void setUseDepthRawPixels(bool b);
     bool getUseDepthRawPixels();
 
@@ -349,9 +349,9 @@ private:
     void updateUserPixels(ofxOpenNIUser & user);
 	void updatePointClouds(ofxOpenNIUser & user);
 	void updateRecorder();
-    
-    void updateDepthThresholds(const unsigned short& depth, ofColor& depthColor, int nX, int nY);
-    
+
+    void updateDepthThresholds(const unsigned short& depth, ofColor& depthColor, int & nX, int & nY);
+
 	bool g_bIsDepthOn;
 	bool g_bIsImageOn;
 	bool g_bIsInfraOn;
@@ -411,7 +411,7 @@ private:
 	ofShortPixels backgroundPixels;
 
     const XnDepthPixel* backgroundDepthPixels;
-    
+
 	// image
 	ofTexture imageTexture;
 	ofPixels imagePixels[2];
@@ -520,9 +520,9 @@ private:
 
     // frame rate storage
     double prevMillis, lastFrameTime, timeNow, timeThen, tFps, frameRate;
-    
+
     Poco::Mutex mutex;
-    
+
     // block copy ctor and assignment operator
     ofxOpenNI(const ofxOpenNI& other);
     ofxOpenNI& operator=(const ofxOpenNI&);

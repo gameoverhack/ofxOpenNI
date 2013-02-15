@@ -77,7 +77,7 @@ ofxOpenNI::ofxOpenNI(){
     bUseSafeThreading = false;
 	bNewPixels = false;
 	bNewFrame = false;
-    
+
     width = XN_VGA_X_RES;
     height = XN_VGA_Y_RES;
     fps = 30;
@@ -193,9 +193,9 @@ bool ofxOpenNI::initContext(string xmlFilePath){
     if(bIsContextReady){
         XnVersion pVersion;
         GetVersion(pVersion);
-        ofLogNotice(LOG_NAME)   << "openni driver version: " 
-                                << (int)pVersion.nMajor << "." 
-                                << (int)pVersion.nMinor << "." 
+        ofLogNotice(LOG_NAME)   << "openni driver version: "
+                                << (int)pVersion.nMajor << "."
+                                << (int)pVersion.nMinor << "."
                                 << (int)pVersion.nMaintenance << "."
                                 << (int)pVersion.nBuild;
         addLicence("PrimeSense", "0KOIk2JeIBYClPWVnMoRKn5cdY4=");
@@ -1250,7 +1250,7 @@ void ofxOpenNI::update(){
 void ofxOpenNI::updateGenerators(){
 
     if(bIsShuttingDown || bPaused || !bIsContextReady) return;
- 
+
 	if(bIsThreaded && bUseSafeThreading) mutex.lock(); // with this here I get ~30 fps with 2 Kinects/60 fps with 1 kinect -> BUT no crash on exit!
 
     //g_Context.WaitAnyUpdateAll();
@@ -1274,7 +1274,7 @@ void ofxOpenNI::updateGenerators(){
         g_Gesture.WaitAndUpdateData();
     }
     if(bIsThreaded && !bUseSafeThreading) mutex.lock(); // with this her I get ~400-500+ fps with 2 Kinects!
-    
+
 	if(g_bIsDepthOn){
         g_Depth.GetMetaData(g_DepthMD);
         updateDepthPixels();
@@ -1295,7 +1295,7 @@ void ofxOpenNI::updateGenerators(){
         g_Recorder.Record();
         updateRecorder();
     }
-    
+
     if(bUseBackBuffer){
         if(g_bIsDepthOn && g_Depth.IsDataNew()){
             swap(backDepthPixels, currentDepthPixels);
@@ -1321,7 +1321,7 @@ void ofxOpenNI::updateGenerators(){
     }
     lastFrameTime	= diff;
     timeThen		= timeNow;
-    
+
 	if(bIsThreaded) mutex.unlock();
 
 }
@@ -1334,33 +1334,33 @@ void ofxOpenNI::updateGenerators(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::updateDepthPixels(){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+    //ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
 	// get the pixels
 	const XnDepthPixel* depth = g_DepthMD.Data();
 
 	if(g_DepthMD.FrameID() == 0) return;
 
-    if(bGrabBackgroundPixels){
-
-        if(bInitGrabBackgroundPixels){
-            ofLogNotice(LOG_NAME) << "Capturing background frames...";
-            bInitGrabBackgroundPixels = false;
-            backgroundPixels.setFromPixels(depth, getWidth(), getHeight(), OF_IMAGE_COLOR_ALPHA);
-        }
-        if(numBackgroundFrames < 5*25) {
-            numBackgroundFrames++;
-            const XnDepthPixel* depthPixels = g_DepthMD.Data();
-            for(int y = 0; y < getHeight(); y++){
-                for(int x = 0; x < getWidth(); x++, depthPixels++){
-                    backgroundPixels[y * getWidth() + x] += *depthPixels;
-                }
-            }
-        }else{
-            ofLogNotice(LOG_NAME) << "...finished capturing" << numBackgroundFrames << "background frames";
-            numBackgroundFrames = 0;
-            bGrabBackgroundPixels = false;
-        }
-    }
+//    if(bGrabBackgroundPixels){
+//
+//        if(bInitGrabBackgroundPixels){
+//            ofLogNotice(LOG_NAME) << "Capturing background frames...";
+//            bInitGrabBackgroundPixels = false;
+//            backgroundPixels.setFromPixels(depth, getWidth(), getHeight(), OF_IMAGE_COLOR_ALPHA);
+//        }
+//        if(numBackgroundFrames < 5*25) {
+//            numBackgroundFrames++;
+//            const XnDepthPixel* depthPixels = g_DepthMD.Data();
+//            for(int y = 0; y < getHeight(); y++){
+//                for(int x = 0; x < getWidth(); x++, depthPixels++){
+//                    backgroundPixels[y * getWidth() + x] += *depthPixels;
+//                }
+//            }
+//        }else{
+//            ofLogNotice(LOG_NAME) << "...finished capturing" << numBackgroundFrames << "background frames";
+//            numBackgroundFrames = 0;
+//            bGrabBackgroundPixels = false;
+//        }
+//    }
 
 	// copy raw values
 	if(g_bIsDepthRawOn){
@@ -1368,17 +1368,17 @@ void ofxOpenNI::updateDepthPixels(){
 	}
 
 	// copy depth into texture-map
-	for (XnUInt16 y = g_DepthMD.YOffset(); y < g_DepthMD.YRes() + g_DepthMD.YOffset(); y++){
+	for (int y = g_DepthMD.YOffset(); y < g_DepthMD.YRes() + g_DepthMD.YOffset(); y++){
 		unsigned char * texture = backDepthPixels->getPixels() + y * g_DepthMD.XRes() * 4 + g_DepthMD.XOffset() * 4;
-		for (XnUInt16 x = 0; x < g_DepthMD.XRes(); x++, depth++, texture += 4){
+		for (int x = 0; x < g_DepthMD.XRes(); x++, depth++, texture += 4){
 
             ofColor depthColor;
 
-            bool bUseSubtraction = false;
-            if(bUseBackgroundSubtraction && !bGrabBackgroundPixels &&
-               *depth - backgroundPixels[y*getWidth()+x] <= 500){
-                bUseSubtraction = true;
-            }
+//            bool bUseSubtraction = false;
+//            if(bUseBackgroundSubtraction && !bGrabBackgroundPixels &&
+//               *depth - backgroundPixels[y*getWidth()+x] <= 500){
+//                bUseSubtraction = true;
+//            }
 
             getDepthColor(depthColoring, *depth, depthColor, maxDepth);
 
@@ -1392,7 +1392,7 @@ void ofxOpenNI::updateDepthPixels(){
 				texture[3] = depthColor.a;
             }
 
-            if(getNumDepthThresholds() > 0) updateDepthThresholds((bUseSubtraction ? 11000 : *depth), depthColor, x, y);
+            if(getNumDepthThresholds() > 0) updateDepthThresholds(*depth, depthColor, x, y);
 
 		}
 	}
@@ -1400,14 +1400,14 @@ void ofxOpenNI::updateDepthPixels(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::updateImagePixels(){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+//    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
 	const XnUInt8* pImage = g_ImageMD.Data();
 	backImagePixels->setFromPixels(pImage, g_ImageMD.XRes(), g_ImageMD.YRes(), OF_IMAGE_COLOR);
 }
 
 //--------------------------------------------------------------
 void ofxOpenNI::updateIRPixels(){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+//    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
 	const XnIRPixel* pImage = g_InfraMD.Data();
     unsigned char * ir_pixels = new unsigned char[g_InfraMD.XRes() * g_InfraMD.YRes()];
 	for (int i = 0; i < g_InfraMD.XRes() * g_InfraMD.YRes(); i++){
@@ -1425,9 +1425,9 @@ void ofxOpenNI::updateIRPixels(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::updateHandTracker(){
-    
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
-    
+
+//    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+
 	int index = 0;
 	map<XnUserID, ofxOpenNIHand>::iterator it;
 
@@ -1458,7 +1458,7 @@ void ofxOpenNI::updateHandTracker(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::updateUserTracker(){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+//    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
 
 	vector<XnUserID> userIDs(maxNumUsers);
     XnUInt16 xnMaxNumUsers = maxNumUsers;
@@ -1529,7 +1529,7 @@ void ofxOpenNI::updateUserTracker(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::updatePointClouds(ofxOpenNIUser & user){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+//    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
 	const XnRGB24Pixel*	pColor;
 	const XnDepthPixel*	pDepth = g_DepthMD.Data();
 
@@ -1562,7 +1562,7 @@ void ofxOpenNI::updatePointClouds(ofxOpenNIUser & user){
 
 //--------------------------------------------------------------
 void ofxOpenNI::updateUserPixels(ofxOpenNIUser & user){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+//    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
     if(user.maskPixels.getWidth() != getWidth() || user.maskPixels.getHeight() != getHeight()){
         user.maskPixels.allocate(getWidth(), getHeight(), user.getMaskPixelFormat());
     }
@@ -1603,19 +1603,19 @@ void ofxOpenNI::updateUserPixels(ofxOpenNIUser & user){
             }
         }
             break;
-            
+
         default:
             ofLogError(LOG_NAME) << "Mask pixel type not supported: " << user.getMaskPixelFormat();
             break;
     }
-    
-    
+
+
     user.bNewPixels = true;
 }
 
 //--------------------------------------------------------------
 void ofxOpenNI::updateRecorder(){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+//    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
     XnStatus nRetVal = XN_STATUS_OK;
     switch(g_ONITask){
         case ONI_START_RECORD:
@@ -1687,8 +1687,8 @@ void ofxOpenNI::updateRecorder(){
 }
 
 //--------------------------------------------------------------
-void ofxOpenNI::updateDepthThresholds(const unsigned short& depth, ofColor& depthColor, int nX, int nY){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+void ofxOpenNI::updateDepthThresholds(const unsigned short& depth, ofColor& depthColor, int & nX, int & nY){
+//    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
     int nIndex = nY * getWidth() + nX;
     ofPoint p = ofPoint(nX, nY, depth);
     for(int i = 0; i < currentDepthThresholds.size(); i++){
@@ -1726,7 +1726,7 @@ void ofxOpenNI::updateDepthThresholds(const unsigned short& depth, ofColor& dept
                     }
                 }
                     break;
-                    
+
                 default:
                     ofLogError(LOG_NAME) << "Mask pixel type not supported: " << depthThreshold.getMaskPixelFormat();
                     break;
@@ -1825,13 +1825,13 @@ bool ofxOpenNI::getAutoUserCalibrationPossible(){
 
 //--------------------------------------------------------------
 int	ofxOpenNI::getNumTrackedUsers(){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+    //ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
     return currentTrackedUserIDs.size();
 }
 
 //--------------------------------------------------------------
 ofxOpenNIUser& ofxOpenNI::getTrackedUser(int index){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+    //ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
     if(index > currentTrackedUserIDs.size()){
         ofLogError(LOG_NAME) << "no tracked user for that index...have you called getNumTrackedUsers()? Returning garbage baseUser";
         return baseUser;
@@ -1841,7 +1841,7 @@ ofxOpenNIUser& ofxOpenNI::getTrackedUser(int index){
 
 //--------------------------------------------------------------
 void ofxOpenNI::setMaxNumUsers(int numUsers){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+    //ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
     maxNumUsers = numUsers;
 }
 
@@ -1886,7 +1886,7 @@ void ofxOpenNI::setMaskPixelFormatAllUsers(ofPixelFormat format){
     }else{
         ofLogError(LOG_NAME) << "Mask pixel format not supported: " << format;
     }
-    
+
 }
 
 //--------------------------------------------------------------
@@ -2210,13 +2210,13 @@ int	ofxOpenNI::getNumTrackedHands(){
 
 //--------------------------------------------------------------
 ofxOpenNIHand& ofxOpenNI::getTrackedHand(int index){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+    //ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
     return currentTrackedHands[currentTrackedHandIDs[index]];
 }
 
 //--------------------------------------------------------------
 ofxOpenNIHand& ofxOpenNI::getHand(XnUserID nID){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+    //ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
     ofxOpenNIHand & hand = baseHand;
     map<XnUserID, ofxOpenNIHand>::iterator it = currentTrackedHands.find(nID);
     if(it != currentTrackedHands.end()){
@@ -2294,7 +2294,7 @@ int ofxOpenNI::getNumDepthThresholds(){
 
 //--------------------------------------------------------------
 ofxOpenNIDepthThreshold & ofxOpenNI::getDepthThreshold(int index){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+    //ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
     return currentDepthThresholds[index];
 }
 
@@ -2492,7 +2492,7 @@ void handleSignal(int err){
 
 //--------------------------------------------------------------
 void ofxOpenNI::setSafeThreading(bool b){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+    //ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
     bUseSafeThreading = b;
     if(b) return;
 #if defined (TARGET_OSX) && defined (USE_SIGNALS_HACK)
@@ -2520,7 +2520,7 @@ bool ofxOpenNI::getSafeThreading(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::setUseBackgroundDepthSubtraction(bool b){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+    //ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
     bUseBackgroundSubtraction = b;
 }
 
@@ -2531,7 +2531,7 @@ bool ofxOpenNI::getUseBackgroundDepthSubtraction(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::setCaptureBackgroundDepthPixels(bool b){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+    //ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
     if(b) bInitGrabBackgroundPixels = true;
     bGrabBackgroundPixels = b;
 }
@@ -2543,7 +2543,7 @@ bool ofxOpenNI::getCaptureBackgroundDepthPixels(){
 
 //--------------------------------------------------------------
 void ofxOpenNI::setUseDepthRawPixels(bool b){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+    //ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
     if(b) allocateDepthRawBuffers();
     g_bIsDepthRawOn = b;
 }
@@ -2591,7 +2591,7 @@ ofPixels& ofxOpenNI::getDepthPixels(){
 
 //--------------------------------------------------------------
 ofShortPixels& ofxOpenNI::getDepthRawPixels(){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+    //ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
 	if(!g_bIsDepthRawOn){
 		ofLogWarning(LOG_NAME) << "g_bIsDepthRawOn was disabled, enabling raw pixels. Should really call setUseDepthRawPixels(true) first?";
 		setUseDepthRawPixels(true);
@@ -2605,7 +2605,7 @@ ofShortPixels& ofxOpenNI::getDepthRawPixels(){
 
 //--------------------------------------------------------------
 ofPixels& ofxOpenNI::getImagePixels(){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+    //ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
     if(bUseBackBuffer){
         return *currentImagePixels;
     }else{
@@ -2615,13 +2615,13 @@ ofPixels& ofxOpenNI::getImagePixels(){
 
 //--------------------------------------------------------------
 ofTexture& ofxOpenNI::getDepthTextureReference(){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+    //ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
 	return depthTexture;
 }
 
 //--------------------------------------------------------------
 ofTexture& ofxOpenNI::getimageTextureReference(){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+    //ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
 	return imageTexture;
 }
 
@@ -2705,7 +2705,7 @@ float ofxOpenNI::getHeight(){
 }
 
 float ofxOpenNI::getFrameRate(){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+    //ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
     // this returns a calcualted frame rate based on threaded/normal updates NOT the device target frame rate
     return frameRate;
 }
@@ -3169,7 +3169,7 @@ void ofxOpenNI::drawDebug(float x, float y){
 
 //--------------------------------------------------------------
 void ofxOpenNI::drawDebug(float x, float y, float w, float h){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+    //ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
 	if(!bIsContextReady) return;
 
     int generatorCount = g_bIsDepthOn + g_bIsImageOn + g_bIsInfraOn;
@@ -3225,7 +3225,7 @@ void ofxOpenNI::drawDepth(float x, float y){
 
 //--------------------------------------------------------------
 void ofxOpenNI::drawDepth(float x, float y, float w, float h){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+    //ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
 	if(bUseTexture && bIsContextReady) depthTexture.draw(x, y, w, h);
 }
 
@@ -3247,7 +3247,7 @@ void ofxOpenNI::drawImage(float x, float y){
 
 //--------------------------------------------------------------
 void ofxOpenNI::drawImage(float x, float y, float w, float h){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+    //ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
 	if(bUseTexture && bIsContextReady) imageTexture.draw(x, y, w, h);
 }
 
@@ -3269,7 +3269,7 @@ void ofxOpenNI::drawSkeletons(float x, float y){
 
 //--------------------------------------------------------------
 void ofxOpenNI::drawSkeletons(float x, float y, float w, float h){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+    //ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
 	if(!bIsContextReady) return;
     for(int i = 0;  i < getNumTrackedUsers(); ++i){
         drawSkeleton(x, y, w, h, i);
@@ -3288,7 +3288,7 @@ void ofxOpenNI::drawSkeleton(float x, float y, int nID){
 
 //--------------------------------------------------------------
 void ofxOpenNI::drawSkeleton(float x, float y, float w, float h, int nID){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+    //ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
 	if(nID - 1 > getNumTrackedUsers()) return;
     ofPushStyle();
     ofPushMatrix();
@@ -3317,7 +3317,7 @@ void ofxOpenNI::drawHands(float x, float y){
 
 //--------------------------------------------------------------
 void ofxOpenNI::drawHands(float x, float y, float w, float h){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+    //ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
     for (int i = 0; i < getNumTrackedHands(); i++) {
         drawHand(i);
     }
@@ -3335,7 +3335,7 @@ void ofxOpenNI::drawHand(float x, float y, int index){
 
 //--------------------------------------------------------------
 void ofxOpenNI::drawHand(float x, float y, float w, float, int index){
-    ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
+    //ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
     if(index > getNumTrackedHands()) return;
     ofPushStyle();
     ofPushMatrix();
