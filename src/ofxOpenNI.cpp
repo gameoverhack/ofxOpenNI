@@ -37,8 +37,12 @@
 //--------------------------------------------------------------
 ofxOpenNI::ofxOpenNI(){
 	instanceCount++;
-	instanceID = instanceCount; // TODO: this should be replaced/combined with a listDevices and setDeviceID methods
-
+	// by default we use multiple kinects in the order they're available
+	// but you can also use setDeviceID to manually pick the deviceID
+	// if you try to run user generators with more than one device in the same
+	// process you'll be warned.
+	instanceID = instanceCount;
+	
     LOG_NAME = "ofxOpenNIDevice[" + ofToString(instanceID) + "]";
     //cout << LOG_NAME << ": constructor called" << endl;
 
@@ -753,7 +757,7 @@ bool ofxOpenNI::addInfraGenerator(){
 //--------------------------------------------------------------
 bool ofxOpenNI::addUserGenerator(){
     ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
-    if(instanceID > 0) {
+    if(instanceCount > 0) {
         // see: http://groups.google.com/group/openni-dev/browse_thread/thread/188a2ac823584117
         ofLogWarning(LOG_NAME) << "Currently it is only possible to have a user generator on one device in a single process!!";
         g_bIsUserOn = false;
@@ -2766,6 +2770,11 @@ bool ofxOpenNI::isContextReady(){
 int ofxOpenNI::getNumDevices(){
     if(!bIsContextReady) setup();
 	return numDevices;
+}
+
+//--------------------------------------------------------------
+void ofxOpenNI::setDeviceID(int deviceID){
+	instanceID = deviceID;
 }
 
 //--------------------------------------------------------------
