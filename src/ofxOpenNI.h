@@ -42,9 +42,11 @@ static int instanceCount = -1;
 #include "ofxOpenNITypes.h"
 #include "ofxOpenNIUtils.h"
 
+#include "ofxBase3DVideo.h"
+
 using namespace xn;
 
-class ofxOpenNI : public ofThread {
+class ofxOpenNI : public ofThread, public ofxBase3DVideo {
 
 public:
 
@@ -270,7 +272,7 @@ public:
 	void setSync(bool b);
     bool getSync();
 
-	ofPixels& getDepthPixels();
+	ofPixels& getDepthPixelsRef();
 	ofShortPixels& getDepthRawPixels();
 	ofPixels& getImagePixels();
 
@@ -309,6 +311,19 @@ public:
     ofEvent<ofxOpenNIUserEvent> userEvent;
     ofEvent<ofxOpenNIGestureEvent> gestureEvent;
     ofEvent<ofxOpenNIHandEvent> handEvent;
+
+	// Functions to implement interfaces ofBaseVideo and ofxBase3DVideo
+	void close();
+	bool isFrameNew();
+	unsigned char* getPixels();
+	ofPixels& getPixelsRef();
+
+	unsigned char* getDepthPixels();
+	ofFloatPixels& getDistancePixelsRef();
+	float* getDistancePixels();
+
+
+
 
 protected:
 
@@ -409,6 +424,8 @@ private:
 	ofShortPixels* backDepthRawPixels;
 	ofShortPixels* currentDepthRawPixels;
 	ofShortPixels backgroundPixels;
+
+	ofFloatPixels distancePixels;
 
     const XnDepthPixel* backgroundDepthPixels;
 

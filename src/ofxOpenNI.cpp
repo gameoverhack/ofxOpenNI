@@ -366,6 +366,7 @@ void ofxOpenNI::stop(){
     depthTexture.clear();
 	depthPixels[0].clear();
     depthPixels[1].clear();
+    distancePixels.clear();
 
     cout << LOG_NAME << ": releasing image texture & pixels" << endl;
     imageTexture.clear();
@@ -375,6 +376,14 @@ void ofxOpenNI::stop(){
     instanceCount--; // ok this will probably cause problems when dynamically creating and destroying -> you'd need to do it in order!
     bIsShuttingDown = false;
     cout << LOG_NAME << ": full stopped" << endl;
+}
+
+void ofxOpenNI::close() {
+	stop();
+}
+
+bool ofxOpenNI::isFrameNew() {
+	return isNewFrame();
 }
 
 //--------------------------------------------------------------
@@ -999,6 +1008,8 @@ void ofxOpenNI::allocateDepthBuffers(){
         depthPixels[0].allocate(width, height, OF_IMAGE_COLOR_ALPHA);
         depthPixels[1].allocate(width, height, OF_IMAGE_COLOR_ALPHA);
         backgroundPixels.allocate(getWidth(), getHeight(), OF_IMAGE_COLOR_ALPHA);
+	distancePixels.allocate(width, height, 1);
+	distancePixels.set(0);
         currentDepthPixels = &depthPixels[0];
         backDepthPixels = &depthPixels[1];
         if(bUseTexture) depthTexture.allocate(width, height, GL_RGBA);
@@ -1371,6 +1382,9 @@ void ofxOpenNI::updateDepthPixels(){
 	for (int y = g_DepthMD.YOffset(); y < g_DepthMD.YRes() + g_DepthMD.YOffset(); y++){
 		unsigned char * texture = backDepthPixels->getPixels() + y * g_DepthMD.XRes() * 4 + g_DepthMD.XOffset() * 4;
 		for (int x = 0; x < g_DepthMD.XRes(); x++, depth++, texture += 4){
+
+			float* pDistancePixels = distancePixels.getPixels();
+			pDistancePixels[x+y*g_DepthMD.XRes()] = *depth;
 
             ofColor depthColor;
 
@@ -2580,13 +2594,18 @@ bool ofxOpenNI::isNewFrame(){
  *************************************************************/
 
 //--------------------------------------------------------------
-ofPixels& ofxOpenNI::getDepthPixels(){
+
+ofPixels& ofxOpenNI::getDepthPixelsRef(){
     ofxOpenNIScopedLock scopedLock(bIsThreaded, mutex);
 	if(bUseBackBuffer){
         return *currentDepthPixels;
     }else{
         return *backDepthPixels;
     }
+}
+
+unsigned char* ofxOpenNI::getDepthPixels(){
+	return getDepthPixelsRef().getPixels();
 }
 
 //--------------------------------------------------------------
@@ -2612,6 +2631,24 @@ ofPixels& ofxOpenNI::getImagePixels(){
         return *backImagePixels;
     }
 }
+
+ofPixels& ofxOpenNI::getPixelsRef() {
+	return getImagePixels();
+}
+
+unsigned char* ofxOpenNI::getPixels() {
+	return getImagePixels().getPixels();
+}
+
+ofFloatPixels& ofxOpenNI::getDistancePixelsRef() {
+	return distancePixels;
+}
+
+float* ofxOpenNI::getDistancePixels() {
+	return distancePixels.getPixels();
+}
+
+
 
 //--------------------------------------------------------------
 ofTexture& ofxOpenNI::getDepthTextureReference(){
