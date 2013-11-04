@@ -1192,7 +1192,9 @@ void ofxOpenNI::update(){
                     }
                     user.bNewPixels = false;
                     user.bNewPointCloud = false;
-                }
+                }else
+                    ofLogVerbose(LOG_NAME) << "User is found but not tracking";
+                    
                 trackedUserIDs.insert(user.getXnID());
             }else{
                 ofLogVerbose(LOG_NAME) << "Mark for deleting user" << user.getXnID();
@@ -1466,15 +1468,21 @@ void ofxOpenNI::updateUserTracker(){
 
 	for(int i = 0; i < maxNumUsers; ++i){
         XnUserID nID = userIDs[i];
-		if(g_User.GetSkeletonCap().IsTracking(nID)){
-            if(currentTrackedUsers.find(nID) == currentTrackedUsers.end()) continue;
-			ofxOpenNIUser & user = currentTrackedUsers[nID];
-			user.XnID = nID;
-			XnPoint3D center;
-			g_User.GetCoM(nID, center);
-			user.center = toOf(center);
-            bool lastbIsSkeleton = user.isSkeleton();
-            if(user.getUseSkeleton()){
+	   
+	   	
+           if(currentTrackedUsers.find(nID) == currentTrackedUsers.end()) continue;
+           
+           /*get CoM for 'hot spot'/extraction */
+	   ofxOpenNIUser & user = currentTrackedUsers[nID];
+	   user.XnID = nID;
+	   XnPoint3D center;
+	   g_User.GetCoM(nID, center);
+	   user.center = toOf(center);
+	   ofLogNotice(LOG_NAME) << "user center is " << user.center;
+	   
+	   if(g_User.GetSkeletonCap().IsTracking(nID)){
+             bool lastbIsSkeleton = user.isSkeleton();
+             if(user.getUseSkeleton()){
 
                 user.bIsSkeleton = false;
                 bool confident = false;
