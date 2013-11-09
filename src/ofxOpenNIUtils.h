@@ -110,6 +110,7 @@ enum DepthColoring {
     COLORING_RAINBOW,
     COLORING_CYCLIC_RAINBOW,
     COLORING_BLUES,
+    COLORING_BLUES_INV,
     COLORING_GREY,
     COLORING_STATUS,
     COLORING_COUNT
@@ -442,6 +443,36 @@ inline void getDepthColor(DepthColoring depthColoring, const unsigned short & de
                 color.r	= 255;
             }
             break;
+        case COLORING_BLUES_INV:
+            // 3 bytes of depth:  white (111) << cyan (011) <<c olor.b (001) << black (R0G0B0)
+            max = 256+255+255;
+            col_index = (XnUInt16)(((depth) / (maxDepth / max)));
+            if ( col_index < 256 )
+            {
+                color.b	= 255;
+                color.g	= 255;
+                color.r	= 255 - col_index;
+            }
+            else if ( col_index < (256+255) )
+            {
+                color.b	= 255;
+                color.g	= 255 - (col_index % 256) + 1;
+                color.r	= 0;
+            }
+            else if ( col_index < (256+255+255) )
+            {
+                color.b	= 255 - (col_index % 256) + 1;
+                color.g	= 0;
+                color.r	= 0;
+            }
+            else
+            {
+                color.b	= 0;
+                color.g	= 0;
+                color.r	= 0;
+            }
+            break;
+            
         case COLORING_GREY:
             max = 255;	// half depth
         {
