@@ -35,6 +35,9 @@
 #include "ofxOpenNIUtils.h"
 #include "ofxOpenNITypes.h"
 
+#define MOTION_DETECTION_FPS                10      // FPS of motion detecion capturing
+#define MOTION_DETECTION_CACHE_LENGTH_MS    500     // Cache length in ms to calculate average speed
+
 using namespace openni;
 using namespace nite;
 
@@ -45,7 +48,8 @@ public:
     ofxOpenNI();
     ~ofxOpenNI();
     
-    bool setup();
+    
+    bool setup(int _deviceid = -1);
     
     void start();
     void stop();
@@ -53,7 +57,7 @@ public:
     bool addDepthStream();
 	bool addImageStream();
 //	bool addInfraGenerator();
-	bool addUserTracker();
+	bool addUserTracker(float _smoothing = 0.6);
 //    bool addGestureGenerator();
     bool addHandsTracker();
 //    bool addAudioGenerator();
@@ -71,6 +75,16 @@ public:
     
     bool isDepthFrameNew();
     bool isImageFrameNew();
+    
+    map<int, ofxOpenNIUser> skeletonData();
+    ofTexture& depthData();
+    ofTexture& imageData();
+    
+    bool bUseDepth;
+	bool bUseImage;
+    
+    void setMotionThresholds(float _threshold_motion, float _threshold_nomotion, float _cache_length);
+
     
 protected:
     
@@ -117,11 +131,10 @@ protected:
     bool bIsDepthFrameNew;
     bool bIsImageFrameNew;
     
-    bool bUseDevice;
     bool bUseNite;
-    
-    bool bUseDepth;
-	bool bUseImage;
+    bool bUseDevice;
+   
+
 	bool bUseInfra;
     bool bUseUsers;
     bool bUseGesture;
@@ -130,6 +143,14 @@ protected:
 	bool bUseDepthRaw;
     bool bUseRecord;
     bool bUsePlayer;
+    
+    
+    /* Motion Detection */
+    float _motion_detection_rate;
+    int _motion_detection_count;
+    float _md_threshold_motion;
+    float _md_threshold_nomotion;
+//    float _md_threshold_nomotion_current;
     
 };
 
