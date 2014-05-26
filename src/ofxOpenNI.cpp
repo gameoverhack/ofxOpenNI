@@ -32,6 +32,10 @@
 ofxOpenNI::ofxOpenNI(){
     stop();
     CreateRainbowPallet();
+    _motion_detection_rate = 1000/MOTION_DETECTION_FPS;
+    _motion_detection_count = ceil(MOTION_DETECTION_CACHE_LENGTH_MS / (1000/MOTION_DETECTION_FPS));
+    _md_threshold_motion = 0.5f;
+    _md_threshold_nomotion = 2.0f;
 }
 
 //--------------------------------------------------------------
@@ -39,8 +43,17 @@ ofxOpenNI::~ofxOpenNI(){
     stop();
 }
 
+void ofxOpenNI::setMotionThresholds(float _threshold_motion, float _threshold_nomotion, float _cache_length = 0) {
+    ofScopedLock lock(mutex);
+    _md_threshold_motion = _threshold_motion;
+    _md_threshold_nomotion = _threshold_nomotion;
+    if (_cache_length == 0) _cache_length = MOTION_DETECTION_CACHE_LENGTH_MS;
+    _motion_detection_count = ceil(MOTION_DETECTION_CACHE_LENGTH_MS / (1000/MOTION_DETECTION_FPS));
+}
+
+
 //--------------------------------------------------------------
-bool ofxOpenNI::setup(){
+bool ofxOpenNI::setup(int _deviceid){
     
     openni::Status rc = OpenNI::initialize();
     if (rc != openni::STATUS_OK) {
@@ -48,8 +61,25 @@ bool ofxOpenNI::setup(){
         bUseDevice = false;
     }
     
-    const char* deviceUri = ANY_DEVICE;
+    /* Print Device List */
     
+    openni::Array<DeviceInfo> deviceInfoList;
+    OpenNI::enumerateDevices(&deviceInfoList);
+    ofLogNotice() << "***************************************************";
+    ofLogNotice() << "* Available Devices                               *";
+    ofLogNotice() << "***************************************************";
+
+    for(int i = 0; i < deviceInfoList.getSize(); ++i){
+        ofLogNotice() << "Device " << ofToString(i) << " (" << deviceInfoList[i].getName() << "): " << deviceInfoList[i].getUri();
+        ofLogNotice() << "       Vendor: " << deviceInfoList[i].getVendor() << deviceInfoList[i].getUsbVendorId() << " / " << ofToString(deviceInfoList[i].getUsbProductId());
+        
+    }
+    ofLogNotice() << "***************************************************";
+    
+    const char* deviceUri = ANY_DEVICE;
+    if (_deviceid >= 0) {
+        deviceUri = deviceInfoList[_deviceid].getUri();
+    }
     rc = device.open(deviceUri);
     if (rc != openni::STATUS_OK) {
         ofLogError() << "Failed to open device:" << OpenNI::getExtendedError();
@@ -59,7 +89,6 @@ bool ofxOpenNI::setup(){
         device.setDepthColorSyncEnabled(true);
         bUseDevice = true;
     }
-    
     return bUseDevice;
     
 }
@@ -140,7 +169,7 @@ bool ofxOpenNI::addImageStream(){
 }
 
 //--------------------------------------------------------------
-bool ofxOpenNI::addUserTracker(){
+bool ofxOpenNI::addUserTracker(float _smoothing){
     
     ofScopedLock lock(mutex);
     
@@ -165,7 +194,7 @@ bool ofxOpenNI::addUserTracker(){
     }else{
         
         ofLogNotice() << "Succeded to add user tracker";
-        userTracker.setSkeletonSmoothingFactor(0.3);
+        userTracker.setSkeletonSmoothingFactor(_smoothing);
         bUseUsers = true;
     }
     
@@ -343,7 +372,10 @@ void ofxOpenNI::updateImageFrame(){
 void ofxOpenNI::updateUserFrame(){
     if(userFrame.isValid()){
         const nite::Array<nite::UserData>& users = userFrame.getUsers();
+
         for(int i = 0; i < users.getSize(); ++i){
+            
+            
             const UserData& user = users[i];
             
             if(user.isNew()){
@@ -353,6 +385,7 @@ void ofxOpenNI::updateUserFrame(){
                 trackedUsers[user.getId()] = u;
                 trackedUsers[user.getId()].setUserID(user.getId());
             }
+
             
             switch (user.getSkeleton().getState()) {
                 case nite::SKELETON_TRACKED:
@@ -360,10 +393,14 @@ void ofxOpenNI::updateUserFrame(){
                     //ofLogNotice() << "Skeleton Tracking: " << user.getId();
                     ofxOpenNIUser& u = trackedUsers[user.getId()];
                     u.bIsTracked = true;
+                    float timestamp = ofGetElapsedTimeMillis();
                     vector<ofxOpenNIJoint>& joints = u.getJoints();
                     float totalConfidence = 0.0f;
                     for(int i = 0; i < joints.size(); i++){
                         ofxOpenNIJoint& joint = joints[i];
+                        
+                        u.centerOfMass = toOf(user.getCenterOfMass());
+                        
                         nite::Point3f position = user.getSkeleton().getJoint((nite::JointType)i).getPosition();
                         joint.positionReal = toOf(position);
                         ofPoint p;
@@ -373,7 +410,94 @@ void ofxOpenNI::updateUserFrame(){
                         totalConfidence += joint.positionConfidence;
                         joint.orientation = toOf(user.getSkeleton().getJoint((nite::JointType)i).getOrientation());
                         joint.orientationConfidence = user.getSkeleton().getJoint((nite::JointType)i).getOrientationConfidence();
+
+                        /* Caching Position, every 100ms */
+                        
+                        if (joint.activateMotionDetection) {
+                         
+                            
+                            if (timestamp - joint.lastMeasureTimeStamp >= _motion_detection_rate) {
+
+                                
+                                joint.lastMeasureTimeStamp = timestamp;
+                                
+                                float _delta = (joint.pointCache.size()>0?p.distance(joint.pointCache.front().positionProjective):0) / 10;
+                                joint.totalDistance += _delta;
+                                joint.pointCache.push_front((ofxOpenNIJoint::_queue) {
+                                    .distanceMoved = _delta,
+                                    .positionProjective = p
+                                });
+                                
+
+                                /* Limit Length to max 50 Points */
+                                if (joint.pointCache.size()>_motion_detection_count) {
+                                    
+                                   /* if (i==6) {
+                                    cout << "Tracking Active Point " << ofToString(i) << ": Distance: " <<   ofToString(joint.motionCache) << " / Speed: " << ofToString(joint.averageSpeed) << " / Current Distance: " << ofToString(joint.motionShortCache) << " / Current Speed: " << ofToString(joint.currentSpeed) << " / Count: " << ofToString(_motion_detection_count) << " / " << ofToString(ceil(_motion_detection_count/5)) << "\n";
+                                    }
+                                    */
+                                    
+                                    joint.pointCache.resize(_motion_detection_count);
+
+                                    /* Calculate total and average */
+
+                                    
+                                    joint.motionCache       =
+                                   // joint.averageSpeed      =
+                                   // joint.motionShortCache  =
+                                    joint.currentSpeed      = 0.0f;
+                                    
+                                    int _index = 0;
+                                    //int _motion_detection_short_count = ceil(_motion_detection_count/10);
+                                    for (std::list<ofxOpenNIJoint::_queue>::iterator _cache = joint.pointCache.begin(); _cache != joint.pointCache.end(); _cache++, _index++) {
+                                     //   if (_index < _motion_detection_short_count) {
+                                     //       joint.motionShortCache += _cache->distanceMoved;
+                                     //   }
+                                     //   else {
+                                            joint.motionCache += _cache->distanceMoved;
+                                     //   }
+                                    }
+                                    //joint.currentSpeed = joint.motionShortCache / _motion_detection_short_count * _motion_detection_rate;
+                                    //joint.averageSpeed = joint.motionCache / (_motion_detection_count-_motion_detection_short_count) * _motion_detection_rate;
+                                    joint.currentSpeed = joint.motionCache / _motion_detection_count * _motion_detection_rate;
+                                    
+
+                                    /* Motion Detection: Still */
+                                    if (joint.currentSpeed < _md_threshold_nomotion)
+                                    {
+                                        joint.hasMotion = false;
+                                        if (joint.detectTime==0.0f) {
+                                            joint.detectTime = timestamp;
+                                        }
+                                    }
+                                    /* Motion Detection: Move */
+                                    
+                                    else if (joint.motionCache > _md_threshold_motion ) {
+                                        joint.hasMotion = true;
+                                        joint.detectTime = 0.0f;
+                                    }
+                                    
+                                    /* Motion Detection: Move /
+                                    
+                                    if (joint.motionShortCache > _md_threshold_motion ) {
+                                        joint.hasMotion = true;
+                                        joint.detectTime = 0.0f;
+                                    }
+                                    / Motion Detection: Still /
+                                    else if (joint.averageSpeed > _md_threshold_nomotion_long && joint.currentSpeed < _md_threshold_nomotion_current)
+                                    {
+                                        joint.hasMotion = false;
+                                        if (joint.detectTime==0.0f) {
+                                            joint.detectTime = timestamp;
+                                        }
+                                    }*/
+                                }
+                            }
+                        }
                     }
+                    
+                    u.box = user.getBoundingBox();
+                    
                     //cout << totalConfidence/joints.size() << endl;
                     if(totalConfidence == 0){
                         u.resetSkeleton();
@@ -415,6 +539,7 @@ void ofxOpenNI::updateUserFrame(){
                 trackedUsers.erase(trackedUsers.find(user.getId()));
             }
         }
+
     }
 }
 
@@ -477,6 +602,27 @@ void ofxOpenNI::threadedFunction(){
         updateGenerators();
     }
 }
+
+//--------------------------------------------------------------
+
+map<int, ofxOpenNIUser> ofxOpenNI::skeletonData() {
+    ofScopedLock lock(mutex);
+    return trackedUsers;
+}
+
+//--------------------------------------------------------------
+
+ofTexture & ofxOpenNI::depthData() {
+    return depthTexture;
+}
+
+//--------------------------------------------------------------
+
+ofTexture & ofxOpenNI::imageData() {
+    return imageTexture;
+}
+
+
 
 //--------------------------------------------------------------
 void ofxOpenNI::draw(){
