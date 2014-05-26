@@ -54,6 +54,25 @@ public:
     
     ofQuaternion orientation;
     float orientationConfidence;
+
+    /* Point and Motion Caching - added by Hofer */
+    
+    struct _queue
+    {
+        float distanceMoved;
+        ofPoint positionProjective;
+    };
+    
+    std::list < _queue > pointCache;
+    float motionCache;
+//    float averageSpeed;
+//    float motionShortCache;
+    float currentSpeed;
+    float totalDistance;
+    bool hasMotion;
+    bool activateMotionDetection;
+    float lastMeasureTimeStamp;
+    float detectTime;
 };
 
 class ofxOpenNIUser {
@@ -87,10 +106,23 @@ public:
             joints[i].positionProjective = ofPoint(0,0,0);
             joints[i].orientation = ofQuaternion(0,0,0,0);
             joints[i].orientationConfidence = 0.0f;
+            joints[i].pointCache.clear();
+//            joints[i].averageSpeed = 0.0f;
+            joints[i].motionCache = 0.0f;
+//            joints[i].motionShortCache = 0.0f;
+            joints[i].currentSpeed = 0.0f;
+            joints[i].detectTime = 0.0f;
+            joints[i].totalDistance = 0.0f;
+
+            joints[i].hasMotion = true;
+            joints[i].activateMotionDetection = false;
+            for(int x = 0; x < MOTION_DETECTION; x++){
+                if (_motion_detection[x]==i) joints[i].activateMotionDetection = true;
+            }
         }
         bIsTracked = false;
     }
-    
+
     bool isTracking(){
         return bIsTracked;
     }
@@ -101,6 +133,10 @@ public:
     
     vector<ofxOpenNIJoint>& getJoints(){
         return joints;
+    }
+
+    ofPoint& getCenterOfMass(){
+        return centerOfMass;
     }
     
     void draw(){
@@ -119,15 +155,29 @@ public:
         ofPopMatrix();
     }
     
+    //--------------------------------------------------------------
+    
+    nite::BoundingBox& skeletonBox() {
+        return box;
+    }
+    
 protected:
     
     friend class ofxOpenNI;
     
     vector<ofxOpenNIJoint> joints;
+    nite::BoundingBox box;
     int userID;
     
     bool bIsTracked;
     bool bIsVisible;
+    ofPoint centerOfMass;
+    
+//    int  MOTION_DETECTION = 4;
+  //  float _motion_detection[4] = {6,7,13,14};
+    int  MOTION_DETECTION = 10;
+    float _motion_detection[10] = {2,3,4,5,6,7,11,12,13,14};
+
     
 };
 
