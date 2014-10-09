@@ -449,13 +449,14 @@ public:
         
         //return *this;
     }
-    
+
+    vector<ofxOpenNIJoint> joints; // harlequin hack
 private:
     
     friend class ofxOpenNI; // so we can access directly in ofxOpenNI
     
 	ofPoint center;
-    vector<ofxOpenNIJoint> joints;
+//    vector<ofxOpenNIJoint> joints; // harlequin hack
 	vector<ofxOpenNILimb> limbs;
 	ofMesh pointCloud[2];
     ofMesh* backPointCloud;
