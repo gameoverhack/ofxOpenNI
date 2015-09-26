@@ -1188,7 +1188,7 @@ void ofxOpenNI::update(){
                             ofLogVerbose(LOG_NAME) << "Allocating mask texture " << user.getXnID();
                             user.maskTexture.allocate(getWidth(), getHeight(), ofGetGLFormatFromPixelFormat(user.getMaskPixelFormat()));
                         }
-                        if(user.maskPixels.getPixels() != NULL) user.maskTexture.loadData(user.maskPixels.getPixels(), getWidth(), getHeight(), ofGetGLFormatFromPixelFormat(user.getMaskPixelFormat()));
+                        if(user.maskPixels.getData() != NULL) user.maskTexture.loadData(user.maskPixels.getData(), getWidth(), getHeight(), ofGetGLFormatFromPixelFormat(user.getMaskPixelFormat()));
                     }
                     user.bNewPixels = false;
                     user.bNewPointCloud = false;
@@ -1218,14 +1218,14 @@ void ofxOpenNI::update(){
                         ofLogVerbose(LOG_NAME) << "Allocating mask texture for depthThreshold";
                         depthThreshold.maskTexture.allocate(getWidth(), getHeight(), ofGetGLFormatFromPixelFormat(depthThreshold.getMaskPixelFormat()));
                     }
-                    depthThreshold.maskTexture.loadData(depthThreshold.maskPixels.getPixels(), getWidth(), getHeight(), ofGetGLFormatFromPixelFormat(depthThreshold.getMaskPixelFormat()));
+                    depthThreshold.maskTexture.loadData(depthThreshold.maskPixels.getData(), getWidth(), getHeight(), ofGetGLFormatFromPixelFormat(depthThreshold.getMaskPixelFormat()));
                 }
                 if(depthThreshold.getUseDepthPixels()){
                     if(depthThreshold.depthTexture.getWidth() != getWidth() || depthThreshold.depthTexture.getHeight() != getHeight()){
                         ofLogVerbose(LOG_NAME) << "Allocating depth texture for depthThreshold";
                         depthThreshold.depthTexture.allocate(getWidth(), getHeight(), GL_RGBA);
                     }
-                    depthThreshold.depthTexture.loadData(depthThreshold.depthPixels.getPixels(), getWidth(), getHeight(), GL_RGBA);
+                    depthThreshold.depthTexture.loadData(depthThreshold.depthPixels.getData(), getWidth(), getHeight(), GL_RGBA);
                 }
 
                 depthThreshold.bNewPixels = false;
@@ -1369,7 +1369,7 @@ void ofxOpenNI::updateDepthPixels(){
 
 	// copy depth into texture-map
 	for (XnUInt16 y = g_DepthMD.YOffset(); y < g_DepthMD.YRes() + g_DepthMD.YOffset(); y++){
-		unsigned char * texture = backDepthPixels->getPixels() + y * g_DepthMD.XRes() * 4 + g_DepthMD.XOffset() * 4;
+		unsigned char * texture = backDepthPixels->getData() + y * g_DepthMD.XRes() * 4 + g_DepthMD.XOffset() * 4;
 		for (XnUInt16 x = 0; x < g_DepthMD.XRes(); x++, depth++, texture += 4){
 
             ofColor depthColor;
@@ -3342,7 +3342,7 @@ void ofxOpenNI::drawHand(float x, float y, float w, float, int index){
     ofFill();
     ofSetColor(255, 255, 0);
     ofxOpenNIHand & hand = getTrackedHand(index);
-    ofCircle(hand.position.x, hand.position.y, 10);
+    ofDrawCircle(hand.position.x, hand.position.y, 10);
     ofPopMatrix();
     ofPopStyle();
 }
@@ -3400,7 +3400,7 @@ void ofxOpenNI::cameraToWorld(const vector<ofVec2f>& c, vector<ofVec3f>& w){
 	//XnPoint3D *out = &projective[0];
 
 	//mutex.lock();
-	const XnDepthPixel* d = currentDepthRawPixels->getPixels();
+	const XnDepthPixel* d = currentDepthRawPixels->getData();
 	unsigned int pixel;
 	for (int i = 0; i < nPoints; ++i){
 		pixel = (int)c[i].x + (int)c[i].y * g_DepthMD.XRes();
