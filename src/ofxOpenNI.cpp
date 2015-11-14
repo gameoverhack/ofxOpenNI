@@ -1186,9 +1186,9 @@ void ofxOpenNI::update(){
                     if(user.getUseMaskTexture() && user.bNewPixels){
                         if(user.maskTexture.getWidth() != getWidth() || user.maskTexture.getHeight() != getHeight()){
                             ofLogVerbose(LOG_NAME) << "Allocating mask texture " << user.getXnID();
-                            user.maskTexture.allocate(getWidth(), getHeight(), ofGetGLTypeFromPixelFormat(user.getMaskPixelFormat()));
+                            user.maskTexture.allocate(getWidth(), getHeight(), ofGetGLFormatFromPixelFormat(user.getMaskPixelFormat()));
                         }
-                        if(user.maskPixels.getPixels() != NULL) user.maskTexture.loadData(user.maskPixels.getPixels(), getWidth(), getHeight(), ofGetGLTypeFromPixelFormat(user.getMaskPixelFormat()));
+                        if(user.maskPixels.getPixels() != NULL) user.maskTexture.loadData(user.maskPixels.getPixels(), getWidth(), getHeight(), ofGetGLFormatFromPixelFormat(user.getMaskPixelFormat()));
                     }
                     user.bNewPixels = false;
                     user.bNewPointCloud = false;
@@ -1216,9 +1216,9 @@ void ofxOpenNI::update(){
                 if(depthThreshold.getUseMaskPixels()){
                     if(depthThreshold.maskTexture.getWidth() != getWidth() || depthThreshold.maskTexture.getHeight() != getHeight()){
                         ofLogVerbose(LOG_NAME) << "Allocating mask texture for depthThreshold";
-                        depthThreshold.maskTexture.allocate(getWidth(), getHeight(), ofGetGLTypeFromPixelFormat(depthThreshold.getMaskPixelFormat()));
+                        depthThreshold.maskTexture.allocate(getWidth(), getHeight(), ofGetGLFormatFromPixelFormat(depthThreshold.getMaskPixelFormat()));
                     }
-                    depthThreshold.maskTexture.loadData(depthThreshold.maskPixels.getPixels(), getWidth(), getHeight(), ofGetGLTypeFromPixelFormat(depthThreshold.getMaskPixelFormat()));
+                    depthThreshold.maskTexture.loadData(depthThreshold.maskPixels.getPixels(), getWidth(), getHeight(), ofGetGLFormatFromPixelFormat(depthThreshold.getMaskPixelFormat()));
                 }
                 if(depthThreshold.getUseDepthPixels()){
                     if(depthThreshold.depthTexture.getWidth() != getWidth() || depthThreshold.depthTexture.getHeight() != getHeight()){
