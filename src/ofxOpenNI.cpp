@@ -157,7 +157,7 @@ bool ofxOpenNI::init(string oniFilePath, string xmlFilePath, bool threaded){
 void ofxOpenNI::start(){
     if(bIsThreaded && !isThreadRunning()) {
         ofLogNotice(LOG_NAME) << "Starting ofxOpenNI with threading";
-        startThread(true, false);
+        startThread(true);
     } else if(!bIsThreaded) {
         ofLogNotice(LOG_NAME) << "Starting ofxOpenNI without threading";
     }
@@ -462,7 +462,9 @@ void ofxOpenNI::setLogLevel(XnLogSeverity logLevel){
 	nRetVal = xnLogSetConsoleOutput(true);
 	SHOW_RC(nRetVal, "Set log to console");
 	nRetVal = xnLogSetSeverityFilter(logLevel);
-	SHOW_RC(nRetVal, "Set log level: " + logLevel);
+    stringstream ss;
+    ss << "Set log level: " << logLevel;
+	SHOW_RC(nRetVal, ss.str().c_str());
 	xnLogSetMaskState(XN_LOG_MASK_ALL, TRUE);
 }
 
@@ -599,7 +601,7 @@ void ofxOpenNI::setFrame(int frame){
             bPaused = false;
             updateGenerators();
             bPaused = true;
-            startThread(true, false);
+            startThread(true);
         }
     }
 }
@@ -672,7 +674,7 @@ void ofxOpenNI::nextFrame(){
             bPaused = false;
             updateGenerators();
             bPaused = true;
-            startThread(true, false);
+            startThread(true);
         }
     }
 }
@@ -688,7 +690,7 @@ void ofxOpenNI::previousFrame(){
             bPaused = false;
             updateGenerators();
             bPaused = true;
-            startThread(true, false);
+            startThread(true);
         }
     }
 }
@@ -1186,9 +1188,9 @@ void ofxOpenNI::update(){
                     if(user.getUseMaskTexture() && user.bNewPixels){
                         if(user.maskTexture.getWidth() != getWidth() || user.maskTexture.getHeight() != getHeight()){
                             ofLogVerbose(LOG_NAME) << "Allocating mask texture " << user.getXnID();
-                            user.maskTexture.allocate(getWidth(), getHeight(), ofGetGLTypeFromPixelFormat(user.getMaskPixelFormat()));
+                            user.maskTexture.allocate(getWidth(), getHeight(), ofGetGLFormatFromPixelFormat(user.getMaskPixelFormat()));
                         }
-                        if(user.maskPixels.getPixels() != NULL) user.maskTexture.loadData(user.maskPixels.getPixels(), getWidth(), getHeight(), ofGetGLTypeFromPixelFormat(user.getMaskPixelFormat()));
+                        if(user.maskPixels.getData() != NULL) user.maskTexture.loadData(user.maskPixels.getData(), getWidth(), getHeight(), ofGetGLFormatFromPixelFormat(user.getMaskPixelFormat()));
                     }
                     user.bNewPixels = false;
                     user.bNewPointCloud = false;
@@ -1216,16 +1218,16 @@ void ofxOpenNI::update(){
                 if(depthThreshold.getUseMaskPixels()){
                     if(depthThreshold.maskTexture.getWidth() != getWidth() || depthThreshold.maskTexture.getHeight() != getHeight()){
                         ofLogVerbose(LOG_NAME) << "Allocating mask texture for depthThreshold";
-                        depthThreshold.maskTexture.allocate(getWidth(), getHeight(), ofGetGLTypeFromPixelFormat(depthThreshold.getMaskPixelFormat()));
+                        depthThreshold.maskTexture.allocate(getWidth(), getHeight(), ofGetGLFormatFromPixelFormat(depthThreshold.getMaskPixelFormat()));
                     }
-                    depthThreshold.maskTexture.loadData(depthThreshold.maskPixels.getPixels(), getWidth(), getHeight(), ofGetGLTypeFromPixelFormat(depthThreshold.getMaskPixelFormat()));
+                    depthThreshold.maskTexture.loadData(depthThreshold.maskPixels.getData(), getWidth(), getHeight(), ofGetGLFormatFromPixelFormat(depthThreshold.getMaskPixelFormat()));
                 }
                 if(depthThreshold.getUseDepthPixels()){
                     if(depthThreshold.depthTexture.getWidth() != getWidth() || depthThreshold.depthTexture.getHeight() != getHeight()){
                         ofLogVerbose(LOG_NAME) << "Allocating depth texture for depthThreshold";
                         depthThreshold.depthTexture.allocate(getWidth(), getHeight(), GL_RGBA);
                     }
-                    depthThreshold.depthTexture.loadData(depthThreshold.depthPixels.getPixels(), getWidth(), getHeight(), GL_RGBA);
+                    depthThreshold.depthTexture.loadData(depthThreshold.depthPixels.getData(), getWidth(), getHeight(), GL_RGBA);
                 }
 
                 depthThreshold.bNewPixels = false;
@@ -1369,7 +1371,7 @@ void ofxOpenNI::updateDepthPixels(){
 
 	// copy depth into texture-map
 	for (XnUInt16 y = g_DepthMD.YOffset(); y < g_DepthMD.YRes() + g_DepthMD.YOffset(); y++){
-		unsigned char * texture = backDepthPixels->getPixels() + y * g_DepthMD.XRes() * 4 + g_DepthMD.XOffset() * 4;
+		unsigned char * texture = backDepthPixels->getData() + y * g_DepthMD.XRes() * 4 + g_DepthMD.XOffset() * 4;
 		for (XnUInt16 x = 0; x < g_DepthMD.XRes(); x++, depth++, texture += 4){
 
             ofColor depthColor;
@@ -1649,6 +1651,7 @@ void ofxOpenNI::updateRecorder(){
             }
         }
             break;
+            
         case ONI_STOP_RECORD:
         {
             nRetVal = g_Recorder.RemoveNodeFromRecording(g_Device);
@@ -1681,6 +1684,9 @@ void ofxOpenNI::updateRecorder(){
             g_Recorder.Release();
             g_bIsRecordOn = !(nRetVal == XN_STATUS_OK);
         }
+            break;
+            
+        default:
             break;
     }
     g_ONITask = ONI_NONE;
@@ -3342,7 +3348,7 @@ void ofxOpenNI::drawHand(float x, float y, float w, float, int index){
     ofFill();
     ofSetColor(255, 255, 0);
     ofxOpenNIHand & hand = getTrackedHand(index);
-    ofCircle(hand.position.x, hand.position.y, 10);
+    ofDrawCircle(hand.position.x, hand.position.y, 10);
     ofPopMatrix();
     ofPopStyle();
 }
@@ -3400,7 +3406,7 @@ void ofxOpenNI::cameraToWorld(const vector<ofVec2f>& c, vector<ofVec3f>& w){
 	//XnPoint3D *out = &projective[0];
 
 	//mutex.lock();
-	const XnDepthPixel* d = currentDepthRawPixels->getPixels();
+	const XnDepthPixel* d = currentDepthRawPixels->getData();
 	unsigned int pixel;
 	for (int i = 0; i < nPoints; ++i){
 		pixel = (int)c[i].x + (int)c[i].y * g_DepthMD.XRes();
