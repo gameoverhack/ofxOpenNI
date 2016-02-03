@@ -359,6 +359,7 @@ inline void getDepthColor(DepthColoring depthColoring, const unsigned short & de
     switch(depthColoring){
         case COLORING_PSYCHEDELIC_SHADES:
             color.a *= (((XnFloat)(depth % 10) / 20) + 0.5);
+            
         case COLORING_PSYCHEDELIC:
             switch((depth/10) % 10){
                 case 0:
@@ -401,18 +402,21 @@ inline void getDepthColor(DepthColoring depthColoring, const unsigned short & de
                     break;
             }
             break;
+            
         case COLORING_RAINBOW:
             col_index = (XnUInt16)(((depth) / (maxDepth / 256)));
             color.r = PalletIntsR[col_index];
             color.g = PalletIntsG[col_index];
             color.b = PalletIntsB[col_index];
             break;
+            
         case COLORING_CYCLIC_RAINBOW:
             col_index = (depth % 256);
             color.r = PalletIntsR[col_index];
             color.g = PalletIntsG[col_index];
             color.b = PalletIntsB[col_index];
             break;
+            
         case COLORING_BLUES:
             // 3 bytes of depth: black (R0G0B0) >> color.b (001) >> cyan (011) >> white (111)
             max = 256+255+255;
@@ -442,6 +446,7 @@ inline void getDepthColor(DepthColoring depthColoring, const unsigned short & de
                 color.r	= 255;
             }
             break;
+            
         case COLORING_GREY:
             max = 255;	// half depth
         {
@@ -451,6 +456,7 @@ inline void getDepthColor(DepthColoring depthColoring, const unsigned short & de
             color.b	= a;
         }
             break;
+            
         case COLORING_STATUS:
             // This is something to use on installations
             // when the end user needs to know if the camera is tracking or not
@@ -468,6 +474,9 @@ inline void getDepthColor(DepthColoring depthColoring, const unsigned short & de
             color.b	= 0;
         }
 #endif
+            break;
+            
+        default:
             break;
     }
 }
