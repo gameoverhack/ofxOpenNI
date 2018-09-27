@@ -32,6 +32,8 @@
 #include "ofxOpenNIUtils.h"
 #include "ofNode.h"
 
+using namespace std;
+
 class ofxOpenNIJoint {
     
 public:
@@ -210,7 +212,7 @@ public:
             mOrientation.getRotate(angle, vec);
             ofRotate(angle, vec.x, vec.y, vec.z);
             
-            ofLine(0, 0, 0, getProjectiveDistanceToParent());
+            ofDrawLine(0, 0, 0, getProjectiveDistanceToParent());
             
             ofDrawAxis(30);
             ofPopMatrix();
@@ -229,7 +231,7 @@ public:
             }
             
             ofFill();
-            ofCircle(0, 0, 5);
+            ofDrawCircle(0, 0, 5);
             ofNoFill();
             
             if(isParent()){
@@ -244,7 +246,7 @@ public:
                     ofSetLineWidth(5);
                     if(isParent()){
                         ofVec2f bone =  ofVec2f(parent->getProjectivePosition()) - ofVec2f(getProjectivePosition());
-                        if(!bUseOrientation) ofLine(0, 0, 0, bone.x, bone.y, 0);
+                        if(!bUseOrientation) ofDrawLine(0, 0, 0, bone.x, bone.y, 0);
                     }
                 }
             }
@@ -328,7 +330,7 @@ public:
             ofSetColor(255, 0, 0);
         }
         ofSetLineWidth(5);
-        ofLine(ofVec2f(startJoint->getProjectivePosition()),ofVec2f(endJoint->getProjectivePosition()));
+        ofDrawLine(ofVec2f(startJoint->getProjectivePosition()),ofVec2f(endJoint->getProjectivePosition()));
 		ofPopStyle();
 	}
 
@@ -610,24 +612,25 @@ public:
         ofPushMatrix();
         ofNoFill();
         ofSetLineWidth(0.5);
-        ofCircle(ofVec2f(centerProjective), 5);
         
-        ofRect(nearPlane);
-        ofRect(farPlane);
+        ofDrawCircle(ofVec2f(centerProjective), 5);
         
-        ofLine(ofVec2f(leftBottomNearProjective), ofVec2f(leftBottomFarProjective));
-        ofLine(ofVec2f(rightTopNearProjective), ofVec2f(rightTopFarProjective));
-        ofLine(ofVec2f(leftBottomNearProjective.x, rightTopNearProjective.y), ofVec2f(leftBottomFarProjective.x, rightTopFarProjective.y));
-        ofLine(ofVec2f(rightTopNearProjective.x, leftBottomNearProjective.y), ofVec2f(rightTopFarProjective.x, leftBottomFarProjective.y));
+        ofDrawRectangle(nearPlane);
+        ofDrawRectangle(farPlane);
+        
+        ofDrawLine(ofVec2f(leftBottomNearProjective), ofVec2f(leftBottomFarProjective));
+        ofDrawLine(ofVec2f(rightTopNearProjective), ofVec2f(rightTopFarProjective));
+        ofDrawLine(ofVec2f(leftBottomNearProjective.x, rightTopNearProjective.y), ofVec2f(leftBottomFarProjective.x, rightTopFarProjective.y));
+        ofDrawLine(ofVec2f(rightTopNearProjective.x, leftBottomNearProjective.y), ofVec2f(rightTopFarProjective.x, leftBottomFarProjective.y));
         ofPopMatrix();
         ofPopStyle();
     }
     
     void drawJoint(ofxOpenNIJoint & joint){
         ofSetColor(255*magnitude(joint), 0, 255);
-        ofCircle(ofVec2f(joint.getProjectivePosition()), 5);
+        ofDrawCircle(ofVec2f(joint.getProjectivePosition()), 5);
         ofSetLineWidth(2);
-        ofLine(ofVec2f(joint.getProjectivePosition()), ofVec2f(centerProjective));
+        ofDrawLine(ofVec2f(joint.getProjectivePosition()), ofVec2f(centerProjective));
     }
     
     inline int numJointsInside(ofxOpenNIUser & user){

@@ -520,25 +520,13 @@ private:
 
     // frame rate storage
     double prevMillis, lastFrameTime, timeNow, timeThen, tFps, frameRate;
-    
-    Poco::Mutex mutex;
+
+    std::recursive_mutex recursiveMutex;
     
     // block copy ctor and assignment operator
     ofxOpenNI(const ofxOpenNI& other);
     ofxOpenNI& operator=(const ofxOpenNI&);
 
-};
-
-class ofxOpenNIScopedLock {
-public:
-    ofxOpenNIScopedLock(bool _bIsThreaded, Poco::Mutex & _mutex):bIsThreaded(_bIsThreaded), mutex(_mutex){
-        if(bIsThreaded) mutex.lock();
-    };
-    ~ofxOpenNIScopedLock(){
-        if(bIsThreaded) mutex.unlock();
-    };
-    bool bIsThreaded;
-    Poco::Mutex & mutex;
 };
 
 #endif

@@ -29,6 +29,8 @@
 #ifndef _H_OFXOPENNIUTILS
 #define _H_OFXOPENNIUTILS
 
+using namespace std;
+
 #include <set>
 #include <map>
 
